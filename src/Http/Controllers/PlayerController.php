@@ -12,10 +12,13 @@ class PlayerController
 {
     public function show(): View
     {
+        // URLs immer aus den Route-Namen ableiten – der API-Prefix (/api/signage)
+        // wird vom ModuleRouter vergeben und darf nicht hartkodiert werden.
         return view('signage::player', [
-            'registerUrl'     => route('signage.api.register'),
-            'stateUrlBase'    => url('/signage/api/screen'),
-            'pollInterval'    => (int) config('signage.poll_interval_seconds', 10),
+            'registerUrl'         => route('signage.api.register'),
+            'stateUrlTemplate'    => route('signage.api.screen.state', ['deviceToken' => '__TOKEN__']),
+            'manifestUrlTemplate' => route('signage.api.screen.manifest', ['deviceToken' => '__TOKEN__']),
+            'pollInterval'        => (int) config('signage.poll_interval_seconds', 10),
         ]);
     }
 }

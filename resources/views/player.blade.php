@@ -78,10 +78,13 @@
     <script>
     (function () {
         const CONFIG = {
-            registerUrl:  @json($registerUrl),
-            stateUrlBase: @json($stateUrlBase),
+            registerUrl:         @json($registerUrl),
+            stateUrlTemplate:    @json($stateUrlTemplate),
+            manifestUrlTemplate: @json($manifestUrlTemplate),
             pollInterval: {{ $pollInterval }} * 1000,
         };
+        const stateUrl    = (token) => CONFIG.stateUrlTemplate.replace('__TOKEN__', token);
+        const manifestUrl = (token) => CONFIG.manifestUrlTemplate.replace('__TOKEN__', token);
         const STORAGE_KEY = 'signage_device_token';
 
         const stage    = document.getElementById('stage');
@@ -131,7 +134,7 @@
         async function poll() {
             try {
                 await ensureRegistered();
-                const state = await getJson(CONFIG.stateUrlBase + '/' + deviceToken);
+                const state = await getJson(stateUrl(deviceToken));
 
                 if (state.status === 'pending') {
                     stopPlayback();
@@ -163,7 +166,7 @@
 
         // ---- Manifest & playback ------------------------------------------
         async function loadManifest() {
-            const manifest = await getJson(CONFIG.stateUrlBase + '/' + deviceToken + '/manifest');
+            const manifest = await getJson(manifestUrl(deviceToken));
             if (manifest.status !== 'active') {
                 showPairing(manifest.pairing_code);
                 return;

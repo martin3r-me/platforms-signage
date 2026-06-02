@@ -8,11 +8,10 @@
             ['label' => 'Digital Signage', 'href' => route('signage.dashboard'), 'icon' => 'tv'],
             ['label' => 'Medien'],
         ]">
-            <label class="inline-flex items-center gap-2 cursor-pointer">
-                <x-ui-button variant="primary" size="sm" tag="span">
-                    @svg('heroicon-o-arrow-up-tray', 'w-4 h-4')
-                    Hochladen
-                </x-ui-button>
+            {{-- Label-as-button: ein verschachteltes <button> würde den Datei-Dialog blockieren. --}}
+            <label class="inline-flex items-center justify-center gap-2 cursor-pointer select-none whitespace-nowrap font-medium transition-all duration-150 active:scale-[0.98] bg-[rgb(var(--ui-primary-rgb))] text-[color:var(--ui-on-primary)] border border-transparent shadow-sm hover:brightness-110 hover:shadow-md rounded-full px-2.5 py-1 text-sm">
+                @svg('heroicon-o-arrow-up-tray', 'w-4 h-4')
+                <span>Hochladen</span>
                 <input type="file" class="hidden" wire:model="uploads" multiple
                        accept="image/*,video/*,audio/*,application/pdf,.ppt,.pptx">
             </label>
