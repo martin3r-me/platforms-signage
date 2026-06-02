@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Platform\Signage\Livewire\Apps\Clock as ClockApp;
+use Platform\Signage\Livewire\Apps\Weather as WeatherApp;
 use Platform\Signage\Livewire\Dashboard;
 use Platform\Signage\Livewire\Media\Index as MediaIndex;
 use Platform\Signage\Livewire\Playlists\Index as PlaylistIndex;
@@ -16,6 +17,8 @@ Route::get('/media', MediaIndex::class)->name('signage.media.index');
 // App-Editoren – erstellen + bearbeiten
 Route::get('/apps/clock', ClockApp::class)->name('signage.apps.clock.create');
 Route::get('/apps/clock/{media}', ClockApp::class)->name('signage.apps.clock.edit');
+Route::get('/apps/weather', WeatherApp::class)->name('signage.apps.weather.create');
+Route::get('/apps/weather/{media}', WeatherApp::class)->name('signage.apps.weather.edit');
 
 Route::get('/playlists', PlaylistIndex::class)->name('signage.playlists.index');
 Route::get('/playlists/{playlist}', PlaylistShow::class)->name('signage.playlists.show');
