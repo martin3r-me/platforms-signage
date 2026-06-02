@@ -7,10 +7,20 @@
         <x-ui-page-actionbar :breadcrumbs="[
             ['label' => 'Digital Signage', 'href' => route('signage.dashboard'), 'icon' => 'tv'],
         ]">
-            <x-ui-button variant="primary" size="sm" :href="route('signage.screens.index')">
-                @svg('heroicon-o-computer-desktop', 'w-4 h-4')
-                Bildschirme
-            </x-ui-button>
+            <div class="flex items-center gap-2">
+                <x-ui-button variant="secondary" size="sm" :href="route('signage.media.index')">
+                    @svg('heroicon-o-photo', 'w-4 h-4')
+                    Medien
+                </x-ui-button>
+                <x-ui-button variant="secondary" size="sm" :href="route('signage.playlists.index')">
+                    @svg('heroicon-o-queue-list', 'w-4 h-4')
+                    Wiedergabelisten
+                </x-ui-button>
+                <x-ui-button variant="primary" size="sm" :href="route('signage.screens.index')">
+                    @svg('heroicon-o-computer-desktop', 'w-4 h-4')
+                    Bildschirme
+                </x-ui-button>
+            </div>
         </x-ui-page-actionbar>
     </x-slot>
 
