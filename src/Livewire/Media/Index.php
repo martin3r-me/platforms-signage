@@ -18,6 +18,11 @@ class Index extends Component
     /** @var array<UploadedFile> */
     public $uploads = [];
 
+    // Stream einbinden (z.B. Internet-Radio oder TuneIn-Embed)
+    public string $streamName = '';
+    public string $streamUrl = '';
+    public string $streamType = 'stream'; // 'stream' = direkter Audio-Stream, 'embed' = iframe-Player
+
     public function rules(): array
     {
         return [
@@ -108,6 +113,34 @@ class Index extends Component
             'mp3', 'aac', 'ogg', 'wav' => 'audio',
             default => 'document',
         };
+    }
+
+    public function addStream(): void
+    {
+        $this->validate([
+            'streamName' => 'required|string|max:255',
+            'streamUrl'  => 'required|url|max:1024',
+            'streamType' => 'required|in:stream,embed',
+        ]);
+
+        // TuneIn-/Embed-Links automatisch als iframe behandeln.
+        $isEmbed = $this->streamType === 'embed'
+            || str_contains($this->streamUrl, '/embed')
+            || str_contains($this->streamUrl, 'tunein.com/embed');
+
+        SignageMedia::create([
+            'team_id'           => $this->teamId(),
+            'user_id'           => auth()->id(),
+            'name'              => $this->streamName,
+            'kind'              => 'audio',
+            'source_type'       => 'stream',
+            'stream_url'        => $this->streamUrl,
+            'is_embed'          => $isEmbed,
+            'processing_status' => 'ready',
+        ]);
+
+        $this->reset('streamName', 'streamUrl', 'streamType');
+        session()->flash('signage_message', 'Stream hinzugefügt.');
     }
 
     public function deleteMedia(int $id): void

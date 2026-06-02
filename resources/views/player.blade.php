@@ -248,8 +248,27 @@
 
         // ---- Background music ---------------------------------------------
         let musicIndex = 0;
+        let musicEmbed = null;
+
+        function clearMusicEmbed() {
+            if (musicEmbed && musicEmbed.parentNode) musicEmbed.parentNode.removeChild(musicEmbed);
+            musicEmbed = null;
+        }
+
         function startMusic() {
+            clearMusicEmbed();
+
             if (!musicTracks.length) { musicEl.pause(); musicEl.removeAttribute('src'); return; }
+
+            // Embed-Player (iframe, z.B. TuneIn): kontinuierlich, kein Cycling.
+            const embed = musicTracks.find(t => t.type === 'embed');
+            if (embed) {
+                musicEl.pause(); musicEl.removeAttribute('src');
+                renderMusicEmbed(embed.url);
+                return;
+            }
+
+            // Direkte Streams + Dateien über <audio>.
             musicEl.loop = false;
             musicEl.onended = () => {
                 musicIndex = (musicIndex + 1) % musicTracks.length;
@@ -258,19 +277,36 @@
             musicIndex = 0;
             playTrack();
         }
+
         function playTrack() {
             if (!musicTracks.length) return;
-            musicEl.src = musicTracks[musicIndex].url;
+            const track = musicTracks[musicIndex];
+            // Einzelner Dauer-Stream soll bei Verbindungsabbruch nicht stumm bleiben:
+            musicEl.loop = (musicTracks.length === 1 && track.type === 'stream');
+            musicEl.src = track.url;
             const p = musicEl.play();
             if (p && p.catch) {
                 p.catch(() => { if (!userInteracted) tapStart.classList.remove('hidden'); });
             }
         }
 
+        function renderMusicEmbed(url) {
+            const f = document.createElement('iframe');
+            f.id = 'music-embed';
+            f.src = url;
+            f.allow = 'autoplay; encrypted-media';
+            // Unsichtbar im Hintergrund – es geht nur um den Ton.
+            f.style.cssText = 'position:fixed; left:-9999px; bottom:0; width:320px; height:120px; border:0;';
+            document.body.appendChild(f);
+            musicEmbed = f;
+            // Embeds starten je nach Browser nur nach Interaktion -> Hinweis-Overlay.
+            if (!userInteracted) tapStart.classList.remove('hidden');
+        }
+
         tapStart.addEventListener('click', () => {
             userInteracted = true;
             tapStart.classList.add('hidden');
-            playTrack();
+            startMusic();
             requestFullscreen();
         });
 

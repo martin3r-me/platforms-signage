@@ -32,7 +32,38 @@
                 <div class="p-3 rounded bg-red-100 text-red-800 text-sm">{{ $message }}</div>
             @enderror
 
-            <x-ui-panel title="Bibliothek" subtitle="Bilder, Videos, Audio, PDF und PowerPoint">
+            <x-ui-panel title="Stream einbinden" subtitle="Internet-Radio / Audio-Stream als Hintergrundmusik">
+                <form wire:submit="addStream" class="space-y-3 p-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <x-ui-input-text name="streamName" label="Name" wire:model="streamName" placeholder="z.B. Lounge Radio" />
+                            @error('streamName')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+                        </div>
+                        <div>
+                            <x-ui-input-select name="streamType" label="Typ" wire:model="streamType"
+                                :options="[
+                                    ['value' => 'stream', 'label' => 'Direkter Stream (empfohlen, autoplay)'],
+                                    ['value' => 'embed', 'label' => 'Eingebetteter Player / iframe (z.B. TuneIn)'],
+                                ]"
+                                optionValue="value" optionLabel="label" />
+                        </div>
+                    </div>
+                    <div>
+                        <x-ui-input-text name="streamUrl" label="URL" wire:model="streamUrl"
+                            placeholder="https://… (Stream-URL oder https://tunein.com/embed/player/s309907/)" />
+                        @error('streamUrl')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs text-[var(--ui-muted)]">
+                            Direkte Stream-URLs (z.B. Icecast/SHOUTcast <code>.mp3</code>/<code>.aac</code>) starten auf TVs zuverlässig automatisch.
+                            Eingebettete Player (iframe) starten oft erst nach einer Interaktion.
+                        </p>
+                        <x-ui-button type="submit" variant="primary">Stream hinzufügen</x-ui-button>
+                    </div>
+                </form>
+            </x-ui-panel>
+
+            <x-ui-panel title="Bibliothek" subtitle="Bilder, Videos, Audio, Streams, PDF und PowerPoint">
                 @if($media->isEmpty())
                     <div class="p-8 text-center text-[var(--ui-muted)]">Noch keine Medien hochgeladen.</div>
                 @else
@@ -43,6 +74,8 @@
                                     @php($preview = $m->previewUrl())
                                     @if($preview)
                                         <img src="{{ $preview }}" alt="{{ $m->name }}" class="w-full h-full object-cover">
+                                    @elseif($m->isStream())
+                                        @svg('heroicon-o-signal', 'w-10 h-10 text-[var(--ui-muted)]')
                                     @elseif($m->kind === 'video')
                                         @svg('heroicon-o-film', 'w-10 h-10 text-[var(--ui-muted)]')
                                     @elseif($m->kind === 'audio')
@@ -53,9 +86,17 @@
                                 </div>
                                 <div class="p-2">
                                     <div class="text-xs font-medium text-[var(--ui-secondary)] truncate" title="{{ $m->name }}">{{ $m->name }}</div>
+                                    @if($m->isStream())
+                                        <div class="text-[10px] text-[var(--ui-muted)] truncate" title="{{ $m->stream_url }}">{{ $m->stream_url }}</div>
+                                    @endif
                                     <div class="flex items-center justify-between mt-1">
                                         <span class="text-[10px] uppercase tracking-wide text-[var(--ui-muted)]">
-                                            {{ $m->kind }}@if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} S.@endif
+                                            @if($m->isStream())
+                                                {{ $m->is_embed ? 'Embed' : 'Stream' }}
+                                            @else
+                                                {{ $m->kind }}
+                                                @if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} S.@endif
+                                            @endif
                                         </span>
                                         @if($m->kind === 'document' && $m->processing_status !== 'ready')
                                             <span class="text-[10px] {{ $m->processing_status === 'failed' ? 'text-red-600' : 'text-blue-600' }}">

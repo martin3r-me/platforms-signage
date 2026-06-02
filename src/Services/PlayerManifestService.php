@@ -132,7 +132,17 @@ class PlayerManifestService
                 continue;
             }
 
+            if ($media->isStream()) {
+                $tracks[] = [
+                    'type'  => $media->is_embed ? 'embed' : 'stream',
+                    'url'   => $media->stream_url,
+                    'title' => $media->name,
+                ];
+                continue;
+            }
+
             $tracks[] = [
+                'type'  => 'file',
                 'url'   => $this->mediaUrl($media),
                 'title' => $media->name,
             ];
