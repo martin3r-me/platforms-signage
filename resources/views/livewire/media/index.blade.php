@@ -8,13 +8,19 @@
             ['label' => 'Digital Signage', 'href' => route('signage.dashboard'), 'icon' => 'tv'],
             ['label' => 'Medien'],
         ]">
-            {{-- Label-as-button: ein verschachteltes <button> würde den Datei-Dialog blockieren. --}}
-            <label class="inline-flex items-center justify-center gap-2 cursor-pointer select-none whitespace-nowrap font-medium transition-all duration-150 active:scale-[0.98] bg-[rgb(var(--ui-primary-rgb))] text-[color:var(--ui-on-primary)] border border-transparent shadow-sm hover:brightness-110 hover:shadow-md rounded-full px-2.5 py-1 text-sm">
-                @svg('heroicon-o-arrow-up-tray', 'w-4 h-4')
-                <span>Hochladen</span>
-                <input type="file" class="hidden" wire:model="uploads" multiple
-                       accept="image/*,video/*,audio/*,application/pdf,.ppt,.pptx">
-            </label>
+            <div class="flex items-center gap-2">
+                <x-ui-button variant="secondary" size="sm" :href="route('signage.apps.clock.create')">
+                    @svg('heroicon-o-clock', 'w-4 h-4')
+                    Uhr-App
+                </x-ui-button>
+                {{-- Label-as-button: ein verschachteltes <button> würde den Datei-Dialog blockieren. --}}
+                <label class="inline-flex items-center justify-center gap-2 cursor-pointer select-none whitespace-nowrap font-medium transition-all duration-150 active:scale-[0.98] bg-[rgb(var(--ui-primary-rgb))] text-[color:var(--ui-on-primary)] border border-transparent shadow-sm hover:brightness-110 hover:shadow-md rounded-full px-2.5 py-1 text-sm">
+                    @svg('heroicon-o-arrow-up-tray', 'w-4 h-4')
+                    <span>Hochladen</span>
+                    <input type="file" class="hidden" wire:model="uploads" multiple
+                           accept="image/*,video/*,audio/*,application/pdf,.ppt,.pptx">
+                </label>
+            </div>
         </x-ui-page-actionbar>
     </x-slot>
 
@@ -76,6 +82,8 @@
                                         <img src="{{ $preview }}" alt="{{ $m->name }}" class="w-full h-full object-cover">
                                     @elseif($m->isStream())
                                         @svg('heroicon-o-signal', 'w-10 h-10 text-[var(--ui-muted)]')
+                                    @elseif($m->isApp())
+                                        @svg('heroicon-o-clock', 'w-10 h-10 text-[var(--ui-muted)]')
                                     @elseif($m->kind === 'video')
                                         @svg('heroicon-o-film', 'w-10 h-10 text-[var(--ui-muted)]')
                                     @elseif($m->kind === 'audio')
@@ -93,6 +101,8 @@
                                         <span class="text-[10px] uppercase tracking-wide text-[var(--ui-muted)]">
                                             @if($m->isStream())
                                                 {{ $m->is_embed ? 'Embed' : 'Stream' }}
+                                            @elseif($m->isApp())
+                                                App · {{ $m->app_type }}
                                             @else
                                                 {{ $m->kind }}
                                                 @if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} S.@endif
@@ -105,6 +115,12 @@
                                         @endif
                                     </div>
                                 </div>
+                                @if($m->isApp() && $m->app_type === 'clock')
+                                    <a href="{{ route('signage.apps.clock.edit', $m) }}" wire:navigate
+                                       class="absolute top-1.5 left-1.5 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">
+                                        @svg('heroicon-o-pencil-square', 'w-4 h-4')
+                                    </a>
+                                @endif
                                 <button wire:click="deleteMedia({{ $m->id }})"
                                         wire:confirm="Dieses Medium wirklich löschen?"
                                         class="absolute top-1.5 right-1.5 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">

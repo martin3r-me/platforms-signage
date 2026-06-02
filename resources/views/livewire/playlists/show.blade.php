@@ -53,6 +53,8 @@
                                         @svg('heroicon-o-film', 'w-5 h-5 text-[var(--ui-muted)]')
                                     @elseif($item->media?->kind === 'audio')
                                         @svg('heroicon-o-musical-note', 'w-5 h-5 text-[var(--ui-muted)]')
+                                    @elseif($item->media?->kind === 'app')
+                                        @svg('heroicon-o-squares-2x2', 'w-5 h-5 text-[var(--ui-muted)]')
                                     @else
                                         @svg('heroicon-o-document', 'w-5 h-5 text-[var(--ui-muted)]')
                                     @endif

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Platform\Signage\Livewire\Apps\Clock as ClockApp;
 use Platform\Signage\Livewire\Dashboard;
 use Platform\Signage\Livewire\Media\Index as MediaIndex;
 use Platform\Signage\Livewire\Playlists\Index as PlaylistIndex;
@@ -11,6 +12,10 @@ use Platform\Signage\Livewire\Screens\Show as ScreenShow;
 Route::get('/', Dashboard::class)->name('signage.dashboard');
 
 Route::get('/media', MediaIndex::class)->name('signage.media.index');
+
+// App-Editoren – erstellen + bearbeiten
+Route::get('/apps/clock', ClockApp::class)->name('signage.apps.clock.create');
+Route::get('/apps/clock/{media}', ClockApp::class)->name('signage.apps.clock.edit');
 
 Route::get('/playlists', PlaylistIndex::class)->name('signage.playlists.index');
 Route::get('/playlists/{playlist}', PlaylistShow::class)->name('signage.playlists.show');

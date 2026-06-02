@@ -27,7 +27,7 @@ class Show extends Component
     /** Medien, die zum Typ der Liste passen. */
     public function availableMedia()
     {
-        $kinds = $this->playlist->kind === 'music' ? ['audio'] : ['image', 'video', 'document'];
+        $kinds = $this->playlist->kind === 'music' ? ['audio'] : ['image', 'video', 'document', 'app'];
 
         return SignageMedia::where('team_id', $this->teamId())
             ->whereIn('kind', $kinds)

@@ -51,6 +51,23 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
+        /* Clock app */
+        .app-clock { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3vmin; }
+        .app-clock-dark { background: #0b0f17; color: #fff; }
+        .app-clock-light { background: #f3f4f6; color: #0b0f17; }
+        .clk-time { font-size: 18vmin; font-weight: 700; letter-spacing: .02em; line-height: 1; font-variant-numeric: tabular-nums; }
+        .clk-minimal .clk-time { font-weight: 200; letter-spacing: .04em; }
+        .clk-ampm { font-size: 5vmin; font-weight: 400; }
+        .clk-date { font-size: 5vmin; opacity: .8; }
+        .clk-minimal .clk-date { font-weight: 300; }
+        .clk-portrait .clk-time { font-size: 22vmin; }
+        .flip-row { display: flex; gap: 2vmin; }
+        .clk-portrait .flip-row { flex-direction: column; }
+        .flip-group { position: relative; background: #1c1c1e; color: #fff; border-radius: 2vmin; padding: 3vmin 4vmin; font-size: 16vmin; font-weight: 700; font-variant-numeric: tabular-nums; box-shadow: 0 1vmin 3vmin rgba(0,0,0,.4); }
+        .flip-group::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: rgba(0,0,0,.55); transform: translateY(-50%); }
+        .flip-anim { animation: flipdown .4s ease; }
+        @keyframes flipdown { 0% { transform: perspective(400px) rotateX(0); } 50% { transform: perspective(400px) rotateX(-20deg); } 100% { transform: perspective(400px) rotateX(0); } }
+
         #tapStart {
             position: fixed; inset: 0; z-index: 20;
             display: flex; align-items: center; justify-content: center;
@@ -191,7 +208,9 @@
 
         // Dreht die Bühne entsprechend der Bildschirm-Ausrichtung.
         // landscape (0°), landscape_180 (180°), portrait (90°), portrait_180 (270°).
+        let currentOrientation = 'landscape';
         function applyOrientation(orientation) {
+            currentOrientation = orientation || 'landscape';
             const s = stage;
             if (orientation === 'portrait' || orientation === 'portrait_180') {
                 // 90°/270°: Breite/Höhe tauschen und um den Mittelpunkt drehen.
@@ -245,6 +264,8 @@
                 frame.appendChild(v);
                 mount(frame);
                 v.play().catch(() => {});
+            } else if (item.type === 'app') {
+                renderApp(item, frame);
             } else {
                 const img = document.createElement('img');
                 img.src = item.url;
@@ -256,6 +277,28 @@
             }
         }
 
+        // App-Frames (Uhr, …) werden clientseitig gerendert und für die Dauer angezeigt.
+        function renderApp(item, frame) {
+            const portrait = currentOrientation.indexOf('portrait') === 0;
+            const built = buildApp(item.app_type, item.config || {}, portrait);
+            if (built) {
+                frame.appendChild(built.node);
+                frame._cleanup = built.stop;
+            }
+            mount(frame);
+            const ms = (item.duration || 10) * 1000;
+            frameTimer = setTimeout(() => { swap(frame); advance(); }, ms);
+        }
+
+        function buildApp(type, cfg, portrait) {
+            if (type === 'clock') return buildClock(cfg, portrait);
+            return null;
+        }
+
+        function runCleanup(f) {
+            if (f && f._cleanup) { try { f._cleanup(); } catch (e) {} f._cleanup = null; }
+        }
+
         function mount(frame) {
             stage.appendChild(frame);
             // Reflow erzwingen, dann einblenden (Fade).
@@ -264,13 +307,95 @@
             // Alte Frames entfernen (nur den jüngsten Vorgänger ausblenden lassen).
             const frames = stage.querySelectorAll('.frame');
             if (frames.length > 2) {
+                runCleanup(frames[0]);
                 stage.removeChild(frames[0]);
             }
         }
 
         function swap(frame) {
             frame.classList.remove('visible');
-            setTimeout(() => { if (frame.parentNode) frame.parentNode.removeChild(frame); }, 700);
+            setTimeout(() => {
+                runCleanup(frame);
+                if (frame.parentNode) frame.parentNode.removeChild(frame);
+            }, 700);
+        }
+
+        // ---- Clock app -----------------------------------------------------
+        function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+        const DE_MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+        const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const DE_DAYS = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+
+        function formatClockDate(d, fmt) {
+            const day = d.getDate(), mon = d.getMonth(), yr = d.getFullYear();
+            if (fmt === 'de_short') return pad2(day) + '.' + pad2(mon + 1) + '.' + yr;
+            if (fmt === 'en_long') return EN_MONTHS[mon] + ' ' + pad2(day) + ', ' + yr;
+            if (fmt === 'iso') return yr + '-' + pad2(mon + 1) + '-' + pad2(day);
+            return DE_DAYS[d.getDay()] + ', ' + day + '. ' + DE_MONTHS[mon] + ' ' + yr;
+        }
+
+        function clockTimeParts(now, cfg) {
+            const h = now.getHours(), m = pad2(now.getMinutes()), s = pad2(now.getSeconds());
+            let ampm = '', hh;
+            if (cfg.time_format === '12h') {
+                ampm = h >= 12 ? 'PM' : 'AM';
+                let h12 = h % 12; if (h12 === 0) h12 = 12;
+                hh = pad2(h12);
+            } else {
+                hh = pad2(h);
+            }
+            const display = (cfg.time_format === '12h' ? String(parseInt(hh, 10)) : hh) + ':' + m + (cfg.show_seconds ? ':' + s : '');
+            return { hh: hh, mm: m, ss: s, display: display, ampm: ampm };
+        }
+
+        function buildClock(cfg, portrait) {
+            const theme = cfg.theme === 'light' ? 'light' : 'dark';
+            const type = cfg.clock_type || 'modern_digital';
+            const wrap = document.createElement('div');
+            wrap.className = 'app-clock app-clock-' + theme + ' clk-' + type + (portrait ? ' clk-portrait' : '');
+
+            let timeEl = null, dateEl = null, flipGroups = null;
+
+            if (type === 'flip') {
+                const row = document.createElement('div'); row.className = 'flip-row';
+                flipGroups = [];
+                const count = cfg.show_seconds ? 3 : 2;
+                for (let i = 0; i < count; i++) {
+                    const g = document.createElement('div'); g.className = 'flip-group';
+                    const span = document.createElement('span'); span.textContent = '00';
+                    g.appendChild(span); row.appendChild(g); flipGroups.push(span);
+                }
+                wrap.appendChild(row);
+            } else {
+                timeEl = document.createElement('div'); timeEl.className = 'clk-time';
+                wrap.appendChild(timeEl);
+            }
+            if (cfg.show_date) {
+                dateEl = document.createElement('div'); dateEl.className = 'clk-date';
+                wrap.appendChild(dateEl);
+            }
+
+            function tick() {
+                const now = new Date();
+                const p = clockTimeParts(now, cfg);
+                if (type === 'flip') {
+                    const vals = cfg.show_seconds ? [p.hh, p.mm, p.ss] : [p.hh, p.mm];
+                    vals.forEach((val, i) => {
+                        if (flipGroups[i].textContent !== val) {
+                            flipGroups[i].textContent = val;
+                            const box = flipGroups[i].parentNode;
+                            box.classList.remove('flip-anim'); void box.offsetWidth; box.classList.add('flip-anim');
+                        }
+                    });
+                } else {
+                    timeEl.innerHTML = p.display + (p.ampm ? ' <span class="clk-ampm">' + p.ampm + '</span>' : '');
+                }
+                if (dateEl) dateEl.textContent = formatClockDate(now, cfg.date_format || 'de_long');
+            }
+            tick();
+            const id = setInterval(tick, 1000);
+            return { node: wrap, stop: () => clearInterval(id) };
         }
 
         // ---- Background music ---------------------------------------------

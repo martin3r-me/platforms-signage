@@ -89,7 +89,15 @@ class PlayerManifestService
 
             $duration = $item->duration_seconds ?: $defaultDuration;
 
-            if ($media->kind === 'image') {
+            if ($media->kind === 'app') {
+                $frames[] = [
+                    'type'       => 'app',
+                    'app_type'   => $media->app_type,
+                    'config'     => $media->config ?? [],
+                    'duration'   => $duration,
+                    'transition' => $item->transition,
+                ];
+            } elseif ($media->kind === 'image') {
                 $frames[] = [
                     'type'       => 'image',
                     'url'        => $this->mediaUrl($media),

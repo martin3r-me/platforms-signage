@@ -14,13 +14,14 @@ class SignageMedia extends Model
     protected $table = 'signage_media';
 
     protected $fillable = [
-        'uuid', 'team_id', 'user_id', 'name', 'kind',
+        'uuid', 'team_id', 'user_id', 'name', 'kind', 'app_type', 'config',
         'source_type', 'stream_url', 'is_embed',
         'disk', 'path', 'token', 'original_name', 'mime_type', 'file_size',
         'width', 'height', 'duration_seconds', 'processing_status', 'page_count',
     ];
 
     protected $casts = [
+        'config' => 'array',
         'is_embed' => 'boolean',
         'file_size' => 'integer',
         'width' => 'integer',
@@ -32,6 +33,11 @@ class SignageMedia extends Model
     public function isStream(): bool
     {
         return $this->source_type === 'stream';
+    }
+
+    public function isApp(): bool
+    {
+        return $this->kind === 'app';
     }
 
     public function pages(): HasMany
