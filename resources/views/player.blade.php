@@ -172,6 +172,8 @@
                 return;
             }
 
+            applyOrientation(manifest.screen && manifest.screen.orientation ? manifest.screen.orientation : 'landscape');
+
             playlist = manifest.items || [];
             musicTracks = manifest.music || [];
 
@@ -185,6 +187,31 @@
             startMusic();
             playIndex = 0;
             startPlayback();
+        }
+
+        // Dreht die Bühne entsprechend der Bildschirm-Ausrichtung.
+        // landscape (0°), landscape_180 (180°), portrait (90°), portrait_180 (270°).
+        function applyOrientation(orientation) {
+            const s = stage;
+            if (orientation === 'portrait' || orientation === 'portrait_180') {
+                // 90°/270°: Breite/Höhe tauschen und um den Mittelpunkt drehen.
+                const deg = orientation === 'portrait_180' ? 270 : 90;
+                s.style.inset = 'auto';
+                s.style.top = '50%';
+                s.style.left = '50%';
+                s.style.width = '100vh';
+                s.style.height = '100vw';
+                s.style.transformOrigin = 'center center';
+                s.style.transform = 'translate(-50%, -50%) rotate(' + deg + 'deg)';
+            } else {
+                s.style.inset = '0';
+                s.style.top = '';
+                s.style.left = '';
+                s.style.width = '';
+                s.style.height = '';
+                s.style.transformOrigin = 'center center';
+                s.style.transform = (orientation === 'landscape_180') ? 'rotate(180deg)' : 'none';
+            }
         }
 
         function stopPlayback() {

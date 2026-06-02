@@ -43,7 +43,7 @@ class Show extends Component
     {
         $this->validate([
             'name' => 'required|string|max:255',
-            'orientation' => 'required|in:landscape,portrait',
+            'orientation' => 'required|in:landscape,landscape_180,portrait,portrait_180',
         ]);
 
         $this->screen->update([

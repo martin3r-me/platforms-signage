@@ -33,7 +33,7 @@
 
             <x-ui-panel title="Live-Vorschau">
                 <div class="p-4">
-                    <div class="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-black {{ $screen->orientation === 'portrait' ? 'aspect-[9/16] max-w-xs' : 'aspect-video' }}">
+                    <div class="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-black {{ str_starts_with($screen->orientation, 'portrait') ? 'aspect-[9/16] max-w-xs' : 'aspect-video' }}">
                         <iframe src="{{ $previewUrl }}" class="absolute inset-0 w-full h-full" frameborder="0"></iframe>
                     </div>
                 </div>
@@ -44,7 +44,12 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <x-ui-input-text name="name" label="Name" wire:model="name" />
                         <x-ui-input-select name="orientation" label="Ausrichtung" wire:model="orientation"
-                            :options="[['value' => 'landscape', 'label' => 'Querformat'], ['value' => 'portrait', 'label' => 'Hochformat']]"
+                            :options="[
+                                ['value' => 'landscape', 'label' => 'Querformat'],
+                                ['value' => 'landscape_180', 'label' => 'Querformat (180° gedreht)'],
+                                ['value' => 'portrait', 'label' => 'Hochformat'],
+                                ['value' => 'portrait_180', 'label' => 'Hochformat (180° gedreht)'],
+                            ]"
                             optionValue="value" optionLabel="label" />
                         <x-ui-input-select name="defaultPlaylistId" label="Standard-Wiedergabeliste" wire:model="defaultPlaylistId"
                             :options="$visualOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
