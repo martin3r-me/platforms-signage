@@ -1,0 +1,17 @@
+{
+  "name": "martin3r/platforms-signage",
+  "description": "Digital Signage Module for Platform - Upload media, build playlists and display them on TVs/monitors",
+  "type": "library",
+  "autoload": {
+    "psr-4": {
+      "Platform\\Signage\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Platform\\Signage\\SignageServiceProvider"
+      ]
+    }
+  }
+}
