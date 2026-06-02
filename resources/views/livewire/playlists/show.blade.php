@@ -60,7 +60,10 @@
                                 <div class="flex-1 min-w-0">
                                     <div class="font-medium text-[var(--ui-secondary)] truncate">{{ $item->media?->name ?? 'Gelöscht' }}</div>
                                     <div class="text-xs text-[var(--ui-muted)]">
-                                        {{ $item->media?->kind }}@if($item->media?->kind === 'document' && $item->media?->page_count) · {{ $item->media->page_count }} Seiten@endif
+                                        {{ $item->media?->kind }}
+                                        @if($item->media?->kind === 'document' && $item->media?->page_count)
+                                            · {{ $item->media->page_count }} Seiten
+                                        @endif
                                     </div>
                                 </div>
                                 @if($playlist->kind !== 'music' && in_array($item->media?->kind, ['image', 'document']))
