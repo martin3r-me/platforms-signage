@@ -1,6 +1,8 @@
 @php
     $visualOptions = $visualPlaylists->map(fn($p) => ['value' => $p->id, 'label' => $p->name])->values()->all();
-    $musicOptions = $musicPlaylists->map(fn($p) => ['value' => $p->id, 'label' => $p->name])->values()->all();
+    // Nur Playlists – für die Zeitplan-Musik (music_playlist_id). Das Einstellungs-Feld
+    // nutzt das kombinierte $musicOptions (Playlists + einzelne Streams) aus der Komponente.
+    $musicPlaylistOptions = $musicPlaylists->map(fn($p) => ['value' => $p->id, 'label' => $p->name])->values()->all();
     $weekdays = [1 => 'Mo', 2 => 'Di', 3 => 'Mi', 4 => 'Do', 5 => 'Fr', 6 => 'Sa', 7 => 'So'];
 @endphp
 <x-ui-page>
@@ -53,7 +55,7 @@
                             optionValue="value" optionLabel="label" />
                         <x-ui-input-select name="defaultPlaylistId" label="Standard-Wiedergabeliste" wire:model="defaultPlaylistId"
                             :options="$visualOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
-                        <x-ui-input-select name="musicPlaylistId" label="Hintergrundmusik" wire:model="musicPlaylistId"
+                        <x-ui-input-select name="musicSource" label="Hintergrundmusik" wire:model="musicSource"
                             :options="$musicOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
                     </div>
                     <x-ui-button type="submit" variant="primary">Speichern</x-ui-button>
@@ -106,8 +108,8 @@
                         </div>
                         <x-ui-input-select name="schedPlaylistId" label="Wiedergabeliste" wire:model="schedPlaylistId"
                             :options="$visualOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– wählen –" />
-                        <x-ui-input-select name="schedMusicId" label="Musik (optional)" wire:model="schedMusicId"
-                            :options="$musicOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
+                        <x-ui-input-select name="schedMusicId" label="Musik-Liste (optional)" wire:model="schedMusicId"
+                            :options="$musicPlaylistOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
                         <div>
                             <label class="block text-xs text-[var(--ui-muted)] mb-1">Priorität</label>
                             <input type="number" wire:model="schedPriority" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">

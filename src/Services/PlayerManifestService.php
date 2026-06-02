@@ -28,6 +28,19 @@ class PlayerManifestService
         $visualPlaylist = $this->pickPlaylist($screen, $now, 'visual');
         $musicPlaylist  = $this->pickPlaylist($screen, $now, 'music');
 
+        // Musik: Playlist (Zeitplan/Default) ODER ein einzelnes Stream/Audio-Medium.
+        if ($musicPlaylist) {
+            $music = $this->buildMusicItems($musicPlaylist);
+            $musicName = $musicPlaylist->name;
+        } elseif ($screen->music_media_id && ($m = SignageMedia::find($screen->music_media_id)) && $m->kind === 'audio') {
+            $track = $this->musicTrack($m);
+            $music = $track ? [$track] : [];
+            $musicName = $m->name;
+        } else {
+            $music = [];
+            $musicName = null;
+        }
+
         return [
             'screen' => [
                 'uuid'        => $screen->uuid,
@@ -37,9 +50,9 @@ class PlayerManifestService
             'content_version'   => (int) $screen->content_version,
             'poll_interval'     => (int) config('signage.poll_interval_seconds', 10),
             'items'             => $visualPlaylist ? $this->buildVisualItems($visualPlaylist) : [],
-            'music'             => $musicPlaylist ? $this->buildMusicItems($musicPlaylist) : [],
+            'music'             => $music,
             'visual_playlist'   => $visualPlaylist?->name,
-            'music_playlist'    => $musicPlaylist?->name,
+            'music_playlist'    => $musicName,
         ];
     }
 
@@ -135,28 +148,37 @@ class PlayerManifestService
         $tracks = [];
 
         foreach ($playlist->items as $item) {
-            $media = $item->media;
-            if (!$media || $media->kind !== 'audio') {
-                continue;
+            $track = $this->musicTrack($item->media);
+            if ($track) {
+                $tracks[] = $track;
             }
+        }
 
-            if ($media->isStream()) {
-                $tracks[] = [
-                    'type'  => $media->is_embed ? 'embed' : 'stream',
-                    'url'   => $media->stream_url,
-                    'title' => $media->name,
-                ];
-                continue;
-            }
+        return $tracks;
+    }
 
-            $tracks[] = [
-                'type'  => 'file',
-                'url'   => $this->mediaUrl($media),
+    /**
+     * Baut einen Musik-Track aus einem Audio-Medium (Datei, direkter Stream oder Embed).
+     */
+    private function musicTrack(?SignageMedia $media): ?array
+    {
+        if (!$media || $media->kind !== 'audio') {
+            return null;
+        }
+
+        if ($media->isStream()) {
+            return [
+                'type'  => $media->is_embed ? 'embed' : 'stream',
+                'url'   => $media->stream_url,
                 'title' => $media->name,
             ];
         }
 
-        return $tracks;
+        return [
+            'type'  => 'file',
+            'url'   => $this->mediaUrl($media),
+            'title' => $media->name,
+        ];
     }
 
     private function mediaUrl(SignageMedia $media): string

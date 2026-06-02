@@ -17,7 +17,8 @@ class Show extends Component
 
     // Einstellungen
     public ?int $defaultPlaylistId = null;
-    public ?int $musicPlaylistId = null;
+    // "playlist:ID" oder "media:ID" (einzelner Stream/Audio) oder '' (keine)
+    public string $musicSource = '';
     public string $orientation = 'landscape';
     public string $name = '';
 
@@ -34,7 +35,11 @@ class Show extends Component
         abort_unless($screen->team_id === $this->teamId(), 403);
         $this->screen = $screen;
         $this->defaultPlaylistId = $screen->default_playlist_id;
-        $this->musicPlaylistId = $screen->music_playlist_id;
+        if ($screen->music_playlist_id) {
+            $this->musicSource = 'playlist:'.$screen->music_playlist_id;
+        } elseif ($screen->music_media_id) {
+            $this->musicSource = 'media:'.$screen->music_media_id;
+        }
         $this->orientation = $screen->orientation;
         $this->name = (string) $screen->name;
     }
@@ -46,10 +51,19 @@ class Show extends Component
             'orientation' => 'required|in:landscape,landscape_180,portrait,portrait_180',
         ]);
 
+        $musicPlaylistId = null;
+        $musicMediaId = null;
+        if (str_starts_with($this->musicSource, 'playlist:')) {
+            $musicPlaylistId = (int) substr($this->musicSource, 9);
+        } elseif (str_starts_with($this->musicSource, 'media:')) {
+            $musicMediaId = (int) substr($this->musicSource, 6);
+        }
+
         $this->screen->update([
             'name'                => $this->name,
             'default_playlist_id' => $this->defaultPlaylistId ?: null,
-            'music_playlist_id'   => $this->musicPlaylistId ?: null,
+            'music_playlist_id'   => $musicPlaylistId,
+            'music_media_id'      => $musicMediaId,
             'orientation'         => $this->orientation,
         ]);
 
@@ -98,10 +112,25 @@ class Show extends Component
     public function render()
     {
         $playlists = SignagePlaylist::where('team_id', $this->teamId())->orderBy('name')->get();
+        $musicPlaylists = $playlists->where('kind', 'music')->values();
+
+        // Audio-Medien (inkl. Streams) als direkt wählbare Hintergrundmusik.
+        $audioMedia = \Platform\Signage\Models\SignageMedia::where('team_id', $this->teamId())
+            ->where('kind', 'audio')->orderBy('name')->get();
+
+        // Kombinierte Optionen: Playlists + einzelne Streams/Audio.
+        $musicOptions = [];
+        foreach ($musicPlaylists as $p) {
+            $musicOptions[] = ['value' => 'playlist:'.$p->id, 'label' => 'Liste: '.$p->name];
+        }
+        foreach ($audioMedia as $m) {
+            $musicOptions[] = ['value' => 'media:'.$m->id, 'label' => ($m->isStream() ? 'Stream: ' : 'Audio: ').$m->name];
+        }
 
         return view('signage::livewire.screens.show', [
             'visualPlaylists' => $playlists->where('kind', 'visual')->values(),
-            'musicPlaylists'  => $playlists->where('kind', 'music')->values(),
+            'musicPlaylists'  => $musicPlaylists,
+            'musicOptions'    => $musicOptions,
             'schedules'       => $this->screen->schedules()->with(['playlist', 'musicPlaylist'])->orderByDesc('priority')->get(),
             'previewUrl'      => url('/signage/play').'?token='.$this->screen->device_token,
         ])->layout('platform::layouts.app');

@@ -16,7 +16,7 @@ class SignageScreen extends Model
 
     protected $fillable = [
         'uuid', 'team_id', 'name', 'device_token', 'pairing_code', 'status',
-        'default_playlist_id', 'music_playlist_id', 'orientation',
+        'default_playlist_id', 'music_playlist_id', 'music_media_id', 'orientation',
         'content_version', 'last_seen_at', 'paired_at', 'settings',
     ];
 
@@ -46,6 +46,11 @@ class SignageScreen extends Model
     public function musicPlaylist(): BelongsTo
     {
         return $this->belongsTo(SignagePlaylist::class, 'music_playlist_id');
+    }
+
+    public function musicMedia(): BelongsTo
+    {
+        return $this->belongsTo(SignageMedia::class, 'music_media_id');
     }
 
     public function schedules(): HasMany
