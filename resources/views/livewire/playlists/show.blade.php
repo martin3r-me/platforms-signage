@@ -26,6 +26,16 @@
                     <div class="flex-1 w-full">
                         <x-ui-input-text name="description" label="Beschreibung (optional)" wire:model="description" />
                     </div>
+                    @if($playlist->kind !== 'music')
+                        <div class="w-full sm:w-64">
+                            <x-ui-input-select name="fit" label="Anzeige" wire:model="fit"
+                                :options="[
+                                    ['value' => 'contain', 'label' => 'Originalformat (mit Rand)'],
+                                    ['value' => 'cover', 'label' => 'Vollbild (beschnitten)'],
+                                ]"
+                                optionValue="value" optionLabel="label" />
+                        </div>
+                    @endif
                     <x-ui-button type="submit" variant="primary">Speichern</x-ui-button>
                 </form>
             </x-ui-panel>

@@ -18,9 +18,10 @@ class Show extends Component
 
     public ?int $addMediaId = null;
 
-    // Umbenennen
+    // Einstellungen
     public string $name = '';
     public string $description = '';
+    public string $fit = 'contain'; // contain = Originalformat, cover = Vollbild
 
     public function mount(SignagePlaylist $playlist): void
     {
@@ -28,6 +29,7 @@ class Show extends Component
         $this->playlist = $playlist;
         $this->name = (string) $playlist->name;
         $this->description = (string) $playlist->description;
+        $this->fit = $playlist->fit ?? 'contain';
     }
 
     public function rename(): void
@@ -35,14 +37,17 @@ class Show extends Component
         $this->validate([
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
+            'fit'         => 'required|in:contain,cover',
         ]);
 
         $this->playlist->update([
             'name'        => $this->name,
             'description' => $this->description ?: null,
+            'fit'         => $this->fit,
         ]);
 
-        session()->flash('signage_message', 'Wiedergabeliste umbenannt.');
+        $this->bumpAffectedScreens();
+        session()->flash('signage_message', 'Wiedergabeliste gespeichert.');
     }
 
     /** Medien, die zum Typ der Liste passen. */

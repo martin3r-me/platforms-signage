@@ -14,7 +14,7 @@ class SignagePlaylist extends Model
     protected $table = 'signage_playlists';
 
     protected $fillable = [
-        'uuid', 'team_id', 'user_id', 'name', 'description', 'kind', 'loop',
+        'uuid', 'team_id', 'user_id', 'name', 'description', 'kind', 'loop', 'fit',
     ];
 
     protected $casts = [

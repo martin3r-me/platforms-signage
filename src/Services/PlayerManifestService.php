@@ -92,6 +92,7 @@ class PlayerManifestService
     private function buildVisualItems(SignagePlaylist $playlist): array
     {
         $defaultDuration = (int) config('signage.default_image_duration', 10);
+        $fit = $playlist->fit === 'cover' ? 'cover' : 'contain';
         $frames = [];
 
         foreach ($playlist->items as $item) {
@@ -116,12 +117,14 @@ class PlayerManifestService
                     'url'        => $this->mediaUrl($media),
                     'duration'   => $duration,
                     'transition' => $item->transition,
+                    'fit'        => $fit,
                 ];
             } elseif ($media->kind === 'video') {
                 $frames[] = [
                     'type'       => 'video',
                     'url'        => $this->mediaUrl($media),
                     'transition' => $item->transition,
+                    'fit'        => $fit,
                 ];
             } elseif ($media->kind === 'document') {
                 // Nur fertig konvertierte Dokumente einblenden.
@@ -134,6 +137,7 @@ class PlayerManifestService
                         'url'        => $this->pageUrl($page),
                         'duration'   => $duration,
                         'transition' => $item->transition,
+                        'fit'        => $fit,
                     ];
                 }
             }

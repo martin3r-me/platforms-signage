@@ -289,6 +289,7 @@
                 v.muted = true;            // stummes Autoplay ist erlaubt
                 v.autoplay = true;
                 v.playsInline = true;
+                v.style.objectFit = item.fit === 'cover' ? 'cover' : 'contain';
                 v.onended = () => { advance(); };
                 const show = () => { if (done) return; done = true; mount(frame); v.play().catch(() => {}); };
                 v.addEventListener('loadeddata', show, { once: true });
@@ -301,6 +302,7 @@
                 renderApp(item, frame);
             } else {
                 const img = document.createElement('img');
+                img.style.objectFit = item.fit === 'cover' ? 'cover' : 'contain';
                 const ms = (item.duration || 10) * 1000;
                 const show = () => {
                     if (done) return; done = true;
