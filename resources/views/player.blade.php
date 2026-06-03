@@ -395,6 +395,8 @@
             }
             // Das nächste Asset im Hintergrund vorladen, während dieses angezeigt wird.
             preloadNext();
+            // Musik beim Frame-Wechsel sofort wieder anwerfen (kein Aussetzer nach Website-iframes).
+            resumeMusic();
         }
 
         // Prefetch: hält das nächste (und übernächste) Medium im Browser-Cache bereit,
@@ -466,13 +468,15 @@
             playTrack();
         }
 
-        // Watchdog: Hintergrundmusik wieder anwerfen, falls sie unerwartet pausiert
-        // (z.B. weil ein Website-iframe kurzzeitig den Audio-Fokus übernommen hat).
-        setInterval(() => {
+        // Hintergrundmusik wieder anwerfen, falls sie pausiert ist (sie soll aber laufen).
+        function resumeMusic() {
             if (intendMusic && !inIframe && musicEl.getAttribute('src') && musicEl.paused) {
                 musicEl.play().catch(() => {});
             }
-        }, 2500);
+        }
+
+        // Watchdog als Backstop (z.B. wenn ein Website-iframe den Audio-Fokus übernimmt).
+        setInterval(resumeMusic, 1500);
 
         function playTrack() {
             if (!musicTracks.length) return;
