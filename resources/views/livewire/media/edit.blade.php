@@ -20,7 +20,7 @@
             <x-signage-panel title="Medium" subtitle="{{ $media->kind }}" icon="photo">
                 <form wire:submit="save" class="space-y-5 p-5">
                     <div class="flex items-start gap-4">
-                        <div class="w-40 shrink-0 aspect-video rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-black/5 flex items-center justify-center">
+                        <div class="w-40 shrink-0 rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-black/5 flex items-center justify-center" style="aspect-ratio: 16 / 9">
                             @if($preview)
                                 <img src="{{ $preview }}" alt="{{ $media->name }}" class="w-full h-full object-cover">
                             @elseif($media->kind === 'video')
@@ -61,7 +61,7 @@
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 p-4">
                             @foreach($pages as $page)
                                 <div class="rounded-lg border border-[var(--ui-border)]/50 overflow-hidden bg-[var(--ui-muted-5)] flex flex-col" wire:key="page-{{ $page->id }}">
-                                    <div class="aspect-[3/4] bg-black/5 flex items-center justify-center overflow-hidden">
+                                    <div class="bg-black/5 flex items-center justify-center overflow-hidden" style="aspect-ratio: 3 / 4">
                                         @php($pageUrl = $page->previewUrl())
                                         @if($pageUrl)
                                             <img src="{{ $pageUrl }}" alt="Seite {{ $page->page_number }}" class="w-full h-full object-contain" loading="lazy">

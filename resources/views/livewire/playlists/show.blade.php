@@ -66,7 +66,7 @@
                             @foreach($available as $m)
                                 <button type="button" wire:click="addItem({{ $m->id }})" wire:key="pick-{{ $m->id }}"
                                         class="group text-left rounded-lg border border-[var(--ui-border)]/50 overflow-hidden bg-[var(--ui-muted-5)] hover:border-[rgb(var(--ui-primary-rgb))] hover:shadow-md transition">
-                                    <div class="aspect-video flex items-center justify-center bg-black/5 relative">
+                                    <div class="w-full flex items-center justify-center bg-black/5 relative overflow-hidden" style="aspect-ratio: 16 / 9">
                                         @php($preview = $m->previewUrl())
                                         @if($preview)
                                             <img src="{{ $preview }}" alt="{{ $m->name }}" class="w-full h-full object-cover" loading="lazy">

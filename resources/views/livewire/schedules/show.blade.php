@@ -57,7 +57,7 @@
                         </div>
 
                         {{-- Körper: Stunden-Gutter + 7 Tagesspalten --}}
-                        <div class="flex">
+                        <div class="flex" x-data="{}">
                             <div class="w-12 shrink-0">
                                 @for($h = $calendar['startHour']; $h < $calendar['endHour']; $h++)
                                     <div class="relative" style="height: {{ $hourHeight }}px">
@@ -67,16 +67,19 @@
                             </div>
 
                             @foreach($weekdayNames as $num => $label)
-                                <div class="flex-1 min-w-[96px] relative border-l border-[var(--ui-border)]/40"
-                                     style="height: {{ ($calendar['endHour'] - $calendar['startHour']) * $hourHeight }}px">
+                                <div class="flex-1 min-w-[96px] relative border-l border-[var(--ui-border)]/40 cursor-pointer hover:bg-[var(--ui-primary)]/5 group/col"
+                                     style="height: {{ ($calendar['endHour'] - $calendar['startHour']) * $hourHeight }}px"
+                                     x-on:click="$wire.openRuleModal({{ $num }}, {{ $calendar['startHour'] }} + Math.floor(($event.clientY - $el.getBoundingClientRect().top) / {{ $hourHeight }}))"
+                                     title="Klicken, um hier ein Zeitfenster anzulegen">
                                     {{-- Stundenlinien --}}
                                     @for($h = $calendar['startHour']; $h < $calendar['endHour']; $h++)
                                         <div class="border-t border-[var(--ui-border)]/25" style="height: {{ $hourHeight }}px"></div>
                                     @endfor
 
-                                    {{-- Blöcke der Regeln --}}
+                                    {{-- Blöcke der Regeln (Klick nicht an die Spalte weiterreichen) --}}
                                     @foreach($calendar['blocks'][$num] ?? [] as $b)
-                                        <div class="group absolute left-1 right-1 rounded-md px-1.5 py-1 overflow-hidden text-white shadow-sm"
+                                        <div class="group absolute left-1 right-1 rounded-md px-1.5 py-1 overflow-hidden text-white shadow-sm cursor-default"
+                                             x-on:click.stop="null"
                                              style="top: {{ $b['top'] * $pxPerMin }}px; height: {{ max(20, $b['len'] * $pxPerMin) }}px; background: {{ $b['color'] }}"
                                              title="{{ $b['time'] }} · {{ $b['playlist'] }}{{ $b['music'] ? ' + '.$b['music'] : '' }} · Priorität {{ $b['priority'] }}">
                                             <div class="text-[10px] font-semibold leading-tight">{{ $b['time'] }}</div>
@@ -98,41 +101,71 @@
                     </div>
                 </div>
 
-                <form wire:submit="addRule" class="space-y-4 p-4 border-t border-[var(--ui-border)]/40">
-                    <div class="text-sm font-medium text-[var(--ui-secondary)]">Neues Zeitfenster hinzufügen</div>
-                    <div class="flex flex-wrap gap-2">
-                        @foreach($weekdays as $num => $label)
-                            <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-[var(--ui-border)] cursor-pointer text-sm">
-                                <input type="checkbox" value="{{ $num }}" wire:model="ruleDays" class="rounded">
-                                {{ $label }}
-                            </label>
-                        @endforeach
-                    </div>
-                    @error('ruleDays')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
-
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                        <div>
-                            <label class="block text-xs text-[var(--ui-muted)] mb-1">Von</label>
-                            <input type="time" wire:model="ruleStart" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-[var(--ui-muted)] mb-1">Bis</label>
-                            <input type="time" wire:model="ruleEnd" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
-                        </div>
-                        <x-ui-input-select name="rulePlaylistId" label="Wiedergabeliste" wire:model="rulePlaylistId"
-                            :options="$visualOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– wählen –" />
-                        <x-ui-input-select name="ruleMusicId" label="Musik-Liste (optional)" wire:model="ruleMusicId"
-                            :options="$musicOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
-                        <div>
-                            <label class="block text-xs text-[var(--ui-muted)] mb-1">Priorität</label>
-                            <input type="number" wire:model="rulePriority" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
-                        </div>
-                    </div>
-                    @error('rulePlaylistId')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
-
-                    <x-ui-button type="submit" variant="primary">Regel hinzufügen</x-ui-button>
-                </form>
+                <div class="flex items-center gap-2 p-4 border-t border-[var(--ui-border)]/40">
+                    <x-ui-button wire:click="openRuleModal" variant="primary">
+                        @svg('heroicon-o-plus', 'w-4 h-4') Zeitfenster hinzufügen
+                    </x-ui-button>
+                    <span class="text-xs text-[var(--ui-muted)]">Tipp: direkt in den Kalender klicken, um ein Zeitfenster anzulegen.</span>
+                </div>
             </x-signage-panel>
         </div>
+
+        {{-- Dialog: Zeitfenster anlegen --}}
+        @if($showRuleModal)
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                 wire:click.self="closeRuleModal" wire:key="rule-modal">
+                <div class="bg-[var(--ui-bg,#fff)] rounded-xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+                    <div class="flex items-center justify-between px-5 py-3 border-b border-[var(--ui-border)]/40">
+                        <h3 class="font-semibold text-[var(--ui-secondary)]">Zeitfenster anlegen</h3>
+                        <button wire:click="closeRuleModal" class="p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-secondary)]">
+                            @svg('heroicon-o-x-mark', 'w-5 h-5')
+                        </button>
+                    </div>
+
+                    <form wire:submit="addRule" class="space-y-4 p-5">
+                        <div>
+                            <label class="block text-xs text-[var(--ui-muted)] mb-1.5">Wochentage</label>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach($weekdays as $num => $label)
+                                    <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-[var(--ui-border)] cursor-pointer text-sm">
+                                        <input type="checkbox" value="{{ $num }}" wire:model="ruleDays" class="rounded">
+                                        {{ $label }}
+                                    </label>
+                                @endforeach
+                            </div>
+                            @error('ruleDays')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs text-[var(--ui-muted)] mb-1">Von</label>
+                                <input type="time" wire:model="ruleStart" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-[var(--ui-muted)] mb-1">Bis</label>
+                                <input type="time" wire:model="ruleEnd" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
+                            </div>
+                        </div>
+
+                        <x-ui-input-select name="rulePlaylistId" label="Wiedergabeliste" wire:model="rulePlaylistId"
+                            :options="$visualOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– wählen –" />
+                        @error('rulePlaylistId')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+
+                        <x-ui-input-select name="ruleMusicId" label="Musik-Liste (optional)" wire:model="ruleMusicId"
+                            :options="$musicOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
+
+                        <div>
+                            <label class="block text-xs text-[var(--ui-muted)] mb-1">Priorität (höher gewinnt bei Überschneidung)</label>
+                            <input type="number" wire:model="rulePriority" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
+                        </div>
+
+                        <div class="flex items-center justify-end gap-2 pt-1">
+                            <x-ui-button type="button" variant="secondary" wire:click="closeRuleModal">Abbrechen</x-ui-button>
+                            <x-ui-button type="submit" variant="primary">Hinzufügen</x-ui-button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
     </x-ui-page-container>
 </x-ui-page>

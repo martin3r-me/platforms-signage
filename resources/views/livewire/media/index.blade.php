@@ -144,7 +144,7 @@
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 p-4">
                             @foreach($media as $m)
                                 <div class="group relative rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)] flex flex-col h-full" wire:key="media-{{ $m->id }}">
-                                    <div class="aspect-video flex items-center justify-center bg-black/5 shrink-0">
+                                    <div class="w-full flex items-center justify-center bg-black/5 shrink-0 overflow-hidden" style="aspect-ratio: 16 / 9">
                                         @php($preview = $m->previewUrl())
                                         @if($preview)
                                             <img src="{{ $preview }}" alt="{{ $m->name }}" class="w-full h-full object-cover">
@@ -163,11 +163,9 @@
                                         @endif
                                     </div>
                                     <div class="p-2 flex-1 flex flex-col">
-                                        {{-- Kopf: Name + (optional) URL + Typ-Badge --}}
+                                        {{-- Kopf: Name + URL-Zeile (immer reserviert, damit die Badges überall auf gleicher Höhe sitzen) --}}
                                         <div class="text-xs font-medium text-[var(--ui-secondary)] truncate" title="{{ $m->name }}">{{ $m->name }}</div>
-                                        @if($m->isStream() || $m->isWebsite())
-                                            <div class="text-[10px] text-[var(--ui-muted)] truncate" title="{{ $m->stream_url }}">{{ $m->stream_url }}</div>
-                                        @endif
+                                        <div class="text-[10px] text-[var(--ui-muted)] truncate h-[14px]" title="{{ $m->stream_url }}">{{ ($m->isStream() || $m->isWebsite()) ? $m->stream_url : '' }}</div>
                                         <div class="flex items-center justify-between gap-1 mt-1.5">
                                             @if($m->isStream())
                                                 <x-signage-badge :color="$m->is_embed ? 'amber' : 'blue'">{{ $m->is_embed ? 'Embed' : 'Stream' }}</x-signage-badge>

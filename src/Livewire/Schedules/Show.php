@@ -18,6 +18,7 @@ class Show extends Component
     public string $name = '';
 
     // Regel-Formular
+    public bool $showRuleModal = false;
     public array $ruleDays = [];
     public string $ruleStart = '08:00';
     public string $ruleEnd = '18:00';
@@ -37,6 +38,33 @@ class Show extends Component
         $this->validate(['name' => 'required|string|max:255']);
         $this->schedule->update(['name' => $this->name]);
         session()->flash('signage_message', 'Zeitplan gespeichert.');
+    }
+
+    /**
+     * Öffnet den Dialog zum Anlegen eines Zeitfensters – optional vorausgefüllt
+     * mit dem im Kalender angeklickten Wochentag + Startstunde.
+     */
+    public function openRuleModal(?int $day = null, ?int $hour = null): void
+    {
+        $this->reset('ruleDays', 'ruleStart', 'ruleEnd', 'rulePlaylistId', 'ruleMusicId', 'rulePriority');
+        $this->resetValidation();
+
+        if ($day !== null && $day >= 1 && $day <= 7) {
+            $this->ruleDays = [$day];
+        }
+
+        if ($hour !== null) {
+            $hour = max(0, min(23, $hour));
+            $this->ruleStart = sprintf('%02d:00', $hour);
+            $this->ruleEnd = sprintf('%02d:00', min(24, $hour + 2));
+        }
+
+        $this->showRuleModal = true;
+    }
+
+    public function closeRuleModal(): void
+    {
+        $this->showRuleModal = false;
     }
 
     public function addRule(): void
@@ -60,8 +88,9 @@ class Show extends Component
         ]);
 
         $this->reset('ruleDays', 'rulePlaylistId', 'ruleMusicId', 'rulePriority');
+        $this->showRuleModal = false;
         $this->bumpScreens();
-        session()->flash('signage_message', 'Regel hinzugefügt.');
+        session()->flash('signage_message', 'Zeitfenster hinzugefügt.');
     }
 
     public function deleteRule(int $id): void
