@@ -13,6 +13,23 @@
 
     <x-ui-page-container>
         <div class="space-y-6">
+            @if(session('signage_message'))
+                <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
+            @endif
+
+            <x-ui-panel title="Wiedergabeliste" subtitle="Name & Beschreibung">
+                <form wire:submit="rename" class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
+                    <div class="flex-1 w-full">
+                        <x-ui-input-text name="name" label="Name" wire:model="name" />
+                        @error('name')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+                    </div>
+                    <div class="flex-1 w-full">
+                        <x-ui-input-text name="description" label="Beschreibung (optional)" wire:model="description" />
+                    </div>
+                    <x-ui-button type="submit" variant="primary">Speichern</x-ui-button>
+                </form>
+            </x-ui-panel>
+
             <x-ui-panel title="Element hinzufügen" subtitle="{{ $playlist->kind === 'music' ? 'Audiodateien' : 'Bilder, Videos, Dokumente' }}">
                 <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="flex-1 w-full">
@@ -54,7 +71,7 @@
                                     @elseif($item->media?->kind === 'audio')
                                         @svg('heroicon-o-musical-note', 'w-5 h-5 text-[var(--ui-muted)]')
                                     @elseif($item->media?->kind === 'app')
-                                        @svg('heroicon-o-squares-2x2', 'w-5 h-5 text-[var(--ui-muted)]')
+                                        <iframe src="{{ route('signage.apps.preview', $item->media) }}" class="w-full h-full border-0 pointer-events-none" scrolling="no" loading="lazy" tabindex="-1"></iframe>
                                     @else
                                         @svg('heroicon-o-document', 'w-5 h-5 text-[var(--ui-muted)]')
                                     @endif

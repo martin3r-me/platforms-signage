@@ -18,10 +18,31 @@ class Show extends Component
 
     public ?int $addMediaId = null;
 
+    // Umbenennen
+    public string $name = '';
+    public string $description = '';
+
     public function mount(SignagePlaylist $playlist): void
     {
         abort_unless($playlist->team_id === $this->teamId(), 403);
         $this->playlist = $playlist;
+        $this->name = (string) $playlist->name;
+        $this->description = (string) $playlist->description;
+    }
+
+    public function rename(): void
+    {
+        $this->validate([
+            'name'        => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $this->playlist->update([
+            'name'        => $this->name,
+            'description' => $this->description ?: null,
+        ]);
+
+        session()->flash('signage_message', 'Wiedergabeliste umbenannt.');
     }
 
     /** Medien, die zum Typ der Liste passen. */
