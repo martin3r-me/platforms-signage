@@ -10,12 +10,22 @@
     .clk-date { font-size: 5vmin; opacity: .8; }
     .clk-minimal .clk-date { font-weight: 300; }
     .clk-portrait .clk-time { font-size: 22vmin; }
-    .flip-row { display: flex; gap: 2vmin; }
+    .flip-row { display: flex; gap: 2.5vmin; }
     .clk-portrait .flip-row { flex-direction: column; }
-    .flip-group { position: relative; background: #1c1c1e; color: #fff; border-radius: 2vmin; padding: 3vmin 4vmin; font-size: 16vmin; font-weight: 700; font-variant-numeric: tabular-nums; box-shadow: 0 1vmin 3vmin rgba(0,0,0,.4); }
-    .flip-group::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: rgba(0,0,0,.55); transform: translateY(-50%); }
-    .flip-anim { animation: flipdown .4s ease; }
-    @keyframes flipdown { 0% { transform: perspective(400px) rotateX(0); } 50% { transform: perspective(400px) rotateX(-20deg); } 100% { transform: perspective(400px) rotateX(0); } }
+    .flip-group { position: relative; width: 20vmin; height: 24vmin; font-size: 15vmin; font-weight: 700; font-variant-numeric: tabular-nums; perspective: 50vmin; filter: drop-shadow(0 1vmin 2vmin rgba(0,0,0,.45)); }
+    .clk-portrait .flip-group { width: 34vmin; }
+    .flip-half, .flip-leaf { position: absolute; left: 0; width: 100%; height: 50%; overflow: hidden; background: #1c1c1e; color: #fff; text-align: center; backface-visibility: hidden; }
+    .app-clock-light .flip-half, .app-clock-light .flip-leaf { background: #2b2b2e; }
+    .flip-half span, .flip-leaf span { display: block; height: 24vmin; line-height: 24vmin; }
+    .flip-top { top: 0; border-radius: 1.6vmin 1.6vmin 0 0; }
+    .flip-bottom { bottom: 0; border-radius: 0 0 1.6vmin 1.6vmin; }
+    .flip-bottom span { transform: translateY(-50%); }
+    .flip-group::after { content: ''; position: absolute; top: calc(50% - 0.2vmin); left: 0; right: 0; height: 0.4vmin; background: rgba(0,0,0,.5); z-index: 6; }
+    .flip-leaf-top { top: 0; border-radius: 1.6vmin 1.6vmin 0 0; transform-origin: center bottom; z-index: 5; animation: flip-down .28s ease-in forwards; }
+    .flip-leaf-bottom { bottom: 0; border-radius: 0 0 1.6vmin 1.6vmin; transform-origin: center top; transform: rotateX(90deg); z-index: 5; animation: flip-up .28s ease-out .28s forwards; }
+    .flip-leaf-bottom span { transform: translateY(-50%); }
+    @keyframes flip-down { from { transform: rotateX(0deg); } to { transform: rotateX(-90deg); } }
+    @keyframes flip-up { from { transform: rotateX(90deg); } to { transform: rotateX(0deg); } }
 
     /* Weather app */
     .app-wx { position: absolute; inset: 0; display: flex; flex-direction: column; color: var(--wx-fg); background: var(--wx-bg); }
@@ -97,8 +107,10 @@ window.SignageApps = (function () {
             const count = cfg.show_seconds ? 3 : 2;
             for (let i = 0; i < count; i++) {
                 const g = document.createElement('div'); g.className = 'flip-group';
-                const span = document.createElement('span'); span.textContent = '00';
-                g.appendChild(span); row.appendChild(g); flipGroups.push(span);
+                g.innerHTML = '<div class="flip-half flip-top"><span>00</span></div>'
+                            + '<div class="flip-half flip-bottom"><span>00</span></div>';
+                row.appendChild(g);
+                flipGroups.push({ el: g, value: null });
             }
             wrap.appendChild(row);
         } else {
@@ -110,18 +122,40 @@ window.SignageApps = (function () {
             wrap.appendChild(dateEl);
         }
 
+        // Echte Flip-Clock-Animation: obere Hälfte klappt herunter, untere klappt nach.
+        function setFlip(group, val) {
+            const g = group.el;
+            const topSpan = g.querySelector('.flip-top span');
+            const botSpan = g.querySelector('.flip-bottom span');
+
+            if (group.value === null) { // initial ohne Animation
+                topSpan.textContent = val; botSpan.textContent = val; group.value = val; return;
+            }
+            if (group.value === val) return;
+
+            const old = group.value;
+            group.value = val;
+            topSpan.textContent = val;   // neuer obere Wert (hinter dem klappenden Blatt sichtbar)
+            botSpan.textContent = old;   // alter unterer Wert, bis das untere Blatt landet
+
+            const upper = document.createElement('div');
+            upper.className = 'flip-leaf flip-leaf-top';
+            upper.innerHTML = '<span>' + old + '</span>';
+            const lower = document.createElement('div');
+            lower.className = 'flip-leaf flip-leaf-bottom';
+            lower.innerHTML = '<span>' + val + '</span>';
+            g.appendChild(upper); g.appendChild(lower);
+
+            upper.addEventListener('animationend', () => upper.remove());
+            lower.addEventListener('animationend', () => { botSpan.textContent = val; lower.remove(); });
+        }
+
         function tick() {
             const now = new Date();
             const p = clockTimeParts(now, cfg);
             if (type === 'flip') {
                 const vals = cfg.show_seconds ? [p.hh, p.mm, p.ss] : [p.hh, p.mm];
-                vals.forEach((val, i) => {
-                    if (flipGroups[i].textContent !== val) {
-                        flipGroups[i].textContent = val;
-                        const box = flipGroups[i].parentNode;
-                        box.classList.remove('flip-anim'); void box.offsetWidth; box.classList.add('flip-anim');
-                    }
-                });
+                vals.forEach((val, i) => setFlip(flipGroups[i], val));
             } else {
                 timeEl.innerHTML = p.display + (p.ampm ? ' <span class="clk-ampm">' + p.ampm + '</span>' : '');
             }
