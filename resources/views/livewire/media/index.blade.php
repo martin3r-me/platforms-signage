@@ -123,7 +123,7 @@
                                     @elseif($m->isStream())
                                         @svg('heroicon-o-signal', 'w-10 h-10 text-[var(--ui-muted)]')
                                     @elseif($m->isApp())
-                                        @svg('heroicon-o-clock', 'w-10 h-10 text-[var(--ui-muted)]')
+                                        <iframe src="{{ route('signage.apps.preview', $m) }}" class="w-full h-full border-0 pointer-events-none" scrolling="no" loading="lazy" tabindex="-1"></iframe>
                                     @elseif($m->kind === 'video')
                                         @svg('heroicon-o-film', 'w-10 h-10 text-[var(--ui-muted)]')
                                     @elseif($m->kind === 'audio')
