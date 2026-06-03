@@ -12,7 +12,35 @@
     </x-slot>
 
     <x-ui-page-container>
-        <div class="max-w-2xl mx-auto space-y-6">
+        <div class="max-w-2xl mx-auto space-y-6" x-data="{
+                send() {
+                    const f = $refs.frame;
+                    if (!f || !f.contentWindow) return;
+                    const lat = $wire.get('latitude') || 52.52;
+                    const lon = $wire.get('longitude') || 13.405;
+                    f.contentWindow.postMessage({
+                        __signagePreview: true, app_type: 'weather',
+                        config: {
+                            design: $wire.get('design'), color_scheme: $wire.get('colorScheme'),
+                            units: $wire.get('units'), latitude: lat, longitude: lon,
+                            location_name: $wire.get('resolvedName') || $wire.get('locationQuery') || 'Vorschau',
+                        }
+                    }, '*');
+                },
+                init() {
+                    ['design','colorScheme','units','resolvedName']
+                        .forEach(p => this.$wire.$watch(p, () => this.send()));
+                    window.addEventListener('message', (e) => { if (e.data && e.data.__signagePreviewReady) this.send(); });
+                }
+            }">
+            <x-ui-panel title="Vorschau" subtitle="Design & Farbschema live ansehen (nutzt Beispiel-Ort, bis gespeichert)">
+                <div class="p-4">
+                    <div class="relative w-full max-w-md mx-auto aspect-video rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-black">
+                        <iframe x-ref="frame" src="{{ route('signage.apps.preview-live') }}" class="absolute inset-0 w-full h-full" x-on:load="send()"></iframe>
+                    </div>
+                </div>
+            </x-ui-panel>
+
             <x-ui-panel title="Wetter" subtitle="Live-Wetter & 7-Tage-Vorhersage (Open-Meteo, kein API-Key)">
                 <form wire:submit="save" class="space-y-5 p-4">
                     <div>
@@ -29,14 +57,14 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <x-ui-input-select name="design" label="Design" wire:model="design"
+                        <x-ui-input-select name="design" label="Design" wire:model.live="design"
                             :options="[
                                 ['value' => 'modern', 'label' => 'Modern (Vollbild)'],
                                 ['value' => 'compact', 'label' => 'Kompakt (Karte)'],
                             ]"
                             optionValue="value" optionLabel="label" />
 
-                        <x-ui-input-select name="colorScheme" label="Farbschema / Thema" wire:model="colorScheme"
+                        <x-ui-input-select name="colorScheme" label="Farbschema / Thema" wire:model.live="colorScheme"
                             :options="[
                                 ['value' => 'sky', 'label' => 'Sky (Blau)'],
                                 ['value' => 'sage', 'label' => 'Sage (Grün)'],
@@ -45,7 +73,7 @@
                             ]"
                             optionValue="value" optionLabel="label" />
 
-                        <x-ui-input-select name="units" label="Einheiten" wire:model="units"
+                        <x-ui-input-select name="units" label="Einheiten" wire:model.live="units"
                             :options="[
                                 ['value' => 'metric', 'label' => '°C, km/h'],
                                 ['value' => 'imperial', 'label' => '°F, mph'],

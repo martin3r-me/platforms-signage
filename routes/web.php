@@ -24,6 +24,9 @@ Route::get('/apps/weather/{media}', WeatherApp::class)->name('signage.apps.weath
 // Eigenständige App-Vorschau (iframe-Einbettung in der Bibliothek)
 Route::get('/apps/preview/{media}', [AppPreviewController::class, 'show'])->name('signage.apps.preview');
 
+// Live-Vorschau (leer, wird per postMessage vom App-Editor gesteuert)
+Route::view('/apps/preview-live', 'signage::apps.preview-live')->name('signage.apps.preview-live');
+
 // Musik-Stream bearbeiten
 Route::get('/streams/{media}/edit', \Platform\Signage\Livewire\Streams\Edit::class)->name('signage.streams.edit');
 

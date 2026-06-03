@@ -12,7 +12,33 @@
     </x-slot>
 
     <x-ui-page-container>
-        <div class="max-w-2xl mx-auto space-y-6">
+        <div class="max-w-2xl mx-auto space-y-6" x-data="{
+                send() {
+                    const f = $refs.frame;
+                    if (!f || !f.contentWindow) return;
+                    f.contentWindow.postMessage({
+                        __signagePreview: true, app_type: 'clock',
+                        config: {
+                            clock_type: $wire.get('clockType'), theme: $wire.get('theme'),
+                            time_format: $wire.get('timeFormat'), show_seconds: $wire.get('showSeconds'),
+                            show_date: $wire.get('showDate'), date_format: $wire.get('dateFormat'),
+                        }
+                    }, '*');
+                },
+                init() {
+                    ['clockType','theme','timeFormat','showSeconds','showDate','dateFormat']
+                        .forEach(p => this.$wire.$watch(p, () => this.send()));
+                    window.addEventListener('message', (e) => { if (e.data && e.data.__signagePreviewReady) this.send(); });
+                }
+            }">
+            <x-ui-panel title="Vorschau" subtitle="Aktualisiert sich live beim Ändern der Einstellungen">
+                <div class="p-4">
+                    <div class="relative w-full max-w-md mx-auto aspect-video rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-black">
+                        <iframe x-ref="frame" src="{{ route('signage.apps.preview-live') }}" class="absolute inset-0 w-full h-full" x-on:load="send()"></iframe>
+                    </div>
+                </div>
+            </x-ui-panel>
+
             <x-ui-panel title="Uhr" subtitle="Zeigt die aktuelle Uhrzeit (Geräte-Zeitzone)">
                 <form wire:submit="save" class="space-y-5 p-4">
                     <div>
@@ -21,7 +47,7 @@
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <x-ui-input-select name="clockType" label="Uhr-Typ" wire:model="clockType"
+                        <x-ui-input-select name="clockType" label="Uhr-Typ" wire:model.live="clockType"
                             :options="[
                                 ['value' => 'modern_digital', 'label' => 'Modern Digital'],
                                 ['value' => 'minimal', 'label' => 'Minimalistisch'],
@@ -29,7 +55,7 @@
                             ]"
                             optionValue="value" optionLabel="label" />
 
-                        <x-ui-input-select name="theme" label="Thema" wire:model="theme"
+                        <x-ui-input-select name="theme" label="Thema" wire:model.live="theme"
                             :options="[
                                 ['value' => 'dark', 'label' => 'Dunkel'],
                                 ['value' => 'light', 'label' => 'Hell'],
@@ -41,14 +67,14 @@
                         <h3 class="text-sm font-bold text-[var(--ui-primary)] mb-3">Einstellungen</h3>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <x-ui-input-select name="timeFormat" label="Zeitformat" wire:model="timeFormat"
+                            <x-ui-input-select name="timeFormat" label="Zeitformat" wire:model.live="timeFormat"
                                 :options="[
                                     ['value' => '24h', 'label' => '24-Stunden (13:30)'],
                                     ['value' => '12h', 'label' => '12-Stunden (1:30 PM)'],
                                 ]"
                                 optionValue="value" optionLabel="label" />
 
-                            <x-ui-input-select name="dateFormat" label="Datumsformat" wire:model="dateFormat"
+                            <x-ui-input-select name="dateFormat" label="Datumsformat" wire:model.live="dateFormat"
                                 :options="[
                                     ['value' => 'de_long', 'label' => '1. Januar 2024'],
                                     ['value' => 'de_short', 'label' => '01.01.2024'],
@@ -60,11 +86,11 @@
 
                         <div class="flex flex-col gap-2 mt-4">
                             <label class="inline-flex items-center gap-2 cursor-pointer text-sm">
-                                <input type="checkbox" wire:model="showSeconds" class="rounded">
+                                <input type="checkbox" wire:model.live="showSeconds" class="rounded">
                                 Sekunden anzeigen
                             </label>
                             <label class="inline-flex items-center gap-2 cursor-pointer text-sm">
-                                <input type="checkbox" wire:model="showDate" class="rounded">
+                                <input type="checkbox" wire:model.live="showDate" class="rounded">
                                 Datum anzeigen
                             </label>
                         </div>
