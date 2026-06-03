@@ -157,7 +157,10 @@
                                         @endif
                                     </div>
                                     <div class="p-2">
-                                        <div class="text-xs font-medium text-[var(--ui-secondary)] truncate" title="{{ $m->name }}">{{ $m->name }}</div>
+                                        <input type="text" value="{{ $m->name }}"
+                                               wire:change="renameMedia({{ $m->id }}, $event.target.value)"
+                                               title="Name bearbeiten (Enter/Verlassen speichert)"
+                                               class="w-full bg-transparent text-xs font-medium text-[var(--ui-secondary)] truncate rounded px-1 -mx-1 py-0.5 hover:bg-[var(--ui-muted-5)] focus:bg-[var(--ui-muted-5)] focus:outline-none focus:ring-1 focus:ring-[rgb(var(--ui-primary-rgb))]">
                                         @if($m->isStream() || $m->isWebsite())
                                             <div class="text-[10px] text-[var(--ui-muted)] truncate" title="{{ $m->stream_url }}">{{ $m->stream_url }}</div>
                                         @endif

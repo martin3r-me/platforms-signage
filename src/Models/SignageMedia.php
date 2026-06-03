@@ -81,20 +81,16 @@ class SignageMedia extends Model
      */
     public function previewUrl(): ?string
     {
-        if (empty($this->token) || empty($this->path)) {
-            return null;
-        }
-
         $gen = fn (string $disk, string $path, string $token) => \Platform\Core\Services\ContextFileService::generateUrl(
             $disk, $path, $token, 'signage.media.show', 120
         );
 
-        if ($this->kind === 'image') {
-            // Bevorzugt die kleinere Anzeige-Variante (schneller).
-            if ($this->display_token && $this->display_path) {
-                return $gen($this->disk, $this->display_path, $this->display_token);
-            }
+        // Anzeige-Variante zuerst: Bild-Downscale ODER Website-Screenshot.
+        if ($this->display_token && $this->display_path) {
+            return $gen($this->disk, $this->display_path, $this->display_token);
+        }
 
+        if ($this->kind === 'image' && $this->token && $this->path) {
             return $gen($this->disk, $this->path, $this->token);
         }
 

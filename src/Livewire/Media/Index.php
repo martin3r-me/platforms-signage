@@ -127,6 +127,17 @@ class Index extends Component
         session()->flash('signage_message', 'Medium gelöscht.');
     }
 
+    public function renameMedia(int $id, string $name): void
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return;
+        }
+
+        SignageMedia::where('team_id', $this->teamId())->findOrFail($id)
+            ->update(['name' => mb_substr($name, 0, 255)]);
+    }
+
     public function reprocessDocument(int $id): void
     {
         $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($id);
@@ -208,8 +219,12 @@ class Index extends Component
             ? $folders->firstWhere('id', $this->currentFolderId)
             : null;
 
+        // Polling, solange Dokumente verarbeitet werden ODER Website-Screenshots noch fehlen.
         $hasProcessing = SignageMedia::where('team_id', $teamId)
-            ->whereIn('processing_status', ['pending', 'processing'])
+            ->where(function ($q) {
+                $q->whereIn('processing_status', ['pending', 'processing'])
+                  ->orWhere(fn ($w) => $w->where('kind', 'website')->whereNull('display_token'));
+            })
             ->exists();
 
         return view('signage::livewire.media.index', [

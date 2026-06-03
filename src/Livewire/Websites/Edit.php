@@ -38,10 +38,11 @@ class Edit extends Component
 
         if ($this->mediaId) {
             $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($this->mediaId);
+            $urlChanged = $media->stream_url !== $this->url;
             $media->update(['name' => $this->name, 'stream_url' => $this->url]);
             SignageScreen::bumpForMedia($media->id);
         } else {
-            SignageMedia::create([
+            $media = SignageMedia::create([
                 'team_id'           => $this->teamId(),
                 'user_id'           => auth()->id(),
                 'name'              => $this->name,
@@ -49,9 +50,15 @@ class Edit extends Component
                 'stream_url'        => $this->url,
                 'processing_status' => 'ready',
             ]);
+            $urlChanged = true;
         }
 
-        session()->flash('signage_message', 'Website gespeichert.');
+        // Vorschau-Screenshot (neu) im Hintergrund holen, wenn die URL neu/geändert ist.
+        if ($urlChanged) {
+            \Platform\Signage\Jobs\CaptureWebsiteThumbnailJob::dispatch($media->id);
+        }
+
+        session()->flash('signage_message', 'Website gespeichert. Die Vorschau wird im Hintergrund erstellt.');
 
         return $this->redirectRoute('signage.media.index', navigate: true);
     }
