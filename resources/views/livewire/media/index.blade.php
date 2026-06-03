@@ -157,10 +157,7 @@
                                         @endif
                                     </div>
                                     <div class="p-2">
-                                        <input type="text" value="{{ $m->name }}"
-                                               wire:change="renameMedia({{ $m->id }}, $event.target.value)"
-                                               title="Name bearbeiten (Enter/Verlassen speichert)"
-                                               class="w-full bg-transparent text-xs font-medium text-[var(--ui-secondary)] truncate rounded px-1 -mx-1 py-0.5 hover:bg-[var(--ui-muted-5)] focus:bg-[var(--ui-muted-5)] focus:outline-none focus:ring-1 focus:ring-[rgb(var(--ui-primary-rgb))]">
+                                        <div class="text-xs font-medium text-[var(--ui-secondary)] truncate" title="{{ $m->name }}">{{ $m->name }}</div>
                                         @if($m->isStream() || $m->isWebsite())
                                             <div class="text-[10px] text-[var(--ui-muted)] truncate" title="{{ $m->stream_url }}">{{ $m->stream_url }}</div>
                                         @endif
@@ -211,6 +208,13 @@
                                            class="absolute top-1.5 left-1.5 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">
                                             @svg('heroicon-o-pencil-square', 'w-4 h-4')
                                         </a>
+                                    @else
+                                        <button type="button" x-data
+                                                x-on:click="let n = prompt('Name', @js($m->name)); if (n && n.trim()) $wire.renameMedia({{ $m->id }}, n.trim())"
+                                                title="Umbenennen"
+                                                class="absolute top-1.5 left-1.5 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">
+                                            @svg('heroicon-o-pencil-square', 'w-4 h-4')
+                                        </button>
                                     @endif
                                     <button wire:click="deleteMedia({{ $m->id }})"
                                             wire:confirm="Dieses Medium wirklich löschen?"
