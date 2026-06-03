@@ -3,6 +3,11 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="{{ route('signage.play.manifest') }}">
     <title>Digital Signage Player</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -406,6 +411,12 @@
         function requestFullscreen() {
             const el = document.documentElement;
             if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+        }
+
+        // Erste Interaktion (Klick / Fernbedienungs-Taste) -> Vollbild versuchen.
+        if (!inIframe) {
+            ['click', 'keydown', 'touchstart'].forEach((ev) =>
+                document.addEventListener(ev, requestFullscreen, { once: true }));
         }
 
         // ---- Go ------------------------------------------------------------
