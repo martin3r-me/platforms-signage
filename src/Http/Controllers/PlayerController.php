@@ -19,6 +19,7 @@ class PlayerController
             'stateUrlTemplate'    => route('signage.api.screen.state', ['deviceToken' => '__TOKEN__']),
             'manifestUrlTemplate' => route('signage.api.screen.manifest', ['deviceToken' => '__TOKEN__']),
             'pollInterval'        => (int) config('signage.poll_interval_seconds', 10),
+            'manifestRefresh'     => (int) config('signage.manifest_refresh_seconds', 21600),
         ]);
     }
 }

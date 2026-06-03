@@ -92,6 +92,7 @@
             stateUrlTemplate:    @json($stateUrlTemplate),
             manifestUrlTemplate: @json($manifestUrlTemplate),
             pollInterval: {{ $pollInterval }} * 1000,
+            manifestRefresh: {{ $manifestRefresh }} * 1000,
         };
         const stateUrl    = (token) => CONFIG.stateUrlTemplate.replace('__TOKEN__', token);
         const manifestUrl = (token) => CONFIG.manifestUrlTemplate.replace('__TOKEN__', token);
@@ -111,6 +112,7 @@
         const inIframe = window.self !== window.top;
         let deviceToken = urlToken || localStorage.getItem(STORAGE_KEY);
         let currentVersion = null;
+        let lastManifestAt = 0;
         let playlist = [];
         let musicTracks = [];
         let frameTimer = null;
@@ -155,7 +157,9 @@
                     stopPlayback();
                     showPairing(state.pairing_code);
                 } else if (state.status === 'active') {
-                    if (state.content_version !== currentVersion) {
+                    // Neu laden bei Änderung ODER periodisch (signierte URLs frisch halten).
+                    const stale = (Date.now() - lastManifestAt) > CONFIG.manifestRefresh;
+                    if (state.content_version !== currentVersion || stale) {
                         currentVersion = state.content_version;
                         await loadManifest();
                     }
@@ -190,7 +194,12 @@
                 showPairing(manifest.pairing_code);
                 return;
             }
+            lastManifestAt = Date.now();
+            cacheManifest(manifest);
+            applyManifest(manifest);
+        }
 
+        function applyManifest(manifest) {
             applyOrientation(manifest.screen && manifest.screen.orientation ? manifest.screen.orientation : 'landscape');
 
             playlist = manifest.items || [];
@@ -198,7 +207,7 @@
 
             if (!playlist.length) {
                 stopPlayback();
-                showOverlay('<div class="pair-label">' + (manifest.name || 'Bildschirm') + '</div><div class="pair-hint">Diesem Bildschirm ist noch keine Wiedergabeliste zugewiesen.</div>');
+                showOverlay('<div class="pair-label">' + (manifest.screen && manifest.screen.name ? manifest.screen.name : 'Bildschirm') + '</div><div class="pair-hint">Diesem Bildschirm ist noch keine Wiedergabeliste zugewiesen.</div>');
                 return;
             }
 
@@ -206,6 +215,31 @@
             startMusic();
             playIndex = 0;
             startPlayback();
+        }
+
+        // Letztes Manifest cachen, damit der Bildschirm nach Neustart/Netzaussetzern
+        // sofort wieder etwas zeigt (statt „Verbindung wird hergestellt“).
+        function cacheManifest(m) {
+            if (previewMode || !deviceToken) return;
+            try { localStorage.setItem('signage_manifest_' + deviceToken, JSON.stringify(m)); } catch (e) {}
+        }
+        function loadCachedManifest() {
+            if (previewMode || !deviceToken) return false;
+            try {
+                const raw = localStorage.getItem('signage_manifest_' + deviceToken);
+                if (!raw) return false;
+                const m = JSON.parse(raw);
+                if (m && m.status === 'active' && (m.items || []).length) { applyManifest(m); return true; }
+            } catch (e) {}
+            return false;
+        }
+
+        // Lade-Fehler (z.B. abgelaufene URL) -> beim nächsten Poll Manifest neu holen.
+        function flagManifestRefresh() {
+            if (Date.now() - lastManifestAt > 30000) {
+                currentVersion = null;
+                lastManifestAt = 0;
+            }
         }
 
         // Dreht die Bühne entsprechend der Bildschirm-Ausrichtung.
@@ -258,6 +292,7 @@
             }
 
             // Gerät vergessen -> nächster Poll registriert neu und zeigt einen neuen Kopplungs-Code.
+            try { localStorage.removeItem('signage_manifest_' + deviceToken); } catch (e) {}
             localStorage.removeItem(STORAGE_KEY);
             deviceToken = null;
             showOverlay('<div class="pair-label">Bildschirm wurde entfernt</div><div class="pair-hint">Neuer Kopplungs-Code wird erstellt …</div>');
@@ -293,7 +328,7 @@
                 v.onended = () => { advance(); };
                 const show = () => { if (done) return; done = true; mount(frame); v.play().catch(() => {}); };
                 v.addEventListener('loadeddata', show, { once: true });
-                v.onerror = () => { if (done) return; done = true; advance(); };
+                v.onerror = () => { if (done) return; done = true; flagManifestRefresh(); advance(); };
                 v.src = item.url;
                 frame.appendChild(v);
                 // Fallback, falls loadeddata nicht feuert.
@@ -310,7 +345,7 @@
                     frameTimer = setTimeout(() => { advance(); }, ms);
                 };
                 img.onload = show;
-                img.onerror = () => { if (done) return; done = true; advance(); };
+                img.onerror = () => { if (done) return; done = true; flagManifestRefresh(); advance(); };
                 img.src = item.url;
                 frame.appendChild(img);
                 if (img.complete && img.naturalWidth) show();
@@ -485,6 +520,8 @@
         }
 
         // ---- Go ------------------------------------------------------------
+        // Letztes Manifest sofort anzeigen (falls vorhanden), dann live aktualisieren.
+        if (deviceToken && !previewMode) loadCachedManifest();
         poll();
     })();
     </script>

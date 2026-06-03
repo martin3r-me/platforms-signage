@@ -79,6 +79,12 @@ return [
     'poll_interval_seconds' => 10,
 
     /**
+     * Wie oft der Player das Manifest unabhängig von Änderungen neu lädt (Sekunden).
+     * Hält die signierten Medien-URLs frisch (TTL der URLs ist 12 h). Standard 6 h.
+     */
+    'manifest_refresh_seconds' => 21600,
+
+    /**
      * Maximale Upload-Größe in KB (für Bilder/Videos/Audio/Dokumente).
      * Standard 500 MB. Hebt Livewires Standard-Temp-Upload-Limit (12 MB) an.
      * ACHTUNG: PHP (upload_max_filesize/post_max_size) und der Webserver
