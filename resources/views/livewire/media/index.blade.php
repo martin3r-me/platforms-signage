@@ -66,7 +66,8 @@
                     <div class="flex items-center justify-between">
                         <p class="text-xs text-[var(--ui-muted)]">
                             Direkte Stream-URLs (z.B. Icecast/SHOUTcast <code>.mp3</code>/<code>.aac</code>) starten auf TVs zuverlässig automatisch.
-                            Eingebettete Player (iframe) starten oft erst nach einer Interaktion.
+                            <strong>TuneIn-Links werden automatisch in einen direkten Stream aufgelöst.</strong>
+                            Reine Embed-Player (iframe) starten dagegen oft erst nach einer Interaktion.
                         </p>
                         <x-ui-button type="submit" variant="primary">Stream hinzufügen</x-ui-button>
                     </div>
