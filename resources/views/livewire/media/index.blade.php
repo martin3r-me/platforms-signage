@@ -74,7 +74,42 @@
                 </form>
             </x-ui-panel>
 
-            <x-ui-panel title="Bibliothek" subtitle="Bilder, Videos, Audio, Streams, PDF und PowerPoint">
+            <x-ui-panel title="Ordner" subtitle="Medien sauber organisieren">
+                <div class="flex flex-wrap items-center gap-2 p-4">
+                    <button wire:click="openFolder(null)"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border {{ $currentFolderId === null ? 'bg-[rgb(var(--ui-primary-rgb))] text-[color:var(--ui-on-primary)] border-transparent' : 'border-[var(--ui-border)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+                        @svg('heroicon-o-squares-2x2', 'w-4 h-4') Alle
+                    </button>
+                    @foreach($folders as $f)
+                        <button wire:click="openFolder({{ $f->id }})" wire:key="folder-{{ $f->id }}"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border {{ $currentFolderId === $f->id ? 'bg-[rgb(var(--ui-primary-rgb))] text-[color:var(--ui-on-primary)] border-transparent' : 'border-[var(--ui-border)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]' }}">
+                            @svg('heroicon-o-folder', 'w-4 h-4') {{ $f->name }} <span class="opacity-70">({{ $f->media_count }})</span>
+                        </button>
+                    @endforeach
+
+                    <form wire:submit="createFolder" class="inline-flex items-center gap-1 ml-auto">
+                        <input type="text" wire:model="newFolderName" placeholder="Neuer Ordner"
+                               class="px-3 py-1.5 text-sm rounded-full border border-[var(--ui-border)]">
+                        <x-ui-button type="submit" size="sm" variant="secondary">
+                            @svg('heroicon-o-folder-plus', 'w-4 h-4') Anlegen
+                        </x-ui-button>
+                    </form>
+                </div>
+                @error('newFolderName')<div class="px-4 pb-3 text-xs text-red-600">{{ $message }}</div>@enderror
+
+                @if($currentFolder)
+                    <div class="px-4 pb-4 flex items-center justify-between">
+                        <span class="text-sm text-[var(--ui-muted)]">Ordner: <strong>{{ $currentFolder->name }}</strong> — neue Uploads landen hier.</span>
+                        <button wire:click="deleteFolder({{ $currentFolder->id }})"
+                                wire:confirm="Ordner löschen? Die Medien bleiben erhalten und landen unter Alle."
+                                class="text-xs text-red-600 hover:underline inline-flex items-center gap-1">
+                            @svg('heroicon-o-trash', 'w-3.5 h-3.5') Ordner löschen
+                        </button>
+                    </div>
+                @endif
+            </x-ui-panel>
+
+            <x-ui-panel :title="$currentFolder ? 'Bibliothek · '.$currentFolder->name : 'Bibliothek'" subtitle="Bilder, Videos, Audio, Streams, PDF, PowerPoint und Apps">
                 @if($media->isEmpty())
                     <div class="p-8 text-center text-[var(--ui-muted)]">Noch keine Medien hochgeladen.</div>
                 @else
@@ -119,6 +154,15 @@
                                             </span>
                                         @endif
                                     </div>
+                                    @if(count($folderOptions))
+                                        <select wire:change="moveToFolder({{ $m->id }}, $event.target.value)"
+                                                class="mt-1.5 w-full text-[10px] px-1 py-1 rounded border border-[var(--ui-border)] bg-white text-[var(--ui-secondary)]">
+                                            <option value="">📁 Ordner: —</option>
+                                            @foreach($folders as $f)
+                                                <option value="{{ $f->id }}" @selected($m->folder_id === $f->id)>{{ $f->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    @endif
                                 </div>
                                 @if($m->isApp())
                                     <a href="{{ route('signage.apps.'.$m->app_type.'.edit', $m) }}" wire:navigate

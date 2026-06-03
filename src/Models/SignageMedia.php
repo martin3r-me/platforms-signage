@@ -14,7 +14,7 @@ class SignageMedia extends Model
     protected $table = 'signage_media';
 
     protected $fillable = [
-        'uuid', 'team_id', 'user_id', 'name', 'kind', 'app_type', 'config',
+        'uuid', 'team_id', 'folder_id', 'user_id', 'name', 'kind', 'app_type', 'config',
         'source_type', 'stream_url', 'is_embed',
         'disk', 'path', 'token', 'original_name', 'mime_type', 'file_size',
         'width', 'height', 'duration_seconds', 'processing_status', 'page_count',
@@ -48,6 +48,11 @@ class SignageMedia extends Model
     public function team()
     {
         return $this->belongsTo(\Platform\Core\Models\Team::class, 'team_id');
+    }
+
+    public function folder()
+    {
+        return $this->belongsTo(SignageMediaFolder::class, 'folder_id');
     }
 
     public function user()

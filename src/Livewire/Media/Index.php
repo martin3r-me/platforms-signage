@@ -24,6 +24,10 @@ class Index extends Component
     public string $streamUrl = '';
     public string $streamType = 'stream'; // 'stream' = direkter Audio-Stream, 'embed' = iframe-Player
 
+    // Ordner-Organisation
+    public ?int $currentFolderId = null;
+    public string $newFolderName = '';
+
     public function rules(): array
     {
         return [
@@ -52,6 +56,7 @@ class Index extends Component
 
             $media = SignageMedia::create([
                 'team_id'           => $teamId,
+                'folder_id'         => $this->currentFolderId,
                 'user_id'           => $userId,
                 'name'              => pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
                 'kind'              => $kind,
@@ -128,6 +133,7 @@ class Index extends Component
 
         SignageMedia::create([
             'team_id'           => $this->teamId(),
+            'folder_id'         => $this->currentFolderId,
             'user_id'           => auth()->id(),
             'name'              => $this->streamName,
             'kind'              => 'audio',
@@ -212,18 +218,84 @@ class Index extends Component
         session()->flash('signage_message', 'Medium gelöscht.');
     }
 
+    // ---- Ordner --------------------------------------------------------
+    public function openFolder(?int $id): void
+    {
+        $this->currentFolderId = $id;
+        $this->resetPage();
+    }
+
+    public function createFolder(): void
+    {
+        $this->validate(['newFolderName' => 'required|string|max:255']);
+
+        \Platform\Signage\Models\SignageMediaFolder::create([
+            'team_id' => $this->teamId(),
+            'user_id' => auth()->id(),
+            'name'    => $this->newFolderName,
+        ]);
+
+        $this->reset('newFolderName');
+        session()->flash('signage_message', 'Ordner erstellt.');
+    }
+
+    public function deleteFolder(int $id): void
+    {
+        $folder = \Platform\Signage\Models\SignageMediaFolder::where('team_id', $this->teamId())->findOrFail($id);
+        // Enthaltene Medien nicht löschen, nur aus dem Ordner lösen.
+        SignageMedia::where('folder_id', $folder->id)->update(['folder_id' => null]);
+        $folder->delete();
+
+        if ($this->currentFolderId === $id) {
+            $this->currentFolderId = null;
+        }
+        session()->flash('signage_message', 'Ordner gelöscht (Medien wurden nach „Alle" verschoben).');
+    }
+
+    public function moveToFolder(int $mediaId, $folderId): void
+    {
+        $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($mediaId);
+        $folderId = (int) $folderId ?: null;
+
+        if ($folderId) {
+            // Nur in eigene Ordner verschieben.
+            \Platform\Signage\Models\SignageMediaFolder::where('team_id', $this->teamId())->findOrFail($folderId);
+        }
+
+        $media->update(['folder_id' => $folderId]);
+        session()->flash('signage_message', 'Medium verschoben.');
+    }
+
     public function render()
     {
-        $media = SignageMedia::where('team_id', $this->teamId())
+        $teamId = $this->teamId();
+
+        $media = SignageMedia::where('team_id', $teamId)
+            ->when($this->currentFolderId, fn ($q) => $q->where('folder_id', $this->currentFolderId))
+            ->when($this->currentFolderId === null, fn ($q) => $q->whereNull('folder_id'))
             ->orderByDesc('created_at')
             ->paginate(24);
 
-        $hasProcessing = SignageMedia::where('team_id', $this->teamId())
+        $folders = \Platform\Signage\Models\SignageMediaFolder::where('team_id', $teamId)
+            ->withCount('media')
+            ->orderBy('name')
+            ->get();
+
+        $folderOptions = $folders->map(fn ($f) => ['value' => $f->id, 'label' => $f->name])->values()->all();
+
+        $currentFolder = $this->currentFolderId
+            ? $folders->firstWhere('id', $this->currentFolderId)
+            : null;
+
+        $hasProcessing = SignageMedia::where('team_id', $teamId)
             ->whereIn('processing_status', ['pending', 'processing'])
             ->exists();
 
         return view('signage::livewire.media.index', [
-            'media' => $media,
+            'media'         => $media,
+            'folders'       => $folders,
+            'folderOptions' => $folderOptions,
+            'currentFolder' => $currentFolder,
             'hasProcessing' => $hasProcessing,
         ])->layout('platform::layouts.app');
     }
