@@ -16,6 +16,7 @@ use Platform\Signage\Livewire\Screens\Show as ScreenShow;
 Route::get('/', Dashboard::class)->name('signage.dashboard');
 
 Route::get('/media', MediaIndex::class)->name('signage.media.index');
+Route::get('/media/{media}/edit', \Platform\Signage\Livewire\Media\Edit::class)->name('signage.media.edit');
 
 // App-Editoren – erstellen + bearbeiten
 Route::get('/apps/clock', ClockApp::class)->name('signage.apps.clock.create');

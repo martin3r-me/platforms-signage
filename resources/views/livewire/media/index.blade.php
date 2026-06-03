@@ -209,12 +209,11 @@
                                             @svg('heroicon-o-pencil-square', 'w-4 h-4')
                                         </a>
                                     @else
-                                        <button type="button" x-data
-                                                x-on:click="let n = prompt('Name', @js($m->name)); if (n && n.trim()) $wire.renameMedia({{ $m->id }}, n.trim())"
-                                                title="Umbenennen"
-                                                class="absolute top-1.5 left-1.5 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">
+                                        <a href="{{ route('signage.media.edit', $m) }}" wire:navigate
+                                           title="Bearbeiten"
+                                           class="absolute top-1.5 left-1.5 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">
                                             @svg('heroicon-o-pencil-square', 'w-4 h-4')
-                                        </button>
+                                        </a>
                                     @endif
                                     <button wire:click="deleteMedia({{ $m->id }})"
                                             wire:confirm="Dieses Medium wirklich löschen?"
