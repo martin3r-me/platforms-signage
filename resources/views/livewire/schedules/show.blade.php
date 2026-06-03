@@ -22,7 +22,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-signage-panel title="Zeitplan">
+            <x-signage-panel icon="clock" title="Zeitplan">
                 <form wire:submit="rename" class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="flex-1 w-full">
                         <x-ui-input-text name="name" label="Name" wire:model="name" />
@@ -32,7 +32,7 @@
                 </form>
             </x-signage-panel>
 
-            <x-signage-panel title="Regeln" subtitle="Pro Zeitfenster eine Wiedergabeliste – höchste Priorität gewinnt, sonst greift die Standard-Wiedergabeliste des Bildschirms">
+            <x-signage-panel icon="adjustments-horizontal" title="Regeln" subtitle="Pro Zeitfenster eine Wiedergabeliste – höchste Priorität gewinnt, sonst greift die Standard-Wiedergabeliste des Bildschirms">
                 <div class="divide-y divide-[var(--ui-border)]/40">
                     @forelse($scheduleRules as $rule)
                         <div class="flex items-center justify-between p-3" wire:key="rule-{{ $rule->id }}">

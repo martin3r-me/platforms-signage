@@ -29,7 +29,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-signage-panel title="Live-Vorschau">
+            <x-signage-panel icon="eye" title="Live-Vorschau">
                 <div class="p-4">
                     <div class="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-black {{ str_starts_with($screen->orientation, 'portrait') ? 'aspect-[9/16] max-w-xs' : 'aspect-video' }}">
                         <iframe src="{{ $previewUrl }}" class="absolute inset-0 w-full h-full" frameborder="0"></iframe>
@@ -37,7 +37,7 @@
                 </div>
             </x-signage-panel>
 
-            <x-signage-panel title="Einstellungen">
+            <x-signage-panel icon="cog-6-tooth" title="Einstellungen">
                 <form wire:submit="saveSettings" class="space-y-4 p-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <x-ui-input-text name="name" label="Name" wire:model="name" />

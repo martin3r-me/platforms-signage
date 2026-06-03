@@ -148,6 +148,13 @@ class PlayerManifestService
                         'fit'        => $fit,
                     ];
                 }
+            } elseif ($media->kind === 'website') {
+                $frames[] = [
+                    'type'       => 'website',
+                    'url'        => $media->stream_url,
+                    'duration'   => $duration,
+                    'transition' => $item->transition,
+                ];
             }
             // Audio in einer Visual-Playlist wird ignoriert.
         }

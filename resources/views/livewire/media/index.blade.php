@@ -21,6 +21,10 @@
                     @svg('heroicon-o-signal', 'w-4 h-4')
                     Stream einbinden
                 </x-ui-button>
+                <x-ui-button variant="secondary" size="sm" :href="route('signage.websites.create')">
+                    @svg('heroicon-o-globe-alt', 'w-4 h-4')
+                    Website
+                </x-ui-button>
                 {{-- Label-as-button: ein verschachteltes <button> würde den Datei-Dialog blockieren. --}}
                 <label class="inline-flex items-center justify-center gap-2 cursor-pointer select-none whitespace-nowrap font-medium transition-all duration-150 active:scale-[0.98] bg-[rgb(var(--ui-primary-rgb))] text-[color:var(--ui-on-primary)] border border-transparent shadow-sm hover:brightness-110 hover:shadow-md rounded-full px-2.5 py-1 text-sm">
                     @svg('heroicon-o-arrow-up-tray', 'w-4 h-4')
@@ -119,7 +123,7 @@
                     </div>
                 </div>
 
-                <x-signage-panel :title="$currentFolder ? 'Bibliothek · '.$currentFolder->name : 'Bibliothek'" subtitle="Bilder, Videos, Audio, Streams, PDF, PowerPoint und Apps">
+                <x-signage-panel icon="photo" :title="$currentFolder ? 'Bibliothek · '.$currentFolder->name : 'Bibliothek'" subtitle="Bilder, Videos, Audio, Streams, Websites, PDF, PowerPoint und Apps">
                     <div class="mx-4 mt-4 flex items-center gap-2 text-xs text-[var(--ui-muted)] border border-dashed border-[var(--ui-border)] rounded-lg px-3 py-2">
                         @svg('heroicon-o-arrow-down-tray', 'w-4 h-4 shrink-0')
                         <span>Tipp: Dateien einfach per <strong>Drag &amp; Drop</strong> hier ablegen{{ $currentFolder ? ' – Ziel-Ordner: '.$currentFolder->name : '' }}.</span>
@@ -142,6 +146,8 @@
                                             @svg('heroicon-o-signal', 'w-10 h-10 text-[var(--ui-muted)]')
                                         @elseif($m->isApp())
                                             <iframe src="{{ route('signage.apps.preview', $m) }}" class="w-full h-full border-0 pointer-events-none" scrolling="no" loading="lazy" tabindex="-1"></iframe>
+                                        @elseif($m->isWebsite())
+                                            @svg('heroicon-o-globe-alt', 'w-10 h-10 text-[var(--ui-muted)]')
                                         @elseif($m->kind === 'video')
                                             @svg('heroicon-o-film', 'w-10 h-10 text-[var(--ui-muted)]')
                                         @elseif($m->kind === 'audio')
@@ -152,24 +158,23 @@
                                     </div>
                                     <div class="p-2">
                                         <div class="text-xs font-medium text-[var(--ui-secondary)] truncate" title="{{ $m->name }}">{{ $m->name }}</div>
-                                        @if($m->isStream())
+                                        @if($m->isStream() || $m->isWebsite())
                                             <div class="text-[10px] text-[var(--ui-muted)] truncate" title="{{ $m->stream_url }}">{{ $m->stream_url }}</div>
                                         @endif
-                                        <div class="flex items-center justify-between mt-1">
-                                            <span class="text-[10px] uppercase tracking-wide text-[var(--ui-muted)]">
-                                                @if($m->isStream())
-                                                    {{ $m->is_embed ? 'Embed' : 'Stream' }}
-                                                @elseif($m->isApp())
-                                                    App · {{ $m->app_type }}
-                                                @else
-                                                    {{ $m->kind }}
-                                                    @if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} S.@endif
-                                                @endif
-                                            </span>
+                                        <div class="flex items-center justify-between gap-1 mt-1.5">
+                                            @if($m->isStream())
+                                                <x-signage-badge :color="$m->is_embed ? 'amber' : 'blue'">{{ $m->is_embed ? 'Embed' : 'Stream' }}</x-signage-badge>
+                                            @elseif($m->isApp())
+                                                <x-signage-badge color="violet">App · {{ $m->app_type }}</x-signage-badge>
+                                            @elseif($m->isWebsite())
+                                                <x-signage-badge color="indigo">Website</x-signage-badge>
+                                            @else
+                                                <x-signage-badge color="gray">{{ $m->kind }}@if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} S.@endif</x-signage-badge>
+                                            @endif
                                             @if($m->kind === 'document' && $m->processing_status !== 'ready')
-                                                <span class="text-[10px] {{ $m->processing_status === 'failed' ? 'text-red-600' : 'text-blue-600' }}">
-                                                    {{ $m->processing_status === 'failed' ? 'Fehler' : 'wird verarbeitet …' }}
-                                                </span>
+                                                <x-signage-badge :color="$m->processing_status === 'failed' ? 'red' : 'blue'">
+                                                    {{ $m->processing_status === 'failed' ? 'Fehler' : 'verarbeitet …' }}
+                                                </x-signage-badge>
                                             @endif
                                         </div>
                                         @if($m->kind === 'document' && $m->processing_status !== 'ready')
@@ -195,6 +200,11 @@
                                         </a>
                                     @elseif($m->isStream())
                                         <a href="{{ route('signage.streams.edit', $m) }}" wire:navigate
+                                           class="absolute top-1.5 left-1.5 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">
+                                            @svg('heroicon-o-pencil-square', 'w-4 h-4')
+                                        </a>
+                                    @elseif($m->isWebsite())
+                                        <a href="{{ route('signage.websites.edit', $m) }}" wire:navigate
                                            class="absolute top-1.5 left-1.5 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">
                                             @svg('heroicon-o-pencil-square', 'w-4 h-4')
                                         </a>

@@ -40,6 +40,11 @@ class SignageMedia extends Model
         return $this->kind === 'app';
     }
 
+    public function isWebsite(): bool
+    {
+        return $this->kind === 'website';
+    }
+
     public function pages(): HasMany
     {
         return $this->hasMany(SignageMediaPage::class, 'media_id')->orderBy('page_number');

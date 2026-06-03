@@ -335,6 +335,17 @@
                 setTimeout(show, 8000);
             } else if (item.type === 'app') {
                 renderApp(item, frame);
+            } else if (item.type === 'website') {
+                const f = document.createElement('iframe');
+                f.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; border:0; background:#fff;';
+                f.setAttribute('scrolling', 'no');
+                const ms = (item.duration || 10) * 1000;
+                const show = () => { if (done) return; done = true; mount(frame); frameTimer = setTimeout(() => { advance(); }, ms); };
+                f.addEventListener('load', show, { once: true });
+                f.src = item.url;
+                frame.appendChild(f);
+                // Fallback, falls 'load' nicht feuert (z.B. geblockte Seite).
+                setTimeout(show, 4000);
             } else {
                 const img = document.createElement('img');
                 img.style.objectFit = item.fit === 'cover' ? 'cover' : 'contain';

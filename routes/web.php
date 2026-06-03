@@ -33,6 +33,10 @@ Route::view('/apps/preview-live', 'signage::apps.preview-live')->name('signage.a
 Route::get('/streams/new', \Platform\Signage\Livewire\Streams\Edit::class)->name('signage.streams.create');
 Route::get('/streams/{media}/edit', \Platform\Signage\Livewire\Streams\Edit::class)->name('signage.streams.edit');
 
+// Website einbinden / bearbeiten
+Route::get('/websites/new', \Platform\Signage\Livewire\Websites\Edit::class)->name('signage.websites.create');
+Route::get('/websites/{media}/edit', \Platform\Signage\Livewire\Websites\Edit::class)->name('signage.websites.edit');
+
 Route::get('/playlists', PlaylistIndex::class)->name('signage.playlists.index');
 Route::get('/playlists/{playlist}', PlaylistShow::class)->name('signage.playlists.show');
 

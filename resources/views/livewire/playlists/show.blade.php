@@ -17,7 +17,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-signage-panel title="Wiedergabeliste" subtitle="Name & Beschreibung">
+            <x-signage-panel icon="queue-list" title="Wiedergabeliste" subtitle="Name & Beschreibung">
                 <form wire:submit="rename" class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="flex-1 w-full">
                         <x-ui-input-text name="name" label="Name" wire:model="name" />
@@ -40,7 +40,7 @@
                 </form>
             </x-signage-panel>
 
-            <x-signage-panel title="Element hinzufügen" subtitle="{{ $playlist->kind === 'music' ? 'Audiodateien' : 'Bilder, Videos, Dokumente' }}">
+            <x-signage-panel icon="plus-circle" title="Element hinzufügen" subtitle="{{ $playlist->kind === 'music' ? 'Audiodateien' : 'Bilder, Videos, Dokumente' }}">
                 <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="flex-1 w-full">
                         <x-ui-input-select name="addMediaId" label="Medium" wire:model="addMediaId"
@@ -57,7 +57,7 @@
                 @endif
             </x-signage-panel>
 
-            <x-signage-panel title="Reihenfolge" subtitle="Wird von oben nach unten abgespielt">
+            <x-signage-panel icon="bars-3" title="Reihenfolge" subtitle="Wird von oben nach unten abgespielt">
                 @if($items->isEmpty())
                     <div class="p-8 text-center text-[var(--ui-muted)]">Noch keine Elemente.</div>
                 @else
@@ -82,6 +82,8 @@
                                         @svg('heroicon-o-musical-note', 'w-5 h-5 text-[var(--ui-muted)]')
                                     @elseif($item->media?->kind === 'app')
                                         <iframe src="{{ route('signage.apps.preview', $item->media) }}" class="w-full h-full border-0 pointer-events-none" scrolling="no" loading="lazy" tabindex="-1"></iframe>
+                                    @elseif($item->media?->kind === 'website')
+                                        @svg('heroicon-o-globe-alt', 'w-5 h-5 text-[var(--ui-muted)]')
                                     @else
                                         @svg('heroicon-o-document', 'w-5 h-5 text-[var(--ui-muted)]')
                                     @endif
@@ -95,7 +97,7 @@
                                         @endif
                                     </div>
                                 </div>
-                                @if($playlist->kind !== 'music' && in_array($item->media?->kind, ['image', 'document', 'app']))
+                                @if($playlist->kind !== 'music' && in_array($item->media?->kind, ['image', 'document', 'app', 'website']))
                                     <div class="flex items-center gap-1">
                                         <input type="number" min="1" value="{{ $item->duration_seconds }}"
                                                placeholder="{{ $defaultDuration }}"

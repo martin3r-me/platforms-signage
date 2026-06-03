@@ -81,6 +81,7 @@ class SignageServiceProvider extends ServiceProvider
         // Eigene UI-Bausteine des Moduls (bewusst losgelöst von x-ui-panel/-tile).
         Blade::component('signage::components.panel', 'signage-panel');
         Blade::component('signage::components.tile', 'signage-tile');
+        Blade::component('signage::components.badge', 'signage-badge');
 
         $this->registerLivewireComponents();
         $this->registerPolicies();

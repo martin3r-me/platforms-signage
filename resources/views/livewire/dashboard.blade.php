@@ -36,14 +36,11 @@
             <x-signage-panel title="Bildschirme" subtitle="Status der gekoppelten Geräte" icon="computer-desktop">
                 <div class="divide-y divide-[var(--ui-border)]/40">
                     @forelse($screens as $screen)
-                        <a href="{{ route('signage.screens.show', $screen) }}" wire:navigate class="flex items-center justify-between p-4 hover:bg-[var(--ui-muted-5)]">
-                            <div class="flex items-center gap-3">
-                                <span class="inline-block w-2.5 h-2.5 rounded-full {{ $screen->isOnline() ? 'bg-green-500' : 'bg-gray-400' }}"></span>
-                                <span class="font-medium text-[var(--ui-secondary)]">{{ $screen->name }}</span>
-                            </div>
-                            <div class="text-sm text-[var(--ui-muted)]">
-                                {{ $screen->isOnline() ? 'Online' : ($screen->last_seen_at ? 'Zuletzt '.$screen->last_seen_at->diffForHumans() : 'Noch nie online') }}
-                            </div>
+                        <a href="{{ route('signage.screens.show', $screen) }}" wire:navigate class="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-[var(--ui-muted-5)] transition">
+                            <span class="font-medium text-[var(--ui-secondary)] truncate">{{ $screen->name }}</span>
+                            <x-signage-badge :color="$screen->isOnline() ? 'green' : 'gray'" dot>
+                                {{ $screen->isOnline() ? 'Online' : ($screen->last_seen_at ? 'Zuletzt '.$screen->last_seen_at->diffForHumans() : 'Offline') }}
+                            </x-signage-badge>
                         </a>
                     @empty
                         <div class="p-6 text-center text-[var(--ui-muted)]">

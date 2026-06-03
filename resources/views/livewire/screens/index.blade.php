@@ -16,7 +16,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-signage-panel title="Bildschirm koppeln" subtitle="Öffne {{ url('/signage/play') }} am TV und gib den angezeigten Code ein">
+            <x-signage-panel icon="link" title="Bildschirm koppeln" subtitle="Öffne {{ url('/signage/play') }} am TV und gib den angezeigten Code ein">
                 <form wire:submit="pair" class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="w-full sm:w-40">
                         <x-ui-input-text name="pairingCode" label="Kopplungs-Code" wire:model="pairingCode" placeholder="z.B. K7P2QM" />
@@ -29,16 +29,18 @@
                 </form>
             </x-signage-panel>
 
-            <x-signage-panel title="Gekoppelte Bildschirme">
+            <x-signage-panel icon="computer-desktop" title="Gekoppelte Bildschirme">
                 <div class="divide-y divide-[var(--ui-border)]/40">
                     @forelse($screens as $screen)
                         <div class="flex items-center justify-between p-4" wire:key="screen-{{ $screen->id }}">
-                            <a href="{{ route('signage.screens.show', $screen) }}" wire:navigate class="flex items-center gap-3 flex-1">
-                                <span class="inline-block w-2.5 h-2.5 rounded-full {{ $screen->isOnline() ? 'bg-green-500' : 'bg-gray-400' }}"></span>
-                                <div>
-                                    <div class="font-medium text-[var(--ui-secondary)]">{{ $screen->name }}</div>
-                                    <div class="text-xs text-[var(--ui-muted)]">
-                                        {{ $screen->isOnline() ? 'Online' : ($screen->last_seen_at ? 'Zuletzt '.$screen->last_seen_at->diffForHumans() : 'Noch nie online') }}
+                            <a href="{{ route('signage.screens.show', $screen) }}" wire:navigate class="flex items-center gap-3 flex-1 min-w-0">
+                                <x-signage-badge :color="$screen->isOnline() ? 'green' : 'gray'" dot class="shrink-0">
+                                    {{ $screen->isOnline() ? 'Online' : 'Offline' }}
+                                </x-signage-badge>
+                                <div class="min-w-0">
+                                    <div class="font-medium text-[var(--ui-secondary)] truncate">{{ $screen->name }}</div>
+                                    <div class="text-xs text-[var(--ui-muted)] truncate">
+                                        {{ $screen->isOnline() ? 'Gerade erreichbar' : ($screen->last_seen_at ? 'Zuletzt '.$screen->last_seen_at->diffForHumans() : 'Noch nie online') }}
                                         @if($screen->defaultPlaylist) · {{ $screen->defaultPlaylist->name }} @endif
                                     </div>
                                 </div>
