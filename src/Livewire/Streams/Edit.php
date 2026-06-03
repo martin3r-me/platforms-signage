@@ -18,19 +18,21 @@ class Edit extends Component
 {
     use WithCurrentTeam, ResolvesStream;
 
-    public int $mediaId;
+    public ?int $mediaId = null;
     public string $name = '';
     public string $url = '';
     public string $type = 'stream'; // stream | embed
 
-    public function mount(SignageMedia $media): void
+    public function mount(?SignageMedia $media = null): void
     {
-        abort_unless($media->team_id === $this->teamId() && $media->isStream(), 403);
+        if ($media && $media->exists) {
+            abort_unless($media->team_id === $this->teamId() && $media->isStream(), 403);
 
-        $this->mediaId = $media->id;
-        $this->name = (string) $media->name;
-        $this->url = (string) $media->stream_url;
-        $this->type = $media->is_embed ? 'embed' : 'stream';
+            $this->mediaId = $media->id;
+            $this->name = (string) $media->name;
+            $this->url = (string) $media->stream_url;
+            $this->type = $media->is_embed ? 'embed' : 'stream';
+        }
     }
 
     public function save()
@@ -43,14 +45,27 @@ class Edit extends Component
 
         [$url, $isEmbed] = $this->resolveStream($this->url, $this->type);
 
-        $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($this->mediaId);
-        $media->update([
-            'name'       => $this->name,
-            'stream_url' => $url,
-            'is_embed'   => $isEmbed,
-        ]);
+        if ($this->mediaId) {
+            $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($this->mediaId);
+            $media->update([
+                'name'       => $this->name,
+                'stream_url' => $url,
+                'is_embed'   => $isEmbed,
+            ]);
+            $this->bumpScreensUsing($media->id);
+        } else {
+            SignageMedia::create([
+                'team_id'           => $this->teamId(),
+                'user_id'           => auth()->id(),
+                'name'              => $this->name,
+                'kind'              => 'audio',
+                'source_type'       => 'stream',
+                'stream_url'        => $url,
+                'is_embed'          => $isEmbed,
+                'processing_status' => 'ready',
+            ]);
+        }
 
-        $this->bumpScreensUsing($media->id);
         session()->flash('signage_message', 'Stream gespeichert.');
 
         return $this->redirectRoute('signage.media.index', navigate: true);

@@ -3,27 +3,20 @@
 namespace Platform\Signage\Livewire\Media;
 
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Http;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Platform\Core\Services\ContextFileService;
 use Platform\Signage\Jobs\ConvertDocumentJob;
-use Platform\Signage\Livewire\Concerns\ResolvesStream;
 use Platform\Signage\Livewire\Concerns\WithCurrentTeam;
 use Platform\Signage\Models\SignageMedia;
 
 class Index extends Component
 {
-    use WithCurrentTeam, WithFileUploads, WithPagination, ResolvesStream;
+    use WithCurrentTeam, WithFileUploads, WithPagination;
 
     /** @var array<UploadedFile> */
     public $uploads = [];
-
-    // Stream einbinden (z.B. Internet-Radio oder TuneIn-Embed)
-    public string $streamName = '';
-    public string $streamUrl = '';
-    public string $streamType = 'stream'; // 'stream' = direkter Audio-Stream, 'embed' = iframe-Player
 
     // Ordner-Organisation
     public ?int $currentFolderId = null;
@@ -122,34 +115,6 @@ class Index extends Component
             'mp3', 'aac', 'ogg', 'wav' => 'audio',
             default => 'document',
         };
-    }
-
-    public function addStream(): void
-    {
-        $this->validate([
-            'streamName' => 'required|string|max:255',
-            'streamUrl'  => 'required|url|max:1024',
-            'streamType' => 'required|in:stream,embed',
-        ]);
-
-        [$url, $isEmbed] = $this->resolveStream($this->streamUrl, $this->streamType);
-
-        SignageMedia::create([
-            'team_id'           => $this->teamId(),
-            'folder_id'         => $this->currentFolderId,
-            'user_id'           => auth()->id(),
-            'name'              => $this->streamName,
-            'kind'              => 'audio',
-            'source_type'       => 'stream',
-            'stream_url'        => $url,
-            'is_embed'          => $isEmbed,
-            'processing_status' => 'ready',
-        ]);
-
-        $this->reset('streamName', 'streamUrl', 'streamType');
-        session()->flash('signage_message', $isEmbed
-            ? 'Stream als eingebetteter Player hinzugefügt (startet evtl. erst nach Interaktion).'
-            : 'Stream hinzugefügt (direkter Audio-Stream).');
     }
 
     public function deleteMedia(int $id): void

@@ -27,7 +27,8 @@ Route::get('/apps/preview/{media}', [AppPreviewController::class, 'show'])->name
 // Live-Vorschau (leer, wird per postMessage vom App-Editor gesteuert)
 Route::view('/apps/preview-live', 'signage::apps.preview-live')->name('signage.apps.preview-live');
 
-// Musik-Stream bearbeiten
+// Musik-Stream einbinden / bearbeiten
+Route::get('/streams/new', \Platform\Signage\Livewire\Streams\Edit::class)->name('signage.streams.create');
 Route::get('/streams/{media}/edit', \Platform\Signage\Livewire\Streams\Edit::class)->name('signage.streams.edit');
 
 Route::get('/playlists', PlaylistIndex::class)->name('signage.playlists.index');

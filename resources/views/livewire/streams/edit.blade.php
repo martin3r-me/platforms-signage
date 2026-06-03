@@ -1,13 +1,13 @@
 <x-ui-page>
     <x-slot name="navbar">
-        <x-ui-page-navbar title="Stream bearbeiten" />
+        <x-ui-page-navbar :title="$mediaId ? 'Stream bearbeiten' : 'Stream einbinden'" />
     </x-slot>
 
     <x-slot name="actionbar">
         <x-ui-page-actionbar :breadcrumbs="[
             ['label' => 'Digital Signage', 'href' => route('signage.dashboard'), 'icon' => 'tv'],
             ['label' => 'Medien', 'href' => route('signage.media.index')],
-            ['label' => 'Stream bearbeiten'],
+            ['label' => $mediaId ? 'Stream bearbeiten' : 'Stream einbinden'],
         ]" />
     </x-slot>
 
