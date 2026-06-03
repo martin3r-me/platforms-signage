@@ -12,7 +12,7 @@
     </x-slot>
 
     <x-ui-page-container>
-        <div class="max-w-2xl mx-auto space-y-6">
+        <div class="max-w-2xl mx-auto space-y-6 pt-4">
             <x-signage-panel icon="signal" title="Stream" subtitle="Name, URL und Typ ändern">
                 <form wire:submit="save" class="space-y-5 p-4">
                     <div>

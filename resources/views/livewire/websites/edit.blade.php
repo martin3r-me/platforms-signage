@@ -12,7 +12,7 @@
     </x-slot>
 
     <x-ui-page-container>
-        <div class="max-w-2xl mx-auto space-y-6">
+        <div class="max-w-2xl mx-auto space-y-6 pt-4">
             <x-signage-panel title="Website" subtitle="Wird im Vollbild angezeigt (für die in der Wiedergabeliste eingestellte Dauer)" icon="globe-alt">
                 <form wire:submit="save" class="space-y-5 p-5">
                     <div>

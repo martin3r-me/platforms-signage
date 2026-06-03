@@ -12,7 +12,7 @@
     </x-slot>
 
     <x-ui-page-container>
-        <div class="max-w-2xl mx-auto space-y-6" x-data="{
+        <div class="max-w-2xl mx-auto space-y-6 pt-4" x-data="{
                 send() {
                     const f = $refs.frame;
                     if (!f || !f.contentWindow) return;

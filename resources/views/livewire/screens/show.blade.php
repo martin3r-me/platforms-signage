@@ -24,7 +24,7 @@
     </x-slot>
 
     <x-ui-page-container>
-        <div class="space-y-6">
+        <div class="space-y-6 pt-4">
             @if(session('signage_message'))
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif

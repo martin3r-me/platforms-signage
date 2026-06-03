@@ -80,7 +80,7 @@
     </x-slot>
 
     <x-ui-page-container>
-        <div class="space-y-4" @if($hasProcessing) wire:poll.6s @endif>
+        <div class="space-y-4 pt-4" @if($hasProcessing) wire:poll.6s @endif>
             @if(session('signage_message'))
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
