@@ -91,25 +91,7 @@ class Clock extends Component
      */
     protected function bumpScreensUsing(int $mediaId): void
     {
-        $playlistIds = \Platform\Signage\Models\SignagePlaylistItem::where('media_id', $mediaId)
-            ->pluck('playlist_id')->unique();
-
-        if ($playlistIds->isEmpty()) {
-            return;
-        }
-
-        $screenIds = \Platform\Signage\Models\SignageScreen::whereIn('default_playlist_id', $playlistIds)
-            ->orWhereIn('music_playlist_id', $playlistIds)
-            ->pluck('id')
-            ->merge(
-                \Platform\Signage\Models\SignageSchedule::whereIn('playlist_id', $playlistIds)
-                    ->pluck('screen_id')
-            )
-            ->unique();
-
-        if ($screenIds->isNotEmpty()) {
-            \Platform\Signage\Models\SignageScreen::whereIn('id', $screenIds)->increment('content_version');
-        }
+        \Platform\Signage\Models\SignageScreen::bumpForMedia($mediaId);
     }
 
     public function render()

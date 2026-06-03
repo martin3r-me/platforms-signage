@@ -58,25 +58,26 @@ class PlayerManifestService
 
     /**
      * Wählt die Playlist der gegebenen Art (visual/music):
-     * passender Zeitplan (höchste Priorität) -> sonst Standard-Playlist des Screens.
+     * passende Regel des zugewiesenen Zeitplans (höchste Priorität)
+     * -> sonst Standard-Playlist des Screens.
      */
     private function pickPlaylist(SignageScreen $screen, \DateTimeInterface $now, string $kind): ?SignagePlaylist
     {
-        $schedules = $screen->schedules()
-            ->where('active', true)
-            ->orderByDesc('priority')
-            ->get();
+        $schedule = $screen->schedule;
 
-        foreach ($schedules as $schedule) {
-            if (!$schedule->matchesNow($now)) {
-                continue;
-            }
+        if ($schedule) {
+            $rules = $schedule->rules()->where('active', true)->orderByDesc('priority')->get();
+            foreach ($rules as $rule) {
+                if (!$rule->matchesNow($now)) {
+                    continue;
+                }
 
-            $playlistId = $kind === 'music' ? $schedule->music_playlist_id : $schedule->playlist_id;
-            if ($playlistId) {
-                $playlist = SignagePlaylist::with('items.media')->find($playlistId);
-                if ($playlist && $playlist->kind === $kind) {
-                    return $playlist;
+                $playlistId = $kind === 'music' ? $rule->music_playlist_id : $rule->playlist_id;
+                if ($playlistId) {
+                    $playlist = SignagePlaylist::with('items.media')->find($playlistId);
+                    if ($playlist && $playlist->kind === $kind) {
+                        return $playlist;
+                    }
                 }
             }
         }

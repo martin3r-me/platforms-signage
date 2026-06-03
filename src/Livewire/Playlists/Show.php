@@ -125,21 +125,7 @@ class Show extends Component
      */
     protected function bumpAffectedScreens(): void
     {
-        $id = $this->playlist->id;
-
-        $screenIds = SignageScreen::where('default_playlist_id', $id)
-            ->orWhere('music_playlist_id', $id)
-            ->pluck('id')
-            ->merge(
-                \Platform\Signage\Models\SignageSchedule::where('playlist_id', $id)
-                    ->orWhere('music_playlist_id', $id)
-                    ->pluck('screen_id')
-            )
-            ->unique();
-
-        if ($screenIds->isNotEmpty()) {
-            SignageScreen::whereIn('id', $screenIds)->increment('content_version');
-        }
+        SignageScreen::bumpForPlaylists([$this->playlist->id]);
     }
 
     public function render()

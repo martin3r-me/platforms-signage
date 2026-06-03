@@ -1,9 +1,5 @@
 @php
     $visualOptions = $visualPlaylists->map(fn($p) => ['value' => $p->id, 'label' => $p->name])->values()->all();
-    // Nur Playlists – für die Zeitplan-Musik (music_playlist_id). Das Einstellungs-Feld
-    // nutzt das kombinierte $musicOptions (Playlists + einzelne Streams) aus der Komponente.
-    $musicPlaylistOptions = $musicPlaylists->map(fn($p) => ['value' => $p->id, 'label' => $p->name])->values()->all();
-    $weekdays = [1 => 'Mo', 2 => 'Di', 3 => 'Mi', 4 => 'Do', 5 => 'Fr', 6 => 'Sa', 7 => 'So'];
 @endphp
 <x-ui-page>
     <x-slot name="navbar">
@@ -55,71 +51,19 @@
                             optionValue="value" optionLabel="label" />
                         <x-ui-input-select name="defaultPlaylistId" label="Standard-Wiedergabeliste" wire:model="defaultPlaylistId"
                             :options="$visualOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
+                        <x-ui-input-select name="scheduleId" label="Zeitplan" wire:model="scheduleId"
+                            :options="$scheduleOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– kein Zeitplan –" />
                         <x-ui-input-select name="musicSource" label="Hintergrundmusik" wire:model="musicSource"
                             :options="$musicOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
                     </div>
+                    <p class="text-xs text-[var(--ui-muted)]">
+                        Der Zeitplan übersteuert die Standard-Wiedergabeliste in seinen Zeitfenstern. Zeitpläne werden unter
+                        <a href="{{ route('signage.schedules.index') }}" wire:navigate class="text-[var(--ui-primary)] underline">Zeitpläne</a> verwaltet.
+                    </p>
                     <x-ui-button type="submit" variant="primary">Speichern</x-ui-button>
                 </form>
             </x-ui-panel>
 
-            <x-ui-panel title="Zeitpläne" subtitle="Übersteuern die Standard-Wiedergabeliste in bestimmten Zeitfenstern (höchste Priorität gewinnt)">
-                <div class="divide-y divide-[var(--ui-border)]/40">
-                    @forelse($schedules as $schedule)
-                        <div class="flex items-center justify-between p-3" wire:key="sched-{{ $schedule->id }}">
-                            <div>
-                                <div class="font-medium text-[var(--ui-secondary)]">
-                                    {{ $schedule->playlist?->name }}
-                                    @if($schedule->musicPlaylist) <span class="text-[var(--ui-muted)]">+ {{ $schedule->musicPlaylist->name }}</span> @endif
-                                </div>
-                                <div class="text-xs text-[var(--ui-muted)]">
-                                    {{ collect($schedule->days_of_week)->map(fn($d) => $weekdays[$d] ?? $d)->implode(', ') }}
-                                    · {{ \Illuminate\Support\Str::of($schedule->start_time)->substr(0,5) }}–{{ \Illuminate\Support\Str::of($schedule->end_time)->substr(0,5) }}
-                                    · Priorität {{ $schedule->priority }}
-                                </div>
-                            </div>
-                            <button wire:click="deleteSchedule({{ $schedule->id }})" class="p-1.5 rounded text-[var(--ui-muted)] hover:text-red-600">
-                                @svg('heroicon-o-trash', 'w-4 h-4')
-                            </button>
-                        </div>
-                    @empty
-                        <div class="p-6 text-center text-[var(--ui-muted)] text-sm">Keine Zeitpläne – es läuft immer die Standard-Wiedergabeliste.</div>
-                    @endforelse
-                </div>
-
-                <form wire:submit="addSchedule" class="space-y-4 p-4 border-t border-[var(--ui-border)]/40">
-                    <div class="flex flex-wrap gap-2">
-                        @foreach($weekdays as $num => $label)
-                            <label class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-[var(--ui-border)] cursor-pointer text-sm">
-                                <input type="checkbox" value="{{ $num }}" wire:model="schedDays" class="rounded">
-                                {{ $label }}
-                            </label>
-                        @endforeach
-                    </div>
-                    @error('schedDays')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
-
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                        <div>
-                            <label class="block text-xs text-[var(--ui-muted)] mb-1">Von</label>
-                            <input type="time" wire:model="schedStart" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-[var(--ui-muted)] mb-1">Bis</label>
-                            <input type="time" wire:model="schedEnd" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
-                        </div>
-                        <x-ui-input-select name="schedPlaylistId" label="Wiedergabeliste" wire:model="schedPlaylistId"
-                            :options="$visualOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– wählen –" />
-                        <x-ui-input-select name="schedMusicId" label="Musik-Liste (optional)" wire:model="schedMusicId"
-                            :options="$musicPlaylistOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
-                        <div>
-                            <label class="block text-xs text-[var(--ui-muted)] mb-1">Priorität</label>
-                            <input type="number" wire:model="schedPriority" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
-                        </div>
-                    </div>
-                    @error('schedPlaylistId')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
-
-                    <x-ui-button type="submit" variant="primary">Zeitplan hinzufügen</x-ui-button>
-                </form>
-            </x-ui-panel>
         </div>
     </x-ui-page-container>
 </x-ui-page>

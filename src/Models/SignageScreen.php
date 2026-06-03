@@ -16,7 +16,7 @@ class SignageScreen extends Model
 
     protected $fillable = [
         'uuid', 'team_id', 'name', 'device_token', 'pairing_code', 'status',
-        'default_playlist_id', 'music_playlist_id', 'music_media_id', 'orientation',
+        'default_playlist_id', 'schedule_id', 'music_playlist_id', 'music_media_id', 'orientation',
         'content_version', 'last_seen_at', 'paired_at', 'settings',
     ];
 
@@ -53,9 +53,68 @@ class SignageScreen extends Model
         return $this->belongsTo(SignageMedia::class, 'music_media_id');
     }
 
-    public function schedules(): HasMany
+    public function schedule(): BelongsTo
     {
-        return $this->hasMany(SignageSchedule::class, 'screen_id');
+        return $this->belongsTo(SignageSchedule::class, 'schedule_id');
+    }
+
+    /**
+     * Erhöht content_version aller Bildschirme, die die gegebenen Playlists nutzen
+     * (direkt als Standard/Musik oder über eine Zeitplan-Regel).
+     *
+     * @param iterable $playlistIds
+     */
+    public static function bumpForPlaylists($playlistIds): void
+    {
+        $playlistIds = collect($playlistIds)->filter()->unique()->values()->all();
+        if (empty($playlistIds)) {
+            return;
+        }
+
+        $ruleScheduleIds = SignageScheduleRule::where(function ($q) use ($playlistIds) {
+            $q->whereIn('playlist_id', $playlistIds)->orWhereIn('music_playlist_id', $playlistIds);
+        })->pluck('schedule_id')->unique()->all();
+
+        $screenIds = static::where(function ($q) use ($playlistIds, $ruleScheduleIds) {
+            $q->whereIn('default_playlist_id', $playlistIds)
+              ->orWhereIn('music_playlist_id', $playlistIds);
+            if (!empty($ruleScheduleIds)) {
+                $q->orWhereIn('schedule_id', $ruleScheduleIds);
+            }
+        })->pluck('id');
+
+        if ($screenIds->isNotEmpty()) {
+            static::whereIn('id', $screenIds)->increment('content_version');
+        }
+    }
+
+    /**
+     * Erhöht content_version aller Bildschirme, die das gegebene Medium nutzen
+     * (als direkte Musik oder über eine Playlist/Zeitplan-Regel).
+     */
+    public static function bumpForMedia(int $mediaId): void
+    {
+        $playlistIds = SignagePlaylistItem::where('media_id', $mediaId)
+            ->pluck('playlist_id')->unique()->values()->all();
+
+        $ruleScheduleIds = empty($playlistIds) ? [] : SignageScheduleRule::where(function ($q) use ($playlistIds) {
+            $q->whereIn('playlist_id', $playlistIds)->orWhereIn('music_playlist_id', $playlistIds);
+        })->pluck('schedule_id')->unique()->all();
+
+        $screenIds = static::where(function ($q) use ($mediaId, $playlistIds, $ruleScheduleIds) {
+            $q->where('music_media_id', $mediaId);
+            if (!empty($playlistIds)) {
+                $q->orWhereIn('default_playlist_id', $playlistIds)
+                  ->orWhereIn('music_playlist_id', $playlistIds);
+            }
+            if (!empty($ruleScheduleIds)) {
+                $q->orWhereIn('schedule_id', $ruleScheduleIds);
+            }
+        })->pluck('id');
+
+        if ($screenIds->isNotEmpty()) {
+            static::whereIn('id', $screenIds)->increment('content_version');
+        }
     }
 
     public function isOnline(): bool

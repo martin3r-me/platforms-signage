@@ -17,24 +17,18 @@ class Show extends Component
 
     // Einstellungen
     public ?int $defaultPlaylistId = null;
+    public ?int $scheduleId = null;
     // "playlist:ID" oder "media:ID" (einzelner Stream/Audio) oder '' (keine)
     public string $musicSource = '';
     public string $orientation = 'landscape';
     public string $name = '';
-
-    // Zeitplan-Formular
-    public array $schedDays = [];
-    public string $schedStart = '08:00';
-    public string $schedEnd = '18:00';
-    public ?int $schedPlaylistId = null;
-    public ?int $schedMusicId = null;
-    public int $schedPriority = 0;
 
     public function mount(SignageScreen $screen): void
     {
         abort_unless($screen->team_id === $this->teamId(), 403);
         $this->screen = $screen;
         $this->defaultPlaylistId = $screen->default_playlist_id;
+        $this->scheduleId = $screen->schedule_id;
         if ($screen->music_playlist_id) {
             $this->musicSource = 'playlist:'.$screen->music_playlist_id;
         } elseif ($screen->music_media_id) {
@@ -62,6 +56,7 @@ class Show extends Component
         $this->screen->update([
             'name'                => $this->name,
             'default_playlist_id' => $this->defaultPlaylistId ?: null,
+            'schedule_id'         => $this->scheduleId ?: null,
             'music_playlist_id'   => $musicPlaylistId,
             'music_media_id'      => $musicMediaId,
             'orientation'         => $this->orientation,
@@ -69,38 +64,6 @@ class Show extends Component
 
         $pairing->bumpVersion($this->screen->refresh());
         session()->flash('signage_message', 'Einstellungen gespeichert.');
-    }
-
-    public function addSchedule(ScreenPairingService $pairing): void
-    {
-        $this->validate([
-            'schedDays'       => 'required|array|min:1',
-            'schedStart'      => 'required',
-            'schedEnd'        => 'required',
-            'schedPlaylistId' => 'required|integer',
-        ]);
-
-        SignageSchedule::create([
-            'team_id'           => $this->teamId(),
-            'screen_id'         => $this->screen->id,
-            'playlist_id'       => $this->schedPlaylistId,
-            'music_playlist_id' => $this->schedMusicId ?: null,
-            'days_of_week'      => array_values(array_map('intval', $this->schedDays)),
-            'start_time'        => $this->schedStart,
-            'end_time'          => $this->schedEnd,
-            'priority'          => $this->schedPriority,
-            'active'            => true,
-        ]);
-
-        $this->reset('schedDays', 'schedPlaylistId', 'schedMusicId', 'schedPriority');
-        $pairing->bumpVersion($this->screen);
-        session()->flash('signage_message', 'Zeitplan hinzugefügt.');
-    }
-
-    public function deleteSchedule(int $id, ScreenPairingService $pairing): void
-    {
-        $this->screen->schedules()->whereKey($id)->delete();
-        $pairing->bumpVersion($this->screen);
     }
 
     public function reload(ScreenPairingService $pairing): void
@@ -118,7 +81,6 @@ class Show extends Component
         $audioMedia = \Platform\Signage\Models\SignageMedia::where('team_id', $this->teamId())
             ->where('kind', 'audio')->orderBy('name')->get();
 
-        // Kombinierte Optionen: Playlists + einzelne Streams/Audio.
         $musicOptions = [];
         foreach ($musicPlaylists as $p) {
             $musicOptions[] = ['value' => 'playlist:'.$p->id, 'label' => 'Liste: '.$p->name];
@@ -127,11 +89,14 @@ class Show extends Component
             $musicOptions[] = ['value' => 'media:'.$m->id, 'label' => ($m->isStream() ? 'Stream: ' : 'Audio: ').$m->name];
         }
 
+        $scheduleOptions = SignageSchedule::where('team_id', $this->teamId())
+            ->orderBy('name')->get()
+            ->map(fn ($s) => ['value' => $s->id, 'label' => $s->name])->values()->all();
+
         return view('signage::livewire.screens.show', [
             'visualPlaylists' => $playlists->where('kind', 'visual')->values(),
-            'musicPlaylists'  => $musicPlaylists,
             'musicOptions'    => $musicOptions,
-            'schedules'       => $this->screen->schedules()->with(['playlist', 'musicPlaylist'])->orderByDesc('priority')->get(),
+            'scheduleOptions' => $scheduleOptions,
             'previewUrl'      => url('/signage/play').'?token='.$this->screen->device_token,
         ])->layout('platform::layouts.app');
     }

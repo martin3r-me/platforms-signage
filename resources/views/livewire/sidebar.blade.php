@@ -22,6 +22,10 @@
                 @svg('heroicon-o-queue-list', 'w-4 h-4 text-[var(--ui-secondary)]')
                 <span class="ml-2 text-sm">Wiedergabelisten</span>
             </x-ui-sidebar-item>
+            <x-ui-sidebar-item :href="route('signage.schedules.index')">
+                @svg('heroicon-o-clock', 'w-4 h-4 text-[var(--ui-secondary)]')
+                <span class="ml-2 text-sm">Zeitpläne</span>
+            </x-ui-sidebar-item>
         </x-ui-sidebar-list>
 
         <x-ui-sidebar-list label="Geräte">
@@ -43,6 +47,9 @@
             </a>
             <a href="{{ route('signage.playlists.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]" title="Wiedergabelisten">
                 @svg('heroicon-o-queue-list', 'w-5 h-5')
+            </a>
+            <a href="{{ route('signage.schedules.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]" title="Zeitpläne">
+                @svg('heroicon-o-clock', 'w-5 h-5')
             </a>
             <a href="{{ route('signage.screens.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]" title="Bildschirme">
                 @svg('heroicon-o-computer-desktop', 'w-5 h-5')

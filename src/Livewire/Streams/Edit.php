@@ -71,25 +71,9 @@ class Edit extends Component
         return $this->redirectRoute('signage.media.index', navigate: true);
     }
 
-    /**
-     * Bildschirme neu laden lassen, die diesen Stream als Musik nutzen
-     * (direkt als music_media_id oder über eine Musik-Playlist/Zeitplan).
-     */
     protected function bumpScreensUsing(int $mediaId): void
     {
-        $playlistIds = SignagePlaylistItem::where('media_id', $mediaId)->pluck('playlist_id')->unique();
-
-        $screenIds = SignageScreen::where('music_media_id', $mediaId)
-            ->orWhereIn('music_playlist_id', $playlistIds)
-            ->pluck('id')
-            ->merge(
-                SignageSchedule::whereIn('music_playlist_id', $playlistIds)->pluck('screen_id')
-            )
-            ->unique();
-
-        if ($screenIds->isNotEmpty()) {
-            SignageScreen::whereIn('id', $screenIds)->increment('content_version');
-        }
+        SignageScreen::bumpForMedia($mediaId);
     }
 
     public function render()

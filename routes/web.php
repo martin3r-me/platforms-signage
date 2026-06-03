@@ -8,6 +8,8 @@ use Platform\Signage\Livewire\Dashboard;
 use Platform\Signage\Livewire\Media\Index as MediaIndex;
 use Platform\Signage\Livewire\Playlists\Index as PlaylistIndex;
 use Platform\Signage\Livewire\Playlists\Show as PlaylistShow;
+use Platform\Signage\Livewire\Schedules\Index as ScheduleIndex;
+use Platform\Signage\Livewire\Schedules\Show as ScheduleShow;
 use Platform\Signage\Livewire\Screens\Index as ScreenIndex;
 use Platform\Signage\Livewire\Screens\Show as ScreenShow;
 
@@ -33,6 +35,9 @@ Route::get('/streams/{media}/edit', \Platform\Signage\Livewire\Streams\Edit::cla
 
 Route::get('/playlists', PlaylistIndex::class)->name('signage.playlists.index');
 Route::get('/playlists/{playlist}', PlaylistShow::class)->name('signage.playlists.show');
+
+Route::get('/schedules', ScheduleIndex::class)->name('signage.schedules.index');
+Route::get('/schedules/{schedule}', ScheduleShow::class)->name('signage.schedules.show');
 
 Route::get('/screens', ScreenIndex::class)->name('signage.screens.index');
 Route::get('/screens/{screen}', ScreenShow::class)->name('signage.screens.show');

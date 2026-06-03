@@ -44,6 +44,11 @@ return [
                     'route' => 'signage.playlists.index',
                     'icon'  => 'heroicon-o-queue-list',
                 ],
+                [
+                    'label' => 'Zeitpläne',
+                    'route' => 'signage.schedules.index',
+                    'icon'  => 'heroicon-o-clock',
+                ],
             ],
         ],
         [
