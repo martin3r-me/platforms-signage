@@ -72,4 +72,12 @@ return [
      * Polling-Intervall des Players (Sekunden).
      */
     'poll_interval_seconds' => 10,
+
+    /**
+     * Maximale Upload-Größe in KB (für Bilder/Videos/Audio/Dokumente).
+     * Standard 500 MB. Hebt Livewires Standard-Temp-Upload-Limit (12 MB) an.
+     * ACHTUNG: PHP (upload_max_filesize/post_max_size) und der Webserver
+     * (z.B. nginx client_max_body_size) müssen ebenfalls hoch genug sein.
+     */
+    'max_upload_kb' => env('SIGNAGE_MAX_UPLOAD_KB', 512000),
 ];

@@ -28,6 +28,13 @@ class SignageServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Livewire-Standard für temporäre Uploads (12 MB) anheben, damit auch
+        // Videos hochgeladen werden können – nur, wenn die App nichts Eigenes gesetzt hat.
+        if (config('livewire.temporary_file_upload.rules') === null) {
+            $maxKb = (int) config('signage.max_upload_kb', 512000);
+            config(['livewire.temporary_file_upload.rules' => ['required', 'file', 'max:'.$maxKb]]);
+        }
+
         if (
             config()->has('signage.routing') &&
             config()->has('signage.navigation') &&

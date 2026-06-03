@@ -31,8 +31,10 @@ class Index extends Component
 
     public function rules(): array
     {
+        $maxKb = (int) config('signage.max_upload_kb', 512000);
+
         return [
-            'uploads.*' => 'file|max:204800|mimes:jpg,jpeg,png,webp,gif,mp4,webm,mp3,aac,ogg,wav,pdf,ppt,pptx',
+            'uploads.*' => 'file|max:'.$maxKb.'|mimes:jpg,jpeg,png,webp,gif,mp4,webm,mp3,aac,ogg,wav,pdf,ppt,pptx',
         ];
     }
 
