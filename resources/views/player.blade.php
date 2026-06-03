@@ -347,6 +347,39 @@
                 runCleanup(frames[0]);
                 stage.removeChild(frames[0]);
             }
+            // Das nächste Asset im Hintergrund vorladen, während dieses angezeigt wird.
+            preloadNext();
+        }
+
+        // Prefetch: hält das nächste (und übernächste) Medium im Browser-Cache bereit,
+        // damit der Wechsel ohne Ladezeit/Black-Screen erfolgt.
+        const preloadCache = [];
+        function preload(url, type) {
+            if (!url) return;
+            let el = null;
+            if (type === 'image') {
+                el = new Image();
+                el.decoding = 'async';
+                el.src = url;
+            } else if (type === 'video') {
+                el = document.createElement('video');
+                el.preload = 'auto';
+                el.muted = true;
+                el.src = url;
+            }
+            if (el) {
+                preloadCache.push(el);
+                while (preloadCache.length > 4) preloadCache.shift();
+            }
+        }
+        function preloadNext() {
+            if (playlist.length < 2) return;
+            for (let n = 1; n <= 2; n++) {
+                const item = playlist[(playIndex + n) % playlist.length];
+                if (item && (item.type === 'image' || item.type === 'video')) {
+                    preload(item.url, item.type);
+                }
+            }
         }
 
         function swap(frame) {
