@@ -7,6 +7,17 @@
       "Platform\\Signage\\": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "Platform\\Signage\\Tests\\": "tests/"
+    }
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.5 || ^11.0"
+  },
+  "scripts": {
+    "test": "phpunit"
+  },
   "extra": {
     "laravel": {
       "providers": [

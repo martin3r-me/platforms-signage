@@ -30,6 +30,37 @@ class SignageMedia extends Model
         'page_count' => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        // Beim Löschen die zugehörigen Storage-Dateien entfernen (Original,
+        // Anzeige-Variante, Dokument-Seiten) – sonst wächst der Speicher.
+        static::deleting(function (self $media) {
+            $media->deleteStorageFiles();
+        });
+    }
+
+    /** Entfernt alle eigenen Dateien dieses Mediums vom Storage. */
+    public function deleteStorageFiles(): void
+    {
+        $defaultDisk = $this->disk ?: config('filesystems.default', 'public');
+        $storage = \Illuminate\Support\Facades\Storage::disk($defaultDisk);
+
+        foreach (array_filter([$this->path, $this->display_path]) as $path) {
+            if ($storage->exists($path)) {
+                $storage->delete($path);
+            }
+        }
+
+        // Dokument-Seiten: Dateien + Zeilen entfernen.
+        foreach ($this->pages()->get() as $page) {
+            $pageDisk = \Illuminate\Support\Facades\Storage::disk($page->disk ?: $defaultDisk);
+            if ($page->path && $pageDisk->exists($page->path)) {
+                $pageDisk->delete($page->path);
+            }
+            $page->delete();
+        }
+    }
+
     public function isStream(): bool
     {
         return $this->source_type === 'stream';

@@ -98,4 +98,16 @@ return [
      * (schnelleres Laden). 0 = deaktiviert (Original ausliefern).
      */
     'display_max_px' => env('SIGNAGE_DISPLAY_MAX_PX', 1920),
+
+    /**
+     * Nicht gekoppelte (pending) Bildschirme nach dieser Zeit per
+     * `signage:prune-screens` entfernen (Karteileichen aus dem Register-Endpoint).
+     */
+    'prune_pending_after_days' => env('SIGNAGE_PRUNE_PENDING_DAYS', 7),
+
+    /**
+     * Website-Proxy-Schutz: maximale Antwortgröße (Bytes) und Redirect-Anzahl.
+     */
+    'proxy_max_bytes' => env('SIGNAGE_PROXY_MAX_BYTES', 5 * 1024 * 1024),
+    'proxy_max_redirects' => env('SIGNAGE_PROXY_MAX_REDIRECTS', 4),
 ];

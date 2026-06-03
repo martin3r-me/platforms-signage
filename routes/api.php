@@ -5,7 +5,11 @@ use Platform\Signage\Http\Controllers\Api\RegisterController;
 use Platform\Signage\Http\Controllers\Api\ScreenController;
 
 // Erstmalige Geräte-Registrierung: erzeugt einen pending-Screen + Pairing-Code.
-Route::post('/register', [RegisterController::class, 'register'])->name('signage.api.register');
+// Gedrosselt, damit der öffentliche Endpoint nicht zum massenhaften Anlegen von
+// Karteileichen missbraucht werden kann (siehe auch signage:prune-screens).
+Route::post('/register', [RegisterController::class, 'register'])
+    ->middleware('throttle:20,1')
+    ->name('signage.api.register');
 
 // State/Heartbeat: liefert Status + content_version, aktualisiert last_seen_at.
 Route::get('/screen/{deviceToken}', [ScreenController::class, 'state'])->name('signage.api.screen.state');

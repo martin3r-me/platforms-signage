@@ -29,6 +29,7 @@ class SignageServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 \Platform\Signage\Console\Commands\ProcessDocuments::class,
+                \Platform\Signage\Console\Commands\PruneScreens::class,
             ]);
         }
     }
