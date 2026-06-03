@@ -37,10 +37,10 @@
     .app-wx .wx-icon svg { width: 14vmin; height: 14vmin; }
 
     /* Dezente Wetter-Animationen – nur das große, aktuelle Icon. */
+    /* Volle Sonne: Strahlen drehen sich um den (symmetrischen) Mittelpunkt – sieht sauber aus. */
     .app-wx .wx-icon svg .wx-rays { transform-box: fill-box; transform-origin: center; animation: wx-spin 16s linear infinite; }
     .app-wx .wx-icon svg .wx-suncore { transform-box: fill-box; transform-origin: center; animation: wx-pulse 3.5s ease-in-out infinite; }
-    .app-wx .wx-icon svg .wx-suncore-sm { transform-box: fill-box; transform-origin: center; animation: wx-pulse 3.5s ease-in-out infinite; }
-    .app-wx .wx-icon svg .wx-rays-sm { transform-box: fill-box; transform-origin: center; animation: wx-spin 16s linear infinite; }
+    /* "Teilweise bewölkt": keine Rotation (die kleine Sonne sitzt versetzt) – nur die Wolke driftet. */
     .app-wx .wx-icon svg .wx-cloud { transform-box: fill-box; transform-origin: center; animation: wx-drift 5s ease-in-out infinite; }
     .app-wx .wx-icon svg .wx-drop { transform-box: fill-box; animation: wx-rain 1.1s linear infinite; }
     .app-wx .wx-icon svg .wx-flake { transform-box: fill-box; animation: wx-snow 2.4s linear infinite; }
