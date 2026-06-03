@@ -431,6 +431,7 @@
         // ---- Background music ---------------------------------------------
         let musicIndex = 0;
         let musicEmbed = null;
+        let intendMusic = false; // soll Musik laufen? (für den Watchdog)
 
         function clearMusicEmbed() {
             if (musicEmbed && musicEmbed.parentNode) musicEmbed.parentNode.removeChild(musicEmbed);
@@ -439,6 +440,7 @@
 
         function startMusic() {
             clearMusicEmbed();
+            intendMusic = false;
 
             // In der eingebetteten Admin-Vorschau (iframe) keine Musik abspielen.
             if (inIframe) { musicEl.pause(); musicEl.removeAttribute('src'); return; }
@@ -460,8 +462,17 @@
                 playTrack();
             };
             musicIndex = 0;
+            intendMusic = true;
             playTrack();
         }
+
+        // Watchdog: Hintergrundmusik wieder anwerfen, falls sie unerwartet pausiert
+        // (z.B. weil ein Website-iframe kurzzeitig den Audio-Fokus übernommen hat).
+        setInterval(() => {
+            if (intendMusic && !inIframe && musicEl.getAttribute('src') && musicEl.paused) {
+                musicEl.play().catch(() => {});
+            }
+        }, 2500);
 
         function playTrack() {
             if (!musicTracks.length) return;
