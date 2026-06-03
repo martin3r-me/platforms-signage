@@ -144,7 +144,9 @@
                 await ensureRegistered();
                 const state = await getJson(stateUrl(deviceToken));
 
-                if (state.status === 'pending') {
+                if (state.status === 'removed') {
+                    handleRemoved();
+                } else if (state.status === 'pending') {
                     stopPlayback();
                     showPairing(state.pairing_code);
                 } else if (state.status === 'active') {
@@ -175,6 +177,10 @@
         // ---- Manifest & playback ------------------------------------------
         async function loadManifest() {
             const manifest = await getJson(manifestUrl(deviceToken));
+            if (manifest.status === 'removed') {
+                handleRemoved();
+                return;
+            }
             if (manifest.status !== 'active') {
                 showPairing(manifest.pairing_code);
                 return;
@@ -226,6 +232,30 @@
 
         function stopPlayback() {
             if (frameTimer) { clearTimeout(frameTimer); frameTimer = null; }
+        }
+
+        function clearStage() {
+            stage.querySelectorAll('.frame').forEach((f) => { runCleanup(f); f.remove(); });
+        }
+
+        // Bildschirm wurde im Backend gelöscht -> Anzeige stoppen und Gerät zurücksetzen.
+        function handleRemoved() {
+            stopPlayback();
+            clearStage();
+            playlist = [];
+            musicTracks = [];
+            currentVersion = null;
+            startMusic(); // stoppt Musik (leere Liste)
+
+            if (previewMode) {
+                showOverlay('<div class="pair-label">Dieser Bildschirm wurde entfernt.</div>');
+                return;
+            }
+
+            // Gerät vergessen -> nächster Poll registriert neu und zeigt einen neuen Kopplungs-Code.
+            localStorage.removeItem(STORAGE_KEY);
+            deviceToken = null;
+            showOverlay('<div class="pair-label">Bildschirm wurde entfernt</div><div class="pair-hint">Neuer Kopplungs-Code wird erstellt …</div>');
         }
 
         function startPlayback() {

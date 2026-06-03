@@ -18,7 +18,12 @@ class ScreenController
      */
     public function state(string $deviceToken): JsonResponse
     {
-        $screen = $this->find($deviceToken);
+        $screen = SignageScreen::where('device_token', $deviceToken)->first();
+
+        // Bildschirm gelöscht/unbekannt -> Player soll sich zurücksetzen.
+        if (!$screen) {
+            return response()->json(['status' => 'removed'], 200);
+        }
 
         // Heartbeat ohne updated_at-Touch (kein content_version-Bump).
         $screen->forceFill(['last_seen_at' => now()])->saveQuietly();
@@ -36,7 +41,11 @@ class ScreenController
      */
     public function manifest(string $deviceToken): JsonResponse
     {
-        $screen = $this->find($deviceToken);
+        $screen = SignageScreen::where('device_token', $deviceToken)->first();
+
+        if (!$screen) {
+            return response()->json(['status' => 'removed'], 200);
+        }
 
         if ($screen->status !== 'active') {
             return response()->json([
@@ -49,16 +58,5 @@ class ScreenController
             ['status' => 'active'],
             $this->manifests->resolve($screen)
         ));
-    }
-
-    private function find(string $deviceToken): SignageScreen
-    {
-        $screen = SignageScreen::where('device_token', $deviceToken)->first();
-
-        if (!$screen) {
-            abort(404, 'Unbekanntes Gerät.');
-        }
-
-        return $screen;
     }
 }
