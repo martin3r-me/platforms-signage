@@ -35,6 +35,27 @@
     .wx-dark  { --wx-bg:#0b0f17; --wx-fg:#f3f4f6; --wx-panel: rgba(255,255,255,.08); --wx-panel-fg:#f3f4f6; --wx-today: rgba(255,255,255,.18); }
     .wx-loading { margin: auto; font-size: 4vmin; opacity: .8; }
     .app-wx .wx-icon svg { width: 14vmin; height: 14vmin; }
+
+    /* Dezente Wetter-Animationen – nur das große, aktuelle Icon. */
+    .app-wx .wx-icon svg .wx-rays { transform-box: fill-box; transform-origin: center; animation: wx-spin 16s linear infinite; }
+    .app-wx .wx-icon svg .wx-suncore { transform-box: fill-box; transform-origin: center; animation: wx-pulse 3.5s ease-in-out infinite; }
+    .app-wx .wx-icon svg .wx-suncore-sm { transform-box: fill-box; transform-origin: center; animation: wx-pulse 3.5s ease-in-out infinite; }
+    .app-wx .wx-icon svg .wx-rays-sm { transform-box: fill-box; transform-origin: center; animation: wx-spin 16s linear infinite; }
+    .app-wx .wx-icon svg .wx-cloud { transform-box: fill-box; transform-origin: center; animation: wx-drift 5s ease-in-out infinite; }
+    .app-wx .wx-icon svg .wx-drop { transform-box: fill-box; animation: wx-rain 1.1s linear infinite; }
+    .app-wx .wx-icon svg .wx-flake { transform-box: fill-box; animation: wx-snow 2.4s linear infinite; }
+    .app-wx .wx-icon svg .wx-bolt { animation: wx-bolt 2.6s ease-in-out infinite; }
+    .app-wx .wx-icon svg .wx-fog line { transform-box: fill-box; transform-origin: center; animation: wx-fog 4s ease-in-out infinite; }
+    @keyframes wx-spin { to { transform: rotate(360deg); } }
+    @keyframes wx-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: .82; } }
+    @keyframes wx-drift { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(0.6px); } }
+    @keyframes wx-rain { 0% { transform: translateY(-1px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(3px); opacity: 0; } }
+    @keyframes wx-snow { 0% { transform: translateY(-1px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(3px); opacity: .2; } }
+    @keyframes wx-bolt { 0%, 90%, 100% { opacity: 1; } 93% { opacity: .15; } 96% { opacity: 1; } }
+    @keyframes wx-fog { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(1.4px); } }
+    @media (prefers-reduced-motion: reduce) {
+        .app-wx .wx-icon svg * { animation: none !important; }
+    }
     .wx-temp { font-size: 12vmin; font-weight: 300; line-height: 1; }
     .wx-meta { display: flex; gap: 4vmin; font-size: 3.2vmin; }
     .wx-meta span { display: inline-flex; align-items: center; gap: .8vmin; }
@@ -181,17 +202,17 @@ window.SignageApps = (function () {
 
     function wxSvg(name) {
         const s = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">';
-        const cloud = '<path d="M7 18h9a3.5 3.5 0 0 0 .3-7A5 5 0 0 0 7 9.5 3.75 3.75 0 0 0 7 18z"/>';
+        const cloud = '<path class="wx-cloud" d="M7 18h9a3.5 3.5 0 0 0 .3-7A5 5 0 0 0 7 9.5 3.75 3.75 0 0 0 7 18z"/>';
         if (name === 'sun') {
             let rays = '';
             for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; const x1 = 12 + 7 * Math.cos(a), y1 = 12 + 7 * Math.sin(a), x2 = 12 + 9.5 * Math.cos(a), y2 = 12 + 9.5 * Math.sin(a); rays += '<line x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '"/>'; }
-            return s + '<circle cx="12" cy="12" r="4.5"/>' + rays + '</svg>';
+            return s + '<g class="wx-rays">' + rays + '</g><circle class="wx-suncore" cx="12" cy="12" r="4.5"/></svg>';
         }
-        if (name === 'partly') return s + '<circle cx="8" cy="8" r="3"/><line x1="8" y1="1.5" x2="8" y2="3"/><line x1="2" y1="8" x2="3.5" y2="8"/><line x1="3.5" y1="3.5" x2="4.6" y2="4.6"/>' + cloud + '</svg>';
-        if (name === 'fog') return s + '<line x1="4" y1="8" x2="20" y2="8"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="5" y1="16" x2="19" y2="16"/></svg>';
-        if (name === 'rain') return s + cloud + '<line x1="9" y1="20" x2="8" y2="22.5"/><line x1="13" y1="20" x2="12" y2="22.5"/><line x1="17" y1="20" x2="16" y2="22.5"/></svg>';
-        if (name === 'snow') return s + cloud + '<circle cx="9" cy="21" r=".6" fill="currentColor"/><circle cx="13" cy="21.5" r=".6" fill="currentColor"/><circle cx="17" cy="21" r=".6" fill="currentColor"/></svg>';
-        if (name === 'storm') return s + cloud + '<path d="M13 19l-3 3.5h3l-2 2.5"/></svg>';
+        if (name === 'partly') return s + '<g class="wx-rays-sm"><line x1="8" y1="1.5" x2="8" y2="3"/><line x1="2" y1="8" x2="3.5" y2="8"/><line x1="3.5" y1="3.5" x2="4.6" y2="4.6"/></g><circle class="wx-suncore-sm" cx="8" cy="8" r="3"/>' + cloud + '</svg>';
+        if (name === 'fog') return s + '<g class="wx-fog"><line x1="4" y1="8" x2="20" y2="8"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="5" y1="16" x2="19" y2="16"/></g></svg>';
+        if (name === 'rain') return s + cloud + '<g class="wx-rain"><line class="wx-drop" style="animation-delay:0s" x1="9" y1="20" x2="8" y2="22.5"/><line class="wx-drop" style="animation-delay:.35s" x1="13" y1="20" x2="12" y2="22.5"/><line class="wx-drop" style="animation-delay:.7s" x1="17" y1="20" x2="16" y2="22.5"/></g></svg>';
+        if (name === 'snow') return s + cloud + '<g class="wx-snow"><circle class="wx-flake" style="animation-delay:0s" cx="9" cy="21" r=".6" fill="currentColor"/><circle class="wx-flake" style="animation-delay:.7s" cx="13" cy="21.5" r=".6" fill="currentColor"/><circle class="wx-flake" style="animation-delay:1.4s" cx="17" cy="21" r=".6" fill="currentColor"/></g></svg>';
+        if (name === 'storm') return s + cloud + '<path class="wx-bolt" d="M13 19l-3 3.5h3l-2 2.5"/></svg>';
         return s + cloud + '</svg>';
     }
 
