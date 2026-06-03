@@ -151,6 +151,9 @@
         // Vorschau-Modus: ?token=… nutzt ein vorgegebenes Gerät (kein localStorage, keine Registrierung).
         const urlToken = new URLSearchParams(window.location.search).get('token');
         const previewMode = !!urlToken;
+        // Eingebettet (Admin-Live-Vorschau im iframe)? Dann keine Musik – beim
+        // "Vollbild öffnen" (eigener Tab) ist self === top, da läuft Musik mit.
+        const inIframe = window.self !== window.top;
         let deviceToken = urlToken || localStorage.getItem(STORAGE_KEY);
         let currentVersion = null;
         let playlist = [];
@@ -565,6 +568,9 @@
 
         function startMusic() {
             clearMusicEmbed();
+
+            // In der eingebetteten Admin-Vorschau (iframe) keine Musik abspielen.
+            if (inIframe) { musicEl.pause(); musicEl.removeAttribute('src'); return; }
 
             if (!musicTracks.length) { musicEl.pause(); musicEl.removeAttribute('src'); return; }
 
