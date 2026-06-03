@@ -143,7 +143,7 @@
                     @else
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 p-4">
                             @foreach($media as $m)
-                                <div class="group relative rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)] flex flex-col" wire:key="media-{{ $m->id }}">
+                                <div class="group relative rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)] flex flex-col h-full" wire:key="media-{{ $m->id }}">
                                     <div class="aspect-video flex items-center justify-center bg-black/5 shrink-0">
                                         @php($preview = $m->previewUrl())
                                         @if($preview)

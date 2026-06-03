@@ -75,14 +75,100 @@ class Show extends Component
         SignageScreen::where('schedule_id', $this->schedule->id)->increment('content_version');
     }
 
+    /** Feste Farbpalette für die Kalenderblöcke (Inline-Style -> kein Tailwind-Build nötig). */
+    private const PALETTE = ['#10b981', '#f59e0b', '#0ea5e9', '#8b5cf6', '#f43f5e', '#14b8a6', '#6366f1', '#fb923c'];
+
+    private function toMinutes($value): int
+    {
+        [$h, $m] = array_pad(explode(':', (string) $value), 2, '0');
+
+        return ((int) $h) * 60 + ((int) $m);
+    }
+
+    /** Zeitfenster einer Regel als Minuten-Segmente; über Mitternacht -> zwei Segmente. */
+    private function ruleSegments(SignageScheduleRule $rule): array
+    {
+        $s = $this->toMinutes($rule->start_time);
+        $e = $this->toMinutes($rule->end_time);
+
+        if ($e > $s) {
+            return [[$s, $e]];
+        }
+
+        $segments = [[$s, 24 * 60]];
+        if ($e > 0) {
+            $segments[] = [0, $e];
+        }
+
+        return $segments;
+    }
+
+    /**
+     * Wochen-Kalenderdaten: sichtbarer Stundenbereich + Blöcke je Wochentag (1=Mo..7=So).
+     */
+    public function calendarData($rules): array
+    {
+        $minStart = 24 * 60;
+        $maxEnd = 0;
+
+        foreach ($rules as $rule) {
+            $s = $this->toMinutes($rule->start_time);
+            $e = $this->toMinutes($rule->end_time);
+            $minStart = min($minStart, $s);
+
+            if ($e <= $s) {
+                $minStart = 0;
+                $maxEnd = 24 * 60;
+            } else {
+                $maxEnd = max($maxEnd, $e);
+            }
+        }
+
+        if ($rules->isEmpty()) {
+            $minStart = 8 * 60;
+            $maxEnd = 20 * 60;
+        }
+
+        $startHour = max(0, intdiv($minStart, 60));
+        $endHour = min(24, (int) ceil($maxEnd / 60));
+        if ($endHour <= $startHour) {
+            $endHour = min(24, $startHour + 1);
+        }
+
+        $blocks = [];
+        foreach ($rules as $i => $rule) {
+            $color = self::PALETTE[$i % count(self::PALETTE)];
+            foreach ($this->ruleSegments($rule) as [$sm, $em]) {
+                foreach (($rule->days_of_week ?? []) as $d) {
+                    $blocks[(int) $d][] = [
+                        'ruleId'   => $rule->id,
+                        'top'      => $sm - $startHour * 60,
+                        'len'      => $em - $sm,
+                        'color'    => $color,
+                        'playlist' => $rule->playlist?->name ?? '—',
+                        'music'    => $rule->musicPlaylist?->name,
+                        'time'     => substr((string) $rule->start_time, 0, 5).'–'.substr((string) $rule->end_time, 0, 5),
+                        'priority' => $rule->priority,
+                    ];
+                }
+            }
+        }
+
+        return ['startHour' => $startHour, 'endHour' => $endHour, 'blocks' => $blocks];
+    }
+
     public function render()
     {
         $playlists = SignagePlaylist::where('team_id', $this->teamId())->orderBy('name')->get();
 
+        // Niedrigste Priorität zuerst -> höhere Priorität wird später gerendert (liegt oben).
+        $rules = $this->schedule->rules()->with(['playlist', 'musicPlaylist'])->reorder()->orderBy('priority')->get();
+
         return view('signage::livewire.schedules.show', [
             'visualPlaylists' => $playlists->where('kind', 'visual')->values(),
             'musicPlaylists'  => $playlists->where('kind', 'music')->values(),
-            'scheduleRules'   => $this->schedule->rules()->with(['playlist', 'musicPlaylist'])->get(),
+            'scheduleRules'   => $rules,
+            'calendar'        => $this->calendarData($rules),
         ])->layout('platform::layouts.app');
     }
 }
