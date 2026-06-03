@@ -18,6 +18,9 @@ class Show extends Component
 
     public ?int $addMediaId = null;
 
+    // Suche im Medien-Picker
+    public string $mediaSearch = '';
+
     // Einstellungen
     public string $name = '';
     public string $description = '';
@@ -50,22 +53,26 @@ class Show extends Component
         session()->flash('signage_message', 'Wiedergabeliste gespeichert.');
     }
 
-    /** Medien, die zum Typ der Liste passen. */
+    /** Medien, die zum Typ der Liste passen (optional nach Suche gefiltert). */
     public function availableMedia()
     {
         $kinds = $this->playlist->kind === 'music' ? ['audio'] : ['image', 'video', 'document', 'app', 'website'];
+        $search = trim($this->mediaSearch);
 
         return SignageMedia::where('team_id', $this->teamId())
             ->whereIn('kind', $kinds)
+            ->when($search !== '', fn ($q) => $q->where('name', 'like', '%'.$search.'%'))
             ->orderBy('name')
+            ->limit(60)
             ->get();
     }
 
-    public function addItem(): void
+    public function addItem(?int $mediaId = null): void
     {
-        $this->validate(['addMediaId' => 'required|integer']);
+        $mediaId = $mediaId ?? $this->addMediaId;
+        abort_if(!$mediaId, 422);
 
-        $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($this->addMediaId);
+        $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($mediaId);
 
         $position = (int) $this->playlist->items()->max('position') + 1;
 
@@ -79,6 +86,7 @@ class Show extends Component
 
         $this->addMediaId = null;
         $this->bumpAffectedScreens();
+        session()->flash('signage_message', '„'.$media->name.'" hinzugefügt.');
     }
 
     public function updateDuration(int $itemId, $seconds): void

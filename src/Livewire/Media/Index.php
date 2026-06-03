@@ -138,6 +138,19 @@ class Index extends Component
             ->update(['name' => mb_substr($name, 0, 255)]);
     }
 
+    public function reloadWebsiteThumbnail(int $id): void
+    {
+        $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($id);
+        if (!$media->isWebsite()) {
+            return;
+        }
+
+        // Vorhandenes Bild verwerfen, damit das Polling wieder anläuft.
+        $media->update(['display_path' => null, 'display_token' => null]);
+        \Platform\Signage\Jobs\CaptureWebsiteThumbnailJob::dispatch($media->id);
+        session()->flash('signage_message', 'Website-Vorschau wird neu erstellt (benötigt einen laufenden Queue-Worker).');
+    }
+
     public function reprocessDocument(int $id): void
     {
         $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($id);

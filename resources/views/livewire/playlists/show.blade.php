@@ -40,21 +40,61 @@
                 </form>
             </x-signage-panel>
 
-            <x-signage-panel icon="plus-circle" title="Element hinzufügen" subtitle="{{ $playlist->kind === 'music' ? 'Audiodateien' : 'Bilder, Videos, Dokumente' }}">
-                <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
-                    <div class="flex-1 w-full">
-                        <x-ui-input-select name="addMediaId" label="Medium" wire:model="addMediaId"
-                            :options="$available->map(fn($m) => ['value' => $m->id, 'label' => $m->name.' ('.$m->kind.')'])->values()->all()"
-                            optionValue="value" optionLabel="label" :nullable="true" nullLabel="– auswählen –" />
-                        @error('addMediaId')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+            <x-signage-panel icon="plus-circle" title="Element hinzufügen" subtitle="{{ $playlist->kind === 'music' ? 'Audiodateien' : 'Bilder, Videos, Dokumente, Apps, Websites' }}">
+                <div class="p-4 space-y-3">
+                    {{-- Suche --}}
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ui-muted)]">
+                            @svg('heroicon-o-magnifying-glass', 'w-4 h-4')
+                        </span>
+                        <input type="text" wire:model.live.debounce.300ms="mediaSearch"
+                               placeholder="Medien durchsuchen …"
+                               class="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[var(--ui-border)]">
                     </div>
-                    <x-ui-button wire:click="addItem" variant="primary">Hinzufügen</x-ui-button>
+
+                    @if($available->isEmpty())
+                        <div class="py-6 text-center text-sm text-[var(--ui-muted)]">
+                            @if(trim($mediaSearch) !== '')
+                                Keine Treffer für „{{ $mediaSearch }}".
+                            @else
+                                Keine passenden Medien. <a href="{{ route('signage.media.index') }}" wire:navigate class="text-[var(--ui-primary)] underline">Zuerst hochladen</a>.
+                            @endif
+                        </div>
+                    @else
+                        {{-- Vorschau-Grid: Klick fügt direkt hinzu --}}
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-80 overflow-y-auto pr-1">
+                            @foreach($available as $m)
+                                <button type="button" wire:click="addItem({{ $m->id }})" wire:key="pick-{{ $m->id }}"
+                                        class="group text-left rounded-lg border border-[var(--ui-border)]/50 overflow-hidden bg-[var(--ui-muted-5)] hover:border-[rgb(var(--ui-primary-rgb))] hover:shadow-md transition">
+                                    <div class="aspect-video flex items-center justify-center bg-black/5 relative">
+                                        @php($preview = $m->previewUrl())
+                                        @if($preview)
+                                            <img src="{{ $preview }}" alt="{{ $m->name }}" class="w-full h-full object-cover" loading="lazy">
+                                        @elseif($m->kind === 'video')
+                                            @svg('heroicon-o-film', 'w-7 h-7 text-[var(--ui-muted)]')
+                                        @elseif($m->kind === 'audio')
+                                            @svg('heroicon-o-musical-note', 'w-7 h-7 text-[var(--ui-muted)]')
+                                        @elseif($m->isApp())
+                                            <iframe src="{{ route('signage.apps.preview', $m) }}" class="w-full h-full border-0 pointer-events-none" scrolling="no" loading="lazy" tabindex="-1"></iframe>
+                                        @elseif($m->isWebsite())
+                                            @svg('heroicon-o-globe-alt', 'w-7 h-7 text-[var(--ui-muted)]')
+                                        @else
+                                            @svg('heroicon-o-document', 'w-7 h-7 text-[var(--ui-muted)]')
+                                        @endif
+                                        <span class="absolute inset-0 bg-[rgb(var(--ui-primary-rgb))]/0 group-hover:bg-[rgb(var(--ui-primary-rgb))]/15 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                            @svg('heroicon-o-plus-circle', 'w-7 h-7 text-white drop-shadow')
+                                        </span>
+                                    </div>
+                                    <div class="p-1.5">
+                                        <div class="text-xs font-medium text-[var(--ui-secondary)] truncate" title="{{ $m->name }}">{{ $m->name }}</div>
+                                        <div class="text-[10px] text-[var(--ui-muted)]">{{ $m->kind }}@if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} S.@endif</div>
+                                    </div>
+                                </button>
+                            @endforeach
+                        </div>
+                        <p class="text-[11px] text-[var(--ui-muted)]">Auf ein Medium klicken, um es ans Ende der Liste zu setzen (max. 60 Treffer – ggf. Suche verfeinern).</p>
+                    @endif
                 </div>
-                @if($available->isEmpty())
-                    <div class="px-4 pb-4 text-sm text-[var(--ui-muted)]">
-                        Keine passenden Medien. <a href="{{ route('signage.media.index') }}" wire:navigate class="text-[var(--ui-primary)] underline">Zuerst hochladen</a>.
-                    </div>
-                @endif
             </x-signage-panel>
 
             <x-signage-panel icon="bars-3" title="Reihenfolge" subtitle="Wird von oben nach unten abgespielt">
