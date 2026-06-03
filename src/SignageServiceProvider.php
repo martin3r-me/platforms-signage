@@ -24,6 +24,12 @@ class SignageServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/signage.php', 'signage');
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                \Platform\Signage\Console\Commands\ProcessDocuments::class,
+            ]);
+        }
     }
 
     public function boot(): void

@@ -124,6 +124,18 @@ class Index extends Component
         session()->flash('signage_message', 'Medium gelöscht.');
     }
 
+    public function reprocessDocument(int $id): void
+    {
+        $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($id);
+        if (!$media->isDocument()) {
+            return;
+        }
+
+        $media->update(['processing_status' => 'pending']);
+        ConvertDocumentJob::dispatch($media->id);
+        session()->flash('signage_message', 'Verarbeitung neu gestartet (benötigt einen laufenden Queue-Worker).');
+    }
+
     // ---- Ordner --------------------------------------------------------
     public function openFolder(?int $id): void
     {

@@ -167,6 +167,12 @@
                                                 </span>
                                             @endif
                                         </div>
+                                        @if($m->kind === 'document' && $m->processing_status !== 'ready')
+                                            <button wire:click="reprocessDocument({{ $m->id }})"
+                                                    class="mt-1 w-full text-[10px] px-1 py-1 rounded border border-[var(--ui-border)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] inline-flex items-center justify-center gap-1">
+                                                @svg('heroicon-o-arrow-path', 'w-3 h-3') Erneut verarbeiten
+                                            </button>
+                                        @endif
                                         @if(count($folderOptions))
                                             <select wire:change="moveToFolder({{ $m->id }}, $event.target.value)"
                                                     class="mt-1.5 w-full text-[10px] px-1 py-1 rounded border border-[var(--ui-border)] bg-white text-[var(--ui-secondary)]">
