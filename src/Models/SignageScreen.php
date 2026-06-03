@@ -16,7 +16,7 @@ class SignageScreen extends Model
 
     protected $fillable = [
         'uuid', 'team_id', 'name', 'device_token', 'pairing_code', 'status',
-        'default_playlist_id', 'schedule_id', 'music_playlist_id', 'music_media_id', 'orientation',
+        'default_playlist_id', 'schedule_id', 'music_playlist_id', 'music_media_id', 'orientation', 'timezone',
         'content_version', 'last_seen_at', 'paired_at', 'settings',
     ];
 

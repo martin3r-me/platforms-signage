@@ -24,6 +24,13 @@ class PlayerManifestService
     public function resolve(SignageScreen $screen): array
     {
         $now = now();
+        if ($screen->timezone) {
+            try {
+                $now = $now->copy()->setTimezone($screen->timezone);
+            } catch (\Throwable $e) {
+                // ungültige Zeitzone -> App-Standard behalten
+            }
+        }
 
         $visualPlaylist = $this->pickPlaylist($screen, $now, 'visual');
         $musicPlaylist  = $this->pickPlaylist($screen, $now, 'music');

@@ -21,6 +21,7 @@ class Show extends Component
     // "playlist:ID" oder "media:ID" (einzelner Stream/Audio) oder '' (keine)
     public string $musicSource = '';
     public string $orientation = 'landscape';
+    public ?string $timezone = null;
     public string $name = '';
 
     public function mount(SignageScreen $screen): void
@@ -29,6 +30,7 @@ class Show extends Component
         $this->screen = $screen;
         $this->defaultPlaylistId = $screen->default_playlist_id;
         $this->scheduleId = $screen->schedule_id;
+        $this->timezone = $screen->timezone;
         if ($screen->music_playlist_id) {
             $this->musicSource = 'playlist:'.$screen->music_playlist_id;
         } elseif ($screen->music_media_id) {
@@ -60,6 +62,7 @@ class Show extends Component
             'music_playlist_id'   => $musicPlaylistId,
             'music_media_id'      => $musicMediaId,
             'orientation'         => $this->orientation,
+            'timezone'            => $this->timezone ?: null,
         ]);
 
         $pairing->bumpVersion($this->screen->refresh());
@@ -93,10 +96,16 @@ class Show extends Component
             ->orderBy('name')->get()
             ->map(fn ($s) => ['value' => $s->id, 'label' => $s->name])->values()->all();
 
+        $timezoneOptions = array_map(
+            fn ($tz) => ['value' => $tz, 'label' => $tz],
+            \DateTimeZone::listIdentifiers()
+        );
+
         return view('signage::livewire.screens.show', [
             'visualPlaylists' => $playlists->where('kind', 'visual')->values(),
             'musicOptions'    => $musicOptions,
             'scheduleOptions' => $scheduleOptions,
+            'timezoneOptions' => $timezoneOptions,
             'previewUrl'      => url('/signage/play').'?token='.$this->screen->device_token,
         ])->layout('platform::layouts.app');
     }

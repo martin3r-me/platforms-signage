@@ -53,6 +53,8 @@
                             :options="$visualOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
                         <x-ui-input-select name="scheduleId" label="Zeitplan" wire:model="scheduleId"
                             :options="$scheduleOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– kein Zeitplan –" />
+                        <x-ui-input-select name="timezone" label="Zeitzone (für Zeitpläne)" wire:model="timezone"
+                            :options="$timezoneOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– Standard –" />
                         <x-ui-input-select name="musicSource" label="Hintergrundmusik" wire:model="musicSource"
                             :options="$musicOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
                     </div>
