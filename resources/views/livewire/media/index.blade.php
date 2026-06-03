@@ -169,6 +169,11 @@
                                        class="absolute top-1.5 left-1.5 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">
                                         @svg('heroicon-o-pencil-square', 'w-4 h-4')
                                     </a>
+                                @elseif($m->isStream())
+                                    <a href="{{ route('signage.streams.edit', $m) }}" wire:navigate
+                                       class="absolute top-1.5 left-1.5 p-1 rounded bg-black/50 text-white opacity-0 group-hover:opacity-100 transition">
+                                        @svg('heroicon-o-pencil-square', 'w-4 h-4')
+                                    </a>
                                 @endif
                                 <button wire:click="deleteMedia({{ $m->id }})"
                                         wire:confirm="Dieses Medium wirklich löschen?"
