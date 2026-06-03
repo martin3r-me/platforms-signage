@@ -82,6 +82,9 @@ class Index extends Component
 
             if ($kind === 'document') {
                 ConvertDocumentJob::dispatch($media->id);
+            } elseif ($kind === 'image') {
+                // Heruntergerechnete Anzeige-Variante für schnelleres Laden auf TVs.
+                app(\Platform\Signage\Services\SignageImageService::class)->makeDisplayVariant($media->refresh());
             }
         }
 

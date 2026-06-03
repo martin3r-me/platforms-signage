@@ -53,6 +53,11 @@ class MediaController
             return [$media->disk, $media->path];
         }
 
+        // Heruntergerechnete Anzeige-Variante eines Bildes.
+        if ($media = SignageMedia::where('display_token', $token)->first()) {
+            return [$media->disk, $media->display_path];
+        }
+
         if ($page = SignageMediaPage::where('token', $token)->first()) {
             return [$page->disk, $page->path];
         }

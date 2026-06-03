@@ -91,4 +91,11 @@ return [
      * (z.B. nginx client_max_body_size) müssen ebenfalls hoch genug sein.
      */
     'max_upload_kb' => env('SIGNAGE_MAX_UPLOAD_KB', 512000),
+
+    /**
+     * Maximale Kantenlänge (px) der Anzeige-Variante von Bildern. Große Originale
+     * werden für die Wiedergabe auf diese Größe als WebP heruntergerechnet
+     * (schnelleres Laden). 0 = deaktiviert (Original ausliefern).
+     */
+    'display_max_px' => env('SIGNAGE_DISPLAY_MAX_PX', 1920),
 ];

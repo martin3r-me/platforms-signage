@@ -16,7 +16,7 @@ class SignageMedia extends Model
     protected $fillable = [
         'uuid', 'team_id', 'folder_id', 'user_id', 'name', 'kind', 'app_type', 'config',
         'source_type', 'stream_url', 'is_embed',
-        'disk', 'path', 'token', 'original_name', 'mime_type', 'file_size',
+        'disk', 'path', 'token', 'display_path', 'display_token', 'original_name', 'mime_type', 'file_size',
         'width', 'height', 'duration_seconds', 'processing_status', 'page_count',
     ];
 
@@ -85,6 +85,11 @@ class SignageMedia extends Model
         );
 
         if ($this->kind === 'image') {
+            // Bevorzugt die kleinere Anzeige-Variante (schneller).
+            if ($this->display_token && $this->display_path) {
+                return $gen($this->disk, $this->display_path, $this->display_token);
+            }
+
             return $gen($this->disk, $this->path, $this->token);
         }
 

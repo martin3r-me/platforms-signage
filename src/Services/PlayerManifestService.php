@@ -188,10 +188,14 @@ class PlayerManifestService
 
     private function mediaUrl(SignageMedia $media): string
     {
+        // Bilder: bevorzugt die heruntergerechnete Anzeige-Variante (schnelleres Laden).
+        $path = $media->display_path ?: $media->path;
+        $token = $media->display_token ?: $media->token;
+
         return ContextFileService::generateUrl(
             $media->disk,
-            $media->path,
-            $media->token,
+            $path,
+            $token,
             'signage.media.show',
             self::URL_TTL_MINUTES
         );
