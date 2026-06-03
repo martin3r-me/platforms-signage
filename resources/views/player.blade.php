@@ -417,14 +417,6 @@
             }
         }
 
-        function swap(frame) {
-            frame.classList.remove('visible');
-            setTimeout(() => {
-                runCleanup(frame);
-                if (frame.parentNode) frame.parentNode.removeChild(frame);
-            }, 700);
-        }
-
         // ---- Background music ---------------------------------------------
         let musicIndex = 0;
         let musicEmbed = null;

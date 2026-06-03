@@ -93,6 +93,8 @@ class SignageServiceProvider extends ServiceProvider
             \Platform\Signage\Models\SignageScreen::class       => \Platform\Signage\Policies\SignageScreenPolicy::class,
             \Platform\Signage\Models\SignageMedia::class        => \Platform\Signage\Policies\SignageMediaPolicy::class,
             \Platform\Signage\Models\SignagePlaylist::class     => \Platform\Signage\Policies\SignagePlaylistPolicy::class,
+            \Platform\Signage\Models\SignageSchedule::class     => \Platform\Signage\Policies\SignageSchedulePolicy::class,
+            \Platform\Signage\Models\SignageMediaFolder::class  => \Platform\Signage\Policies\SignageMediaFolderPolicy::class,
         ];
 
         foreach ($map as $model => $policy) {
