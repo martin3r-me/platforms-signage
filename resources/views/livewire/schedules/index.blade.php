@@ -16,7 +16,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-ui-panel title="Neuer Zeitplan" subtitle="Zeitgesteuerte Pläne, die einem Bildschirm zugewiesen werden">
+            <x-signage-panel title="Neuer Zeitplan" subtitle="Zeitgesteuerte Pläne, die einem Bildschirm zugewiesen werden">
                 <form wire:submit="create" class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="flex-1 w-full">
                         <x-ui-input-text name="name" label="Name" wire:model="name" placeholder="z.B. Wochenplan Empfang" />
@@ -24,9 +24,9 @@
                     </div>
                     <x-ui-button type="submit" variant="primary">Erstellen</x-ui-button>
                 </form>
-            </x-ui-panel>
+            </x-signage-panel>
 
-            <x-ui-panel title="Zeitpläne">
+            <x-signage-panel title="Zeitpläne">
                 <div class="divide-y divide-[var(--ui-border)]/40">
                     @forelse($schedules as $schedule)
                         <div class="flex items-center justify-between p-4" wire:key="sched-{{ $schedule->id }}">
@@ -44,7 +44,7 @@
                         <div class="p-6 text-center text-[var(--ui-muted)] text-sm">Noch keine Zeitpläne.</div>
                     @endforelse
                 </div>
-            </x-ui-panel>
+            </x-signage-panel>
         </div>
     </x-ui-page-container>
 </x-ui-page>

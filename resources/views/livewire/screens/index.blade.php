@@ -16,7 +16,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-ui-panel title="Bildschirm koppeln" subtitle="Öffne {{ url('/signage/play') }} am TV und gib den angezeigten Code ein">
+            <x-signage-panel title="Bildschirm koppeln" subtitle="Öffne {{ url('/signage/play') }} am TV und gib den angezeigten Code ein">
                 <form wire:submit="pair" class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="w-full sm:w-40">
                         <x-ui-input-text name="pairingCode" label="Kopplungs-Code" wire:model="pairingCode" placeholder="z.B. K7P2QM" />
@@ -27,9 +27,9 @@
                     </div>
                     <x-ui-button type="submit" variant="primary">Koppeln</x-ui-button>
                 </form>
-            </x-ui-panel>
+            </x-signage-panel>
 
-            <x-ui-panel title="Gekoppelte Bildschirme">
+            <x-signage-panel title="Gekoppelte Bildschirme">
                 <div class="divide-y divide-[var(--ui-border)]/40">
                     @forelse($screens as $screen)
                         <div class="flex items-center justify-between p-4" wire:key="screen-{{ $screen->id }}">
@@ -58,7 +58,7 @@
                         <div class="p-6 text-center text-[var(--ui-muted)]">Noch keine Bildschirme gekoppelt.</div>
                     @endforelse
                 </div>
-            </x-ui-panel>
+            </x-signage-panel>
         </div>
     </x-ui-page-container>
 </x-ui-page>

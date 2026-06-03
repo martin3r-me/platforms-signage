@@ -31,15 +31,15 @@
                     window.addEventListener('message', (e) => { if (e.data && e.data.__signagePreviewReady) this.send(); });
                 }
             }">
-            <x-ui-panel title="Vorschau" subtitle="Aktualisiert sich live beim Ändern der Einstellungen">
+            <x-signage-panel title="Vorschau" subtitle="Aktualisiert sich live beim Ändern der Einstellungen">
                 <div class="p-4">
                     <div class="relative w-full max-w-md mx-auto aspect-video rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-black">
                         <iframe x-ref="frame" src="{{ route('signage.apps.preview-live') }}" class="absolute inset-0 w-full h-full" x-on:load="send()"></iframe>
                     </div>
                 </div>
-            </x-ui-panel>
+            </x-signage-panel>
 
-            <x-ui-panel title="Uhr" subtitle="Zeigt die aktuelle Uhrzeit (Geräte-Zeitzone)">
+            <x-signage-panel title="Uhr" subtitle="Zeigt die aktuelle Uhrzeit (Geräte-Zeitzone)">
                 <form wire:submit="save" class="space-y-5 p-4">
                     <div>
                         <x-ui-input-text name="name" label="Name" wire:model="name" placeholder="z.B. Empfang Uhr" />
@@ -101,7 +101,7 @@
                         <x-ui-button variant="secondary" :href="route('signage.media.index')">Abbrechen</x-ui-button>
                     </div>
                 </form>
-            </x-ui-panel>
+            </x-signage-panel>
         </div>
     </x-ui-page-container>
 </x-ui-page>

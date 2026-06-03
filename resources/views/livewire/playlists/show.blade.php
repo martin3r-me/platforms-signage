@@ -17,7 +17,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-ui-panel title="Wiedergabeliste" subtitle="Name & Beschreibung">
+            <x-signage-panel title="Wiedergabeliste" subtitle="Name & Beschreibung">
                 <form wire:submit="rename" class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="flex-1 w-full">
                         <x-ui-input-text name="name" label="Name" wire:model="name" />
@@ -38,9 +38,9 @@
                     @endif
                     <x-ui-button type="submit" variant="primary">Speichern</x-ui-button>
                 </form>
-            </x-ui-panel>
+            </x-signage-panel>
 
-            <x-ui-panel title="Element hinzufügen" subtitle="{{ $playlist->kind === 'music' ? 'Audiodateien' : 'Bilder, Videos, Dokumente' }}">
+            <x-signage-panel title="Element hinzufügen" subtitle="{{ $playlist->kind === 'music' ? 'Audiodateien' : 'Bilder, Videos, Dokumente' }}">
                 <div class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="flex-1 w-full">
                         <x-ui-input-select name="addMediaId" label="Medium" wire:model="addMediaId"
@@ -55,9 +55,9 @@
                         Keine passenden Medien. <a href="{{ route('signage.media.index') }}" wire:navigate class="text-[var(--ui-primary)] underline">Zuerst hochladen</a>.
                     </div>
                 @endif
-            </x-ui-panel>
+            </x-signage-panel>
 
-            <x-ui-panel title="Reihenfolge" subtitle="Wird von oben nach unten abgespielt">
+            <x-signage-panel title="Reihenfolge" subtitle="Wird von oben nach unten abgespielt">
                 @if($items->isEmpty())
                     <div class="p-8 text-center text-[var(--ui-muted)]">Noch keine Elemente.</div>
                 @else
@@ -111,7 +111,7 @@
                         @endforeach
                     </div>
                 @endif
-            </x-ui-panel>
+            </x-signage-panel>
         </div>
     </x-ui-page-container>
 </x-ui-page>

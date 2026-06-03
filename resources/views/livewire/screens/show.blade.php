@@ -29,15 +29,15 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-ui-panel title="Live-Vorschau">
+            <x-signage-panel title="Live-Vorschau">
                 <div class="p-4">
                     <div class="relative w-full max-w-2xl mx-auto rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-black {{ str_starts_with($screen->orientation, 'portrait') ? 'aspect-[9/16] max-w-xs' : 'aspect-video' }}">
                         <iframe src="{{ $previewUrl }}" class="absolute inset-0 w-full h-full" frameborder="0"></iframe>
                     </div>
                 </div>
-            </x-ui-panel>
+            </x-signage-panel>
 
-            <x-ui-panel title="Einstellungen">
+            <x-signage-panel title="Einstellungen">
                 <form wire:submit="saveSettings" class="space-y-4 p-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <x-ui-input-text name="name" label="Name" wire:model="name" />
@@ -64,7 +64,7 @@
                     </p>
                     <x-ui-button type="submit" variant="primary">Speichern</x-ui-button>
                 </form>
-            </x-ui-panel>
+            </x-signage-panel>
 
         </div>
     </x-ui-page-container>

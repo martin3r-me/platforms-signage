@@ -22,7 +22,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-ui-panel title="Zeitplan">
+            <x-signage-panel title="Zeitplan">
                 <form wire:submit="rename" class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="flex-1 w-full">
                         <x-ui-input-text name="name" label="Name" wire:model="name" />
@@ -30,9 +30,9 @@
                     </div>
                     <x-ui-button type="submit" variant="primary">Speichern</x-ui-button>
                 </form>
-            </x-ui-panel>
+            </x-signage-panel>
 
-            <x-ui-panel title="Regeln" subtitle="Pro Zeitfenster eine Wiedergabeliste – höchste Priorität gewinnt, sonst greift die Standard-Wiedergabeliste des Bildschirms">
+            <x-signage-panel title="Regeln" subtitle="Pro Zeitfenster eine Wiedergabeliste – höchste Priorität gewinnt, sonst greift die Standard-Wiedergabeliste des Bildschirms">
                 <div class="divide-y divide-[var(--ui-border)]/40">
                     @forelse($scheduleRules as $rule)
                         <div class="flex items-center justify-between p-3" wire:key="rule-{{ $rule->id }}">
@@ -89,7 +89,7 @@
 
                     <x-ui-button type="submit" variant="primary">Regel hinzufügen</x-ui-button>
                 </form>
-            </x-ui-panel>
+            </x-signage-panel>
         </div>
     </x-ui-page-container>
 </x-ui-page>

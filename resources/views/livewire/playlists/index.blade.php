@@ -16,7 +16,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-ui-panel title="Neue Wiedergabeliste">
+            <x-signage-panel title="Neue Wiedergabeliste">
                 <form wire:submit="create" class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="flex-1 w-full">
                         <x-ui-input-text name="name" label="Name" wire:model="name" placeholder="z.B. Empfang Vormittag" />
@@ -29,15 +29,15 @@
                     </div>
                     <x-ui-button type="submit" variant="primary">Erstellen</x-ui-button>
                 </form>
-            </x-ui-panel>
+            </x-signage-panel>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <x-ui-panel title="Visuelle Listen">
+                <x-signage-panel title="Visuelle Listen">
                     @include('signage::livewire.playlists._list', ['items' => $visual])
-                </x-ui-panel>
-                <x-ui-panel title="Musik-Listen">
+                </x-signage-panel>
+                <x-signage-panel title="Musik-Listen">
                     @include('signage::livewire.playlists._list', ['items' => $music])
-                </x-ui-panel>
+                </x-signage-panel>
             </div>
         </div>
     </x-ui-page-container>

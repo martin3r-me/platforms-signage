@@ -2,6 +2,7 @@
 
 namespace Platform\Signage;
 
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -76,6 +77,11 @@ class SignageServiceProvider extends ServiceProvider
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'signage');
+
+        // Eigene UI-Bausteine des Moduls (bewusst losgelöst von x-ui-panel/-tile).
+        Blade::component('signage::components.panel', 'signage-panel');
+        Blade::component('signage::components.tile', 'signage-tile');
+
         $this->registerLivewireComponents();
         $this->registerPolicies();
 

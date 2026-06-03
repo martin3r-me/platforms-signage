@@ -27,13 +27,13 @@
     <x-ui-page-container>
         <div class="space-y-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <x-ui-dashboard-tile title="Bildschirme" :count="$stats['screens']" subtitle="Gekoppelt" icon="computer-desktop" variant="secondary" size="lg" />
-                <x-ui-dashboard-tile title="Online" :count="$stats['online']" subtitle="Gerade erreichbar" icon="signal" variant="secondary" size="lg" />
-                <x-ui-dashboard-tile title="Medien" :count="$stats['media']" subtitle="In der Bibliothek" icon="photo" variant="secondary" size="lg" />
-                <x-ui-dashboard-tile title="Wiedergabelisten" :count="$stats['playlists']" subtitle="Angelegt" icon="queue-list" variant="secondary" size="lg" />
+                <x-signage-tile title="Bildschirme" :count="$stats['screens']" subtitle="Gekoppelt" icon="computer-desktop" variant="secondary" size="lg" />
+                <x-signage-tile title="Online" :count="$stats['online']" subtitle="Gerade erreichbar" icon="signal" variant="secondary" size="lg" />
+                <x-signage-tile title="Medien" :count="$stats['media']" subtitle="In der Bibliothek" icon="photo" variant="secondary" size="lg" />
+                <x-signage-tile title="Wiedergabelisten" :count="$stats['playlists']" subtitle="Angelegt" icon="queue-list" variant="secondary" size="lg" />
             </div>
 
-            <x-ui-panel title="Bildschirme" subtitle="Status der gekoppelten Geräte">
+            <x-signage-panel title="Bildschirme" subtitle="Status der gekoppelten Geräte">
                 <div class="divide-y divide-[var(--ui-border)]/40">
                     @forelse($screens as $screen)
                         <a href="{{ route('signage.screens.show', $screen) }}" wire:navigate class="flex items-center justify-between p-4 hover:bg-[var(--ui-muted-5)]">
@@ -52,7 +52,7 @@
                         </div>
                     @endforelse
                 </div>
-            </x-ui-panel>
+            </x-signage-panel>
         </div>
     </x-ui-page-container>
 </x-ui-page>

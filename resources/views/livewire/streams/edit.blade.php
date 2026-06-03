@@ -13,7 +13,7 @@
 
     <x-ui-page-container>
         <div class="max-w-2xl mx-auto space-y-6">
-            <x-ui-panel title="Stream" subtitle="Name, URL und Typ ändern">
+            <x-signage-panel title="Stream" subtitle="Name, URL und Typ ändern">
                 <form wire:submit="save" class="space-y-5 p-4">
                     <div>
                         <x-ui-input-text name="name" label="Name" wire:model="name" />
@@ -40,7 +40,7 @@
                         <x-ui-button variant="secondary" :href="route('signage.media.index')">Abbrechen</x-ui-button>
                     </div>
                 </form>
-            </x-ui-panel>
+            </x-signage-panel>
         </div>
     </x-ui-page-container>
 </x-ui-page>
