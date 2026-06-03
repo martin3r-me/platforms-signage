@@ -23,4 +23,15 @@ class SignageMediaPage extends Model
     {
         return $this->belongsTo(SignageMedia::class, 'media_id');
     }
+
+    public function previewUrl(): ?string
+    {
+        if (!$this->path || !$this->token) {
+            return null;
+        }
+
+        return \Platform\Core\Services\ContextFileService::generateUrl(
+            $this->disk, $this->path, $this->token, 'signage.media.show', 120
+        );
+    }
 }

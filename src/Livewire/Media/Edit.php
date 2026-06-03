@@ -2,13 +2,16 @@
 
 namespace Platform\Signage\Livewire\Media;
 
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Platform\Signage\Livewire\Concerns\WithCurrentTeam;
 use Platform\Signage\Models\SignageMedia;
 use Platform\Signage\Models\SignageMediaFolder;
+use Platform\Signage\Models\SignageScreen;
 
 /**
  * Bearbeitet ein Datei-Medium (Bild/Video/Audio/Dokument): Name + Ordner.
+ * Bei Dokumenten zusätzlich die einzelnen Seiten verwalten (löschen/sortieren).
  * Apps/Streams/Websites haben eigene Editoren.
  */
 class Edit extends Component
@@ -25,6 +28,66 @@ class Edit extends Component
         $this->media = $media;
         $this->name = (string) $media->name;
         $this->folderId = $media->folder_id;
+    }
+
+    public function removePage(int $pageId): void
+    {
+        if (!$this->media->isDocument()) {
+            return;
+        }
+
+        $this->media->pages()->whereKey($pageId)->delete();
+        $this->renumberPages();
+        $this->afterPagesChanged();
+        session()->flash('signage_message', 'Seite entfernt.');
+    }
+
+    public function movePage(int $pageId, string $direction): void
+    {
+        if (!$this->media->isDocument()) {
+            return;
+        }
+
+        $pages = $this->media->pages()->orderBy('page_number')->get()->values();
+        $index = $pages->search(fn ($p) => $p->id === $pageId);
+        if ($index === false) {
+            return;
+        }
+
+        $swapWith = $direction === 'up' ? $index - 1 : $index + 1;
+        if ($swapWith < 0 || $swapWith >= $pages->count()) {
+            return;
+        }
+
+        DB::transaction(function () use ($pages, $index, $swapWith) {
+            $a = $pages[$index];
+            $b = $pages[$swapWith];
+            [$a->page_number, $b->page_number] = [$b->page_number, $a->page_number];
+            $a->save();
+            $b->save();
+        });
+
+        $this->afterPagesChanged();
+    }
+
+    /** Seitennummern lückenlos 1..n vergeben. */
+    protected function renumberPages(): void
+    {
+        $pages = $this->media->pages()->orderBy('page_number')->get();
+        $n = 0;
+        foreach ($pages as $page) {
+            $n++;
+            if ($page->page_number !== $n) {
+                $page->update(['page_number' => $n]);
+            }
+        }
+    }
+
+    protected function afterPagesChanged(): void
+    {
+        $this->media->update(['page_count' => $this->media->pages()->count()]);
+        $this->media->refresh();
+        SignageScreen::bumpForMedia($this->media->id);
     }
 
     public function save()
@@ -52,9 +115,14 @@ class Edit extends Component
             ->orderBy('name')->get()
             ->map(fn ($f) => ['value' => $f->id, 'label' => $f->name])->values()->all();
 
+        $pages = $this->media->isDocument()
+            ? $this->media->pages()->orderBy('page_number')->get()
+            : collect();
+
         return view('signage::livewire.media.edit', [
             'folderOptions' => $folderOptions,
             'preview'       => $this->media->previewUrl(),
+            'pages'         => $pages,
         ])->layout('platform::layouts.app');
     }
 }

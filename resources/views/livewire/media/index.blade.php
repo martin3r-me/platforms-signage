@@ -84,9 +84,15 @@
             @if(session('signage_message'))
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
+            @if(session('signage_error'))
+                <div class="p-3 rounded bg-red-100 text-red-800 text-sm">{{ session('signage_error') }}</div>
+            @endif
 
             <div wire:loading wire:target="uploads" class="p-3 rounded bg-blue-50 text-blue-700 text-sm">
                 Wird hochgeladen …
+            </div>
+            <div wire:loading wire:target="reloadWebsiteThumbnail" class="p-3 rounded bg-blue-50 text-blue-700 text-sm">
+                Screenshot wird geholt … (kann ein paar Sekunden dauern)
             </div>
 
             @error('uploads.*')
@@ -137,8 +143,8 @@
                     @else
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 p-4">
                             @foreach($media as $m)
-                                <div class="group relative rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)]" wire:key="media-{{ $m->id }}">
-                                    <div class="aspect-video flex items-center justify-center bg-black/5">
+                                <div class="group relative rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)] flex flex-col" wire:key="media-{{ $m->id }}">
+                                    <div class="aspect-video flex items-center justify-center bg-black/5 shrink-0">
                                         @php($preview = $m->previewUrl())
                                         @if($preview)
                                             <img src="{{ $preview }}" alt="{{ $m->name }}" class="w-full h-full object-cover">
@@ -156,7 +162,8 @@
                                             @svg('heroicon-o-document', 'w-10 h-10 text-[var(--ui-muted)]')
                                         @endif
                                     </div>
-                                    <div class="p-2">
+                                    <div class="p-2 flex-1 flex flex-col">
+                                        {{-- Kopf: Name + (optional) URL + Typ-Badge --}}
                                         <div class="text-xs font-medium text-[var(--ui-secondary)] truncate" title="{{ $m->name }}">{{ $m->name }}</div>
                                         @if($m->isStream() || $m->isWebsite())
                                             <div class="text-[10px] text-[var(--ui-muted)] truncate" title="{{ $m->stream_url }}">{{ $m->stream_url }}</div>
@@ -177,27 +184,31 @@
                                                 </x-signage-badge>
                                             @endif
                                         </div>
-                                        @if($m->kind === 'document' && $m->processing_status !== 'ready')
-                                            <button wire:click="reprocessDocument({{ $m->id }})"
-                                                    class="mt-1 w-full text-[10px] px-1 py-1 rounded border border-[var(--ui-border)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] inline-flex items-center justify-center gap-1">
-                                                @svg('heroicon-o-arrow-path', 'w-3 h-3') Erneut verarbeiten
-                                            </button>
-                                        @endif
-                                        @if($m->isWebsite())
-                                            <button wire:click="reloadWebsiteThumbnail({{ $m->id }})"
-                                                    class="mt-1 w-full text-[10px] px-1 py-1 rounded border border-[var(--ui-border)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] inline-flex items-center justify-center gap-1">
-                                                @svg('heroicon-o-camera', 'w-3 h-3') {{ $m->display_token ? 'Vorschau neu laden' : 'Vorschau laden' }}
-                                            </button>
-                                        @endif
-                                        @if(count($folderOptions))
-                                            <select wire:change="moveToFolder({{ $m->id }}, $event.target.value)"
-                                                    class="mt-1.5 w-full text-[10px] px-1 py-1 rounded border border-[var(--ui-border)] bg-white text-[var(--ui-secondary)]">
-                                                <option value="">📁 Ordner: —</option>
-                                                @foreach($folders as $f)
-                                                    <option value="{{ $f->id }}" @selected($m->folder_id === $f->id)>{{ $f->name }}</option>
-                                                @endforeach
-                                            </select>
-                                        @endif
+
+                                        {{-- Fuß: Aktionen + Ordner – per mt-auto immer am unteren Kartenrand (gleiche Höhe über alle Kacheln). --}}
+                                        <div class="mt-auto pt-1.5 space-y-1">
+                                            @if($m->kind === 'document' && $m->processing_status !== 'ready')
+                                                <button wire:click="reprocessDocument({{ $m->id }})"
+                                                        class="w-full text-[10px] px-1 py-1 rounded border border-[var(--ui-border)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] inline-flex items-center justify-center gap-1">
+                                                    @svg('heroicon-o-arrow-path', 'w-3 h-3') Erneut verarbeiten
+                                                </button>
+                                            @endif
+                                            @if($m->isWebsite())
+                                                <button wire:click="reloadWebsiteThumbnail({{ $m->id }})"
+                                                        class="w-full text-[10px] px-1 py-1 rounded border border-[var(--ui-border)] text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)] inline-flex items-center justify-center gap-1">
+                                                    @svg('heroicon-o-camera', 'w-3 h-3') {{ $m->display_token ? 'Vorschau neu laden' : 'Vorschau laden' }}
+                                                </button>
+                                            @endif
+                                            @if(count($folderOptions))
+                                                <select wire:change="moveToFolder({{ $m->id }}, $event.target.value)"
+                                                        class="w-full text-[10px] px-1 py-1 rounded border border-[var(--ui-border)] bg-white text-[var(--ui-secondary)]">
+                                                    <option value="">📁 Ordner: —</option>
+                                                    @foreach($folders as $f)
+                                                        <option value="{{ $f->id }}" @selected($m->folder_id === $f->id)>{{ $f->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            @endif
+                                        </div>
                                     </div>
                                     @if($m->isApp())
                                         <a href="{{ route('signage.apps.'.$m->app_type.'.edit', $m) }}" wire:navigate

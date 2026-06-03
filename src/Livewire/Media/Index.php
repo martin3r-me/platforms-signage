@@ -145,10 +145,15 @@ class Index extends Component
             return;
         }
 
-        // Vorhandenes Bild verwerfen, damit das Polling wieder anläuft.
-        $media->update(['display_path' => null, 'display_token' => null]);
-        \Platform\Signage\Jobs\CaptureWebsiteThumbnailJob::dispatch($media->id);
-        session()->flash('signage_message', 'Website-Vorschau wird neu erstellt (benötigt einen laufenden Queue-Worker).');
+        // Synchron holen: sofortiges Ergebnis + konkrete Fehlermeldung,
+        // unabhängig davon, ob ein Queue-Worker läuft.
+        $result = app(\Platform\Signage\Services\WebsiteThumbnailService::class)->capture($media);
+
+        if ($result['ok']) {
+            session()->flash('signage_message', 'Website-Vorschau erstellt.');
+        } else {
+            session()->flash('signage_error', 'Vorschau fehlgeschlagen: '.($result['reason'] ?? 'unbekannt'));
+        }
     }
 
     public function reprocessDocument(int $id): void
