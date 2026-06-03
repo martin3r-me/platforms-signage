@@ -68,7 +68,7 @@
                                         @endif
                                     </div>
                                 </div>
-                                @if($playlist->kind !== 'music' && in_array($item->media?->kind, ['image', 'document']))
+                                @if($playlist->kind !== 'music' && in_array($item->media?->kind, ['image', 'document', 'app']))
                                     <div class="flex items-center gap-1">
                                         <input type="number" min="1" value="{{ $item->duration_seconds }}"
                                                placeholder="{{ $defaultDuration }}"
