@@ -23,9 +23,20 @@
                         <x-ui-input-text name="url" label="URL" wire:model="url" placeholder="https://…" />
                         @error('url')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
                     </div>
+                    <div>
+                        <x-ui-input-select name="mode" label="Anzeige-Modus" wire:model="mode"
+                            :options="[
+                                ['value' => 'iframe', 'label' => 'Direkt (am schnellsten, nur wenn die Seite Einbettung erlaubt)'],
+                                ['value' => 'proxy', 'label' => 'Über Proxy (live inkl. Videos, auch bei Einbettungs-Sperre)'],
+                            ]"
+                            optionValue="value" optionLabel="label" />
+                        @error('mode')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+                    </div>
                     <p class="text-xs text-[var(--ui-muted)]">
-                        Hinweis: Manche Seiten verbieten die Einbettung (X-Frame-Options/CSP) und bleiben dann leer.
-                        Eigene Seiten funktionieren am zuverlässigsten.
+                        Viele Seiten verbieten die Einbettung (X-Frame-Options/CSP) und bleiben im Direkt-Modus leer
+                        (Fehler „Refused to display … in a frame"). Für solche Seiten den <strong>Proxy</strong>-Modus
+                        wählen – die Seite wird dann live über den Server ausgeliefert (inkl. Videos/Animationen) und
+                        funktioniert mit nahezu jeder Adresse.
                     </p>
                     <div class="flex items-center gap-2 pt-1">
                         <x-ui-button type="submit" variant="primary">Speichern</x-ui-button>

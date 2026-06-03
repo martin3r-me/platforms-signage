@@ -339,6 +339,12 @@
                 const f = document.createElement('iframe');
                 f.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; border:0; background:#fff;';
                 f.setAttribute('scrolling', 'no');
+                f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+                // Proxy-Modus: Fremdseite isolieren (kein Framebusting, kein Zugriff
+                // auf den Player) – Skripte/Videos laufen weiterhin.
+                if (item.proxied) {
+                    f.setAttribute('sandbox', 'allow-scripts allow-popups allow-forms allow-presentation allow-pointer-lock');
+                }
                 const ms = (item.duration || 10) * 1000;
                 const show = () => { if (done) return; done = true; mount(frame); frameTimer = setTimeout(() => { advance(); }, ms); };
                 f.addEventListener('load', show, { once: true });

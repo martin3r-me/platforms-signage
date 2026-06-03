@@ -53,8 +53,17 @@
                             :options="$visualOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
                         <x-ui-input-select name="scheduleId" label="Zeitplan" wire:model="scheduleId"
                             :options="$scheduleOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– kein Zeitplan –" />
-                        <x-ui-input-select name="timezone" label="Zeitzone (für Zeitpläne)" wire:model="timezone"
-                            :options="$timezoneOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– Standard –" />
+                        {{-- Native Select: lange Zeitzonen-Liste, OS-Dropdown wird nicht vom Panel abgeschnitten. --}}
+                        <div>
+                            <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Zeitzone (für Zeitpläne)</label>
+                            <select wire:model="timezone"
+                                    class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm text-[var(--ui-secondary)]">
+                                <option value="">– Standard –</option>
+                                @foreach($timezoneOptions as $tz)
+                                    <option value="{{ $tz['value'] }}">{{ $tz['label'] }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <x-ui-input-select name="musicSource" label="Hintergrundmusik" wire:model="musicSource"
                             :options="$musicOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
                     </div>

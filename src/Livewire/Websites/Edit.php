@@ -18,6 +18,7 @@ class Edit extends Component
     public ?int $mediaId = null;
     public string $name = '';
     public string $url = '';
+    public string $mode = 'iframe'; // iframe = Direkt-Einbettung, proxy = Live über Server-Proxy
 
     public function mount(?SignageMedia $media = null): void
     {
@@ -26,6 +27,7 @@ class Edit extends Component
             $this->mediaId = $media->id;
             $this->name = (string) $media->name;
             $this->url = (string) $media->stream_url;
+            $this->mode = ($media->config['render_mode'] ?? 'iframe') === 'proxy' ? 'proxy' : 'iframe';
         }
     }
 
@@ -34,12 +36,17 @@ class Edit extends Component
         $this->validate([
             'name' => 'required|string|max:255',
             'url'  => 'required|url|max:1024',
+            'mode' => 'required|in:iframe,proxy',
         ]);
 
         if ($this->mediaId) {
             $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($this->mediaId);
             $urlChanged = $media->stream_url !== $this->url;
-            $media->update(['name' => $this->name, 'stream_url' => $this->url]);
+            $media->update([
+                'name'       => $this->name,
+                'stream_url' => $this->url,
+                'config'     => array_merge($media->config ?? [], ['render_mode' => $this->mode]),
+            ]);
             SignageScreen::bumpForMedia($media->id);
         } else {
             $media = SignageMedia::create([
@@ -48,6 +55,7 @@ class Edit extends Component
                 'name'              => $this->name,
                 'kind'              => 'website',
                 'stream_url'        => $this->url,
+                'config'            => ['render_mode' => $this->mode],
                 'processing_status' => 'ready',
             ]);
             $urlChanged = true;

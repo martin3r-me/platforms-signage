@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Platform\Signage\Http\Controllers\MediaController;
 use Platform\Signage\Http\Controllers\PlayerController;
+use Platform\Signage\Http\Controllers\SiteProxyController;
 
 // Player-Shell (Vollbild), die auf jedem TV-Browser geöffnet wird.
 Route::get('/play', [PlayerController::class, 'show'])->name('signage.play');
@@ -26,4 +27,9 @@ Route::get('/play/manifest.webmanifest', function () {
 // Signierte Auslieferung einer Mediendatei (Fallback wenn kein Cloud-Storage mit Temp-URLs).
 Route::get('/media/{token}', [MediaController::class, 'show'])
     ->name('signage.media.show')
+    ->middleware('signed');
+
+// Website-Proxy: liefert eine hinterlegte Website einbettbar aus (Proxy-Modus).
+Route::get('/site/{media}', [SiteProxyController::class, 'show'])
+    ->name('signage.site.proxy')
     ->middleware('signed');

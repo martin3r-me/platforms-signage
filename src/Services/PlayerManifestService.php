@@ -149,9 +149,13 @@ class PlayerManifestService
                     ];
                 }
             } elseif ($media->kind === 'website') {
+                $proxied = ($media->config['render_mode'] ?? 'iframe') === 'proxy';
                 $frames[] = [
                     'type'       => 'website',
-                    'url'        => $media->stream_url,
+                    // Proxy-Modus: über den Server ausliefern (entfernt X-Frame-Options/CSP),
+                    // damit auch nicht-einbettbare Seiten live (inkl. Video) laufen.
+                    'url'        => $proxied ? $this->proxyUrl($media) : $media->stream_url,
+                    'proxied'    => $proxied,
                     'duration'   => $duration,
                     'transition' => $item->transition,
                 ];
@@ -223,6 +227,20 @@ class PlayerManifestService
             $page->token,
             'signage.media.show',
             self::URL_TTL_MINUTES
+        );
+    }
+
+    /**
+     * Signierte Proxy-URL für eine Website (Server liefert die Seite aus und
+     * entfernt einbettungs-blockierende Header). Nutzt die hinterlegte URL des
+     * Mediums – kein offener Proxy (SSRF-sicher).
+     */
+    private function proxyUrl(SignageMedia $media): string
+    {
+        return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'signage.site.proxy',
+            now()->addMinutes(self::URL_TTL_MINUTES),
+            ['media' => $media->id]
         );
     }
 }
