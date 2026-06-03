@@ -119,11 +119,11 @@
                     </div>
                 </div>
 
-                <x-ui-panel :title="$currentFolder ? 'Bibliothek · '.$currentFolder->name : 'Bibliothek'" subtitle="Ziehe Dateien hierher oder nutze „Hochladen" — Bilder, Videos, Audio, Streams, PDF, PowerPoint und Apps">
+                <x-ui-panel :title="$currentFolder ? 'Bibliothek · '.$currentFolder->name : 'Bibliothek'" subtitle="Dateien hierher ziehen oder über Hochladen – Bilder, Videos, Audio, Streams, PDF, PowerPoint und Apps">
                     @if($media->isEmpty())
                         <div class="p-10 text-center text-[var(--ui-muted)]">
                             @svg('heroicon-o-arrow-down-tray', 'w-8 h-8 mx-auto mb-2 opacity-60')
-                            Noch keine Medien{{ $currentFolder ? ' in diesem Ordner' : '' }}. Dateien hierher ziehen oder „Hochladen".
+                            Noch keine Medien{{ $currentFolder ? ' in diesem Ordner' : '' }}. Dateien hierher ziehen oder oben über „Hochladen" starten.
                         </div>
                     @else
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 p-4">
