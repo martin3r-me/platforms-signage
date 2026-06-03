@@ -279,27 +279,41 @@
             const frame = document.createElement('div');
             frame.className = 'frame';
 
+            // Wichtig: Den neuen Frame erst einblenden, wenn das Medium geladen ist –
+            // bis dahin bleibt der vorherige Frame sichtbar (kein Black-Screen während
+            // große Bilder/Videos laden). Der Anzeige-Timer startet erst nach dem Laden.
+            let done = false;
+
             if (item.type === 'video') {
                 const v = document.createElement('video');
-                v.src = item.url;
                 v.muted = true;            // stummes Autoplay ist erlaubt
                 v.autoplay = true;
                 v.playsInline = true;
-                v.onended = () => { swap(frame); advance(); };
-                v.onerror = () => { swap(frame); advance(); };
+                v.onended = () => { advance(); };
+                const show = () => { if (done) return; done = true; mount(frame); v.play().catch(() => {}); };
+                v.addEventListener('loadeddata', show, { once: true });
+                v.onerror = () => { if (done) return; done = true; advance(); };
+                v.src = item.url;
                 frame.appendChild(v);
-                mount(frame);
-                v.play().catch(() => {});
+                // Fallback, falls loadeddata nicht feuert.
+                setTimeout(show, 8000);
             } else if (item.type === 'app') {
                 renderApp(item, frame);
             } else {
                 const img = document.createElement('img');
-                img.src = item.url;
-                img.onerror = () => { swap(frame); advance(); };
-                frame.appendChild(img);
-                mount(frame);
                 const ms = (item.duration || 10) * 1000;
-                frameTimer = setTimeout(() => { swap(frame); advance(); }, ms);
+                const show = () => {
+                    if (done) return; done = true;
+                    mount(frame);
+                    frameTimer = setTimeout(() => { advance(); }, ms);
+                };
+                img.onload = show;
+                img.onerror = () => { if (done) return; done = true; advance(); };
+                img.src = item.url;
+                frame.appendChild(img);
+                if (img.complete && img.naturalWidth) show();
+                // Fallback bei hängendem Laden -> überspringen.
+                setTimeout(() => { if (!done) { done = true; advance(); } }, 20000);
             }
         }
 
@@ -313,7 +327,7 @@
             }
             mount(frame);
             const ms = (item.duration || 10) * 1000;
-            frameTimer = setTimeout(() => { swap(frame); advance(); }, ms);
+            frameTimer = setTimeout(() => { advance(); }, ms);
         }
 
         function runCleanup(f) {
