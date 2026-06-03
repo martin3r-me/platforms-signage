@@ -454,7 +454,7 @@
             userInteracted = true;
             tapStart.classList.add('hidden');
             startMusic();
-            requestFullscreen();
+            keepAwake();
         });
 
         function requestFullscreen() {
@@ -462,10 +462,26 @@
             if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
         }
 
-        // Erste Interaktion (Klick / Fernbedienungs-Taste) -> Vollbild versuchen.
+        // Bildschirm wachhalten (verhindert Dimmen/Bildschirmschoner, wo unterstützt).
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (e) { /* nicht unterstützt oder Gesture nötig */ }
+        }
+        function keepAwake() { requestFullscreen(); requestWakeLock(); }
+
         if (!inIframe) {
+            requestWakeLock();
+            // Wake Lock geht verloren, wenn die Seite in den Hintergrund geht -> neu anfordern.
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') requestWakeLock();
+            });
+            // Erste Interaktion (Klick / Fernbedienungs-Taste) -> Vollbild + Wake Lock.
             ['click', 'keydown', 'touchstart'].forEach((ev) =>
-                document.addEventListener(ev, requestFullscreen, { once: true }));
+                document.addEventListener(ev, keepAwake, { once: true }));
         }
 
         // ---- Go ------------------------------------------------------------
