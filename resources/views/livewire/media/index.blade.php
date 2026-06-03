@@ -129,7 +129,7 @@
                     </div>
                 </div>
 
-                <x-signage-panel icon="photo" :title="$currentFolder ? 'Bibliothek · '.$currentFolder->name : 'Bibliothek'" subtitle="Bilder, Videos, Audio, Streams, Websites, PDF, PowerPoint und Apps">
+                <x-signage-panel color="sky" icon="photo" :title="$currentFolder ? 'Bibliothek · '.$currentFolder->name : 'Bibliothek'" subtitle="Bilder, Videos, Audio, Streams, Websites, PDF, PowerPoint und Apps">
                     <div class="mx-4 mt-4 flex items-center gap-2 text-xs text-[var(--ui-muted)] border border-dashed border-[var(--ui-border)] rounded-lg px-3 py-2">
                         @svg('heroicon-o-arrow-down-tray', 'w-4 h-4 shrink-0')
                         <span>Tipp: Dateien einfach per <strong>Drag &amp; Drop</strong> hier ablegen{{ $currentFolder ? ' – Ziel-Ordner: '.$currentFolder->name : '' }}.</span>

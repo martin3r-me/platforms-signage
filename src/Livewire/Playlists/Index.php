@@ -10,6 +10,7 @@ class Index extends Component
 {
     use WithCurrentTeam;
 
+    public bool $showCreateModal = false;
     public string $name = '';
     public string $kind = 'visual';
 
@@ -17,6 +18,18 @@ class Index extends Component
         'name' => 'required|string|max:255',
         'kind' => 'required|in:visual,music',
     ];
+
+    public function openCreateModal(): void
+    {
+        $this->reset('name', 'kind');
+        $this->resetValidation();
+        $this->showCreateModal = true;
+    }
+
+    public function closeCreateModal(): void
+    {
+        $this->showCreateModal = false;
+    }
 
     public function create(): void
     {

@@ -4,6 +4,7 @@
     'subtitle' => null,
     'icon' => null,
     'color' => 'indigo',
+    'href' => null,
 ])
 
 @php
@@ -27,7 +28,9 @@
     $bar = $bars[$color] ?? $bars['indigo'];
 @endphp
 
-<div class="group relative overflow-hidden rounded-2xl bg-[var(--ui-surface)] ring-1 ring-[var(--ui-border)]/60 shadow-sm transition duration-200 hover:shadow-md hover:-translate-y-0.5">
+@php $tag = $href ? 'a' : 'div'; @endphp
+<{{ $tag }} @if($href) href="{{ $href }}" wire:navigate @endif
+    class="group relative block overflow-hidden rounded-2xl bg-[var(--ui-surface)] ring-1 ring-[var(--ui-border)]/60 shadow-sm transition duration-200 hover:shadow-md hover:-translate-y-0.5 {{ $href ? 'cursor-pointer' : '' }}">
     {{-- farbiger Akzentbalken oben --}}
     <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r {{ $bar }} to-transparent"></div>
 
@@ -45,4 +48,4 @@
             </div>
         @endif
     </div>
-</div>
+</{{ $tag }}>

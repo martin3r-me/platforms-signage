@@ -25,7 +25,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-signage-panel icon="clock" title="Zeitplan">
+            <x-signage-panel color="amber" icon="clock" title="Zeitplan">
                 <form wire:submit="rename" class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="flex-1 w-full">
                         <x-ui-input-text name="name" label="Name" wire:model="name" />
@@ -35,7 +35,7 @@
                 </form>
             </x-signage-panel>
 
-            <x-signage-panel icon="calendar-days" title="Wochenplan" subtitle="Pro Zeitfenster eine Wiedergabeliste – höchste Priorität gewinnt, sonst greift die Standard-Wiedergabeliste des Bildschirms">
+            <x-signage-panel color="amber" icon="calendar-days" title="Wochenplan" subtitle="Pro Zeitfenster eine Wiedergabeliste – höchste Priorität gewinnt, sonst greift die Standard-Wiedergabeliste des Bildschirms">
                 @if($scheduleRules->isEmpty())
                     <div class="p-6 text-center text-[var(--ui-muted)] text-sm">
                         Noch keine Regeln – ohne Regel greift immer die Standard-Wiedergabeliste des Bildschirms.

@@ -17,7 +17,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-signage-panel icon="queue-list" title="Wiedergabeliste" subtitle="Name & Beschreibung">
+            <x-signage-panel color="violet" icon="queue-list" title="Wiedergabeliste" subtitle="Name & Beschreibung">
                 <form wire:submit="rename" class="flex flex-col sm:flex-row items-start sm:items-end gap-3 p-4">
                     <div class="flex-1 w-full">
                         <x-ui-input-text name="name" label="Name" wire:model="name" />
@@ -40,7 +40,7 @@
                 </form>
             </x-signage-panel>
 
-            <x-signage-panel icon="plus-circle" title="Element hinzufügen" subtitle="{{ $playlist->kind === 'music' ? 'Audiodateien' : 'Bilder, Videos, Dokumente, Apps, Websites' }}">
+            <x-signage-panel color="violet" icon="plus-circle" title="Element hinzufügen" subtitle="{{ $playlist->kind === 'music' ? 'Audiodateien' : 'Bilder, Videos, Dokumente, Apps, Websites' }}">
                 <div class="p-4 space-y-3">
                     {{-- Suche --}}
                     <div class="relative">
@@ -97,7 +97,7 @@
                 </div>
             </x-signage-panel>
 
-            <x-signage-panel icon="bars-3" title="Reihenfolge" subtitle="Wird von oben nach unten abgespielt">
+            <x-signage-panel color="violet" icon="bars-3" title="Reihenfolge" subtitle="Wird von oben nach unten abgespielt">
                 @if($items->isEmpty())
                     <div class="p-8 text-center text-[var(--ui-muted)]">Noch keine Elemente.</div>
                 @else

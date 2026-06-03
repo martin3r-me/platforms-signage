@@ -27,10 +27,10 @@
     <x-ui-page-container>
         <div class="space-y-6 pt-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <x-signage-tile title="Bildschirme" :count="$stats['screens']" subtitle="Gekoppelt" icon="computer-desktop" color="indigo" />
-                <x-signage-tile title="Online" :count="$stats['online']" subtitle="Gerade erreichbar" icon="signal" color="emerald" />
-                <x-signage-tile title="Medien" :count="$stats['media']" subtitle="In der Bibliothek" icon="photo" color="sky" />
-                <x-signage-tile title="Wiedergabelisten" :count="$stats['playlists']" subtitle="Angelegt" icon="queue-list" color="violet" />
+                <x-signage-tile title="Bildschirme" :count="$stats['screens']" subtitle="Gekoppelt" icon="computer-desktop" color="indigo" :href="route('signage.screens.index')" />
+                <x-signage-tile title="Online" :count="$stats['online']" subtitle="Gerade erreichbar" icon="signal" color="emerald" :href="route('signage.screens.index')" />
+                <x-signage-tile title="Medien" :count="$stats['media']" subtitle="In der Bibliothek" icon="photo" color="sky" :href="route('signage.media.index')" />
+                <x-signage-tile title="Wiedergabelisten" :count="$stats['playlists']" subtitle="Angelegt" icon="queue-list" color="violet" :href="route('signage.playlists.index')" />
             </div>
 
             <x-signage-panel title="Bildschirme" subtitle="Status der gekoppelten Geräte" icon="computer-desktop">

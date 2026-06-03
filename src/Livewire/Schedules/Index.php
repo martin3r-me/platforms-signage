@@ -10,11 +10,24 @@ class Index extends Component
 {
     use WithCurrentTeam;
 
+    public bool $showCreateModal = false;
     public string $name = '';
 
     protected array $rules = [
         'name' => 'required|string|max:255',
     ];
+
+    public function openCreateModal(): void
+    {
+        $this->reset('name');
+        $this->resetValidation();
+        $this->showCreateModal = true;
+    }
+
+    public function closeCreateModal(): void
+    {
+        $this->showCreateModal = false;
+    }
 
     public function create(): void
     {
