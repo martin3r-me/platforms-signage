@@ -17,7 +17,7 @@
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
 
-            <x-signage-panel title="Medium" subtitle="{{ $media->kind }}" icon="photo">
+            <x-signage-panel title="Medium" subtitle="{{ $media->kindLabel() }}" icon="photo">
                 <form wire:submit="save" class="space-y-5 p-5">
                     <div class="flex items-start gap-4">
                         <div class="w-40 shrink-0 rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-black/5 flex items-center justify-center" style="aspect-ratio: 16 / 9">

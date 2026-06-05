@@ -87,7 +87,7 @@
                                     </div>
                                     <div class="p-1.5">
                                         <div class="text-xs font-medium text-[var(--ui-secondary)] truncate" title="{{ $m->name }}">{{ $m->name }}</div>
-                                        <div class="text-[10px] text-[var(--ui-muted)]">{{ $m->kind }}@if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} S.@endif</div>
+                                        <div class="text-[10px] text-[var(--ui-muted)]">{{ $m->kindLabel() }}@if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} Seiten@endif</div>
                                     </div>
                                 </button>
                             @endforeach
@@ -131,7 +131,7 @@
                                 <div class="flex-1 min-w-0">
                                     <div class="font-medium text-[var(--ui-secondary)] truncate">{{ $item->media?->name ?? 'Gelöscht' }}</div>
                                     <div class="text-xs text-[var(--ui-muted)]">
-                                        {{ $item->media?->kind }}
+                                        {{ $item->media?->kindLabel() }}
                                         @if($item->media?->kind === 'document' && $item->media?->page_count)
                                             · {{ $item->media->page_count }} Seiten
                                         @endif

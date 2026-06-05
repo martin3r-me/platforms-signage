@@ -76,6 +76,31 @@ class SignageMedia extends Model
         return $this->kind === 'website';
     }
 
+    /** Deutsche Bezeichnung des Medientyps (für die UI). */
+    public function kindLabel(): string
+    {
+        return match ($this->kind) {
+            'image'    => 'Bild',
+            'video'    => 'Video',
+            'audio'    => 'Audio',
+            'document' => 'Dokument',
+            'app'      => 'App',
+            'website'  => 'Website',
+            'stream'   => 'Stream',
+            default    => ucfirst((string) $this->kind),
+        };
+    }
+
+    /** Deutsche Bezeichnung des App-Typs (Uhr/Wetter). */
+    public function appTypeLabel(): string
+    {
+        return match ($this->app_type) {
+            'clock'   => 'Uhr',
+            'weather' => 'Wetter',
+            default   => (string) $this->app_type,
+        };
+    }
+
     public function pages(): HasMany
     {
         return $this->hasMany(SignageMediaPage::class, 'media_id')->orderBy('page_number');

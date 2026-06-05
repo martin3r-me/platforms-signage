@@ -170,11 +170,11 @@
                                             @if($m->isStream())
                                                 <x-signage-badge :color="$m->is_embed ? 'amber' : 'blue'">{{ $m->is_embed ? 'Embed' : 'Stream' }}</x-signage-badge>
                                             @elseif($m->isApp())
-                                                <x-signage-badge color="violet">App · {{ $m->app_type }}</x-signage-badge>
+                                                <x-signage-badge color="violet">App · {{ $m->appTypeLabel() }}</x-signage-badge>
                                             @elseif($m->isWebsite())
                                                 <x-signage-badge color="indigo">Website</x-signage-badge>
                                             @else
-                                                <x-signage-badge color="gray">{{ $m->kind }}@if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} S.@endif</x-signage-badge>
+                                                <x-signage-badge color="gray">{{ $m->kindLabel() }}@if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} Seiten@endif</x-signage-badge>
                                             @endif
                                             @if($m->kind === 'document' && $m->processing_status !== 'ready')
                                                 <x-signage-badge :color="$m->processing_status === 'failed' ? 'red' : 'blue'">
