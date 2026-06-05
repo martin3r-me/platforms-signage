@@ -8,10 +8,18 @@
             ['label' => 'Digital Signage', 'href' => route('signage.dashboard'), 'icon' => 'tv'],
             ['label' => 'Bildschirme'],
         ]">
-            <x-ui-button wire:click="openCreateModal" variant="primary" size="sm">
-                @svg('heroicon-o-link', 'w-4 h-4')
-                Bildschirm koppeln
-            </x-ui-button>
+            <div class="flex items-center gap-2">
+                @if($firetvApk)
+                    <x-ui-button variant="secondary" size="sm" :href="route('signage.firetv.apk')">
+                        @svg('heroicon-o-arrow-down-tray', 'w-4 h-4')
+                        Für Fire TV herunterladen
+                    </x-ui-button>
+                @endif
+                <x-ui-button wire:click="openCreateModal" variant="primary" size="sm">
+                    @svg('heroicon-o-link', 'w-4 h-4')
+                    Bildschirm koppeln
+                </x-ui-button>
+            </div>
         </x-ui-page-actionbar>
     </x-slot>
 

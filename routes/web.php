@@ -46,3 +46,7 @@ Route::get('/schedules/{schedule}', ScheduleShow::class)->name('signage.schedule
 
 Route::get('/screens', ScreenIndex::class)->name('signage.screens.index');
 Route::get('/screens/{screen}', ScreenShow::class)->name('signage.screens.show');
+
+// Fire-TV-Kiosk-APK herunterladen (mit injizierter Player-URL dieser Instanz).
+Route::get('/firetv/app.apk', [\Platform\Signage\Http\Controllers\FireTvApkController::class, 'download'])
+    ->name('signage.firetv.apk');

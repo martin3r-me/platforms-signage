@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Einfaches Vektor-Banner/Icon (Monitor-Glyph) für die Fire-TV-Startzeile. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M0,0 H320 V180 H0 Z" />
+    <path
+        android:fillColor="#6366F1"
+        android:pathData="M104,58 H216 a8,8 0 0 1 8,8 V104 a8,8 0 0 1 -8,8 H104 a8,8 0 0 1 -8,-8 V66 a8,8 0 0 1 8,-8 Z" />
+    <path
+        android:fillColor="#0F172A"
+        android:pathData="M108,68 H212 V102 H108 Z" />
+    <path
+        android:fillColor="#6366F1"
+        android:pathData="M148,118 H172 V128 H148 Z M134,128 H186 V134 H134 Z" />
+</vector>

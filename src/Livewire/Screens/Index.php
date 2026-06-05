@@ -65,7 +65,8 @@ class Index extends Component
             ->get();
 
         return view('signage::livewire.screens.index', [
-            'screens' => $screens,
+            'screens'    => $screens,
+            'firetvApk'  => \Platform\Signage\Http\Controllers\FireTvApkController::available(),
         ])->layout('platform::layouts.app');
     }
 }

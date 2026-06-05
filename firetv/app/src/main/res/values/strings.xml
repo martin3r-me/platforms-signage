@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Digital Signage</string>
+    <string name="config_title">Player-URL</string>
+    <string name="config_message">Adresse der Signage-Plattform (inkl. https://). Wird normalerweise beim Download automatisch gesetzt.</string>
+</resources>

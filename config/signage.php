@@ -110,4 +110,11 @@ return [
      */
     'proxy_max_bytes' => env('SIGNAGE_PROXY_MAX_BYTES', 5 * 1024 * 1024),
     'proxy_max_redirects' => env('SIGNAGE_PROXY_MAX_REDIRECTS', 4),
+
+    /**
+     * Pfad zur vorab gebauten Fire-TV-Kiosk-APK. Beim Download wird die Player-URL
+     * dieser Instanz hineingeschrieben. Standard: resources/firetv/signage-player.apk
+     * im Modul. Per ENV überschreibbar (z.B. Storage-Pfad).
+     */
+    'firetv_apk_path' => env('SIGNAGE_FIRETV_APK'),
 ];
