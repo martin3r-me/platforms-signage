@@ -87,7 +87,7 @@
                                     </div>
                                     <div class="p-1.5">
                                         <div class="text-xs font-medium text-[var(--ui-secondary)] truncate" title="{{ $m->name }}">{{ $m->name }}</div>
-                                        <div class="text-[10px] text-[var(--ui-muted)]">{{ $m->kindLabel() }}@if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} Seiten@endif</div>
+                                        <div class="text-[10px] text-[var(--ui-muted)]">{{ $m->kindLabel() }}@if($m->kind === 'document' && $m->page_count) · {{ $m->page_count }} Seiten @endif</div>
                                     </div>
                                 </button>
                             @endforeach
