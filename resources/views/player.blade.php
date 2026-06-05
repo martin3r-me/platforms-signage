@@ -149,7 +149,9 @@
         async function poll() {
             try {
                 await ensureRegistered();
-                const state = await getJson(stateUrl(deviceToken));
+                // Im Vorschau-Modus den Heartbeat unterdrücken, damit der Bildschirm
+                // dadurch nicht fälschlich als "online" gilt.
+                const state = await getJson(stateUrl(deviceToken) + (previewMode ? '?preview=1' : ''));
 
                 if (state.status === 'removed') {
                     handleRemoved();

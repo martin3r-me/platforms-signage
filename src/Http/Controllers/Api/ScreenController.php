@@ -26,7 +26,12 @@ class ScreenController
         }
 
         // Heartbeat ohne updated_at-Touch (kein content_version-Bump).
-        $screen->forceFill(['last_seen_at' => now()])->saveQuietly();
+        // Im Admin-Vorschau-Modus (?preview=1) NICHT zählen – sonst gilt ein
+        // ausgeschalteter Bildschirm fälschlich als online, sobald jemand die
+        // Live-Vorschau öffnet.
+        if (!request()->boolean('preview')) {
+            $screen->forceFill(['last_seen_at' => now()])->saveQuietly();
+        }
 
         return response()->json([
             'status'          => $screen->status,
