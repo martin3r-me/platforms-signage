@@ -88,7 +88,7 @@
                                         <strong>Downloader</strong> diese Adresse öffnen:
                                     </p>
                                     <div class="mt-1.5 flex items-center gap-1" x-data="{ copied: false }">
-                                        <code class="flex-1 min-w-0 truncate rounded bg-[var(--ui-muted-5)] px-2 py-1 text-[10px] text-[var(--ui-secondary)]">{{ url('/signage/firetv/app.apk') }}</code>
+                                        <code class="flex-1 min-w-0 overflow-x-auto whitespace-nowrap select-all rounded bg-[var(--ui-muted-5)] px-2 py-1 text-[10px] text-[var(--ui-secondary)]">{{ url('/signage/firetv/app.apk') }}</code>
                                         <button type="button"
                                                 x-on:click="navigator.clipboard.writeText('{{ url('/signage/firetv/app.apk') }}'); copied = true; setTimeout(() => copied = false, 1500)"
                                                 x-bind:title="copied ? 'Kopiert!' : 'Adresse kopieren'"
