@@ -66,7 +66,7 @@
             @if($firetvApk)
                 <div x-data="{ open: true }">
                     <x-signage-panel color="indigo" icon="tv" title="Fire-TV-Bildschirm einrichten"
-                        subtitle="In 4 Schritten – als Ersatz für OptiSigns auf dem Fire TV Stick">
+                        subtitle="In 4 Schritten auf dem Fire TV Stick einrichten">
                         <x-slot name="actions">
                             <button type="button" x-on:click="open = !open"
                                     class="inline-flex items-center gap-1 text-xs font-medium text-[var(--ui-secondary)] hover:text-[rgb(var(--ui-primary-rgb))]">
