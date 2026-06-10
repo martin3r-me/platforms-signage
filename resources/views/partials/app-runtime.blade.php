@@ -27,6 +27,38 @@
     @keyframes flip-down { from { transform: rotateX(0deg); } to { transform: rotateX(-90deg); } }
     @keyframes flip-up { from { transform: rotateX(90deg); } to { transform: rotateX(0deg); } }
 
+    /* Bento clock – Zeit in abgerundeten Glas-Kacheln auf weichem Verlauf */
+    .clk-bento { gap: 4vmin; }
+    .app-clock-dark.clk-bento { background: radial-gradient(125% 125% at 30% 15%, #1e293b 0%, #0b0f17 62%); }
+    .app-clock-light.clk-bento { background: radial-gradient(125% 125% at 30% 15%, #ffffff 0%, #dde3ec 72%); }
+    .bento-row { display: flex; align-items: center; gap: 3vmin; }
+    .clk-portrait .bento-row { flex-direction: column; }
+    .bento-tile {
+        width: 26vmin; height: 26vmin;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14vmin; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+        border-radius: 4vmin;
+        background: rgba(255,255,255,.06);
+        border: .2vmin solid rgba(255,255,255,.12);
+        box-shadow: 0 2vmin 5vmin rgba(0,0,0,.35), inset 0 .25vmin 0 rgba(255,255,255,.16);
+        backdrop-filter: blur(1.5vmin);
+    }
+    .app-clock-light .bento-tile {
+        background: rgba(255,255,255,.65);
+        border-color: rgba(15,23,42,.06);
+        box-shadow: 0 2vmin 5vmin rgba(15,23,42,.12), inset 0 .25vmin 0 rgba(255,255,255,.8);
+    }
+    .clk-portrait .bento-tile { width: 42vmin; height: 24vmin; }
+    .bento-ampm { font-size: 6vmin; font-weight: 600; opacity: .75; }
+    .clk-bento .clk-date {
+        padding: 1.6vmin 4.5vmin; border-radius: 100vmin;
+        background: rgba(255,255,255,.06); border: .2vmin solid rgba(255,255,255,.12);
+        font-size: 3.6vmin; opacity: 1;
+    }
+    .app-clock-light.clk-bento .clk-date {
+        background: rgba(255,255,255,.65); border-color: rgba(15,23,42,.06);
+    }
+
     /* Weather app */
     .app-wx { position: absolute; inset: 0; display: flex; flex-direction: column; color: var(--wx-fg); background: var(--wx-bg); }
     .wx-sky   { --wx-bg: linear-gradient(160deg,#5b8def,#8fb6f5 55%,#cfe0fb); --wx-fg:#fff; --wx-panel: rgba(255,255,255,.20); --wx-panel-fg:#fff; --wx-today: rgba(255,255,255,.32); }
@@ -120,7 +152,7 @@ window.SignageApps = (function () {
         const wrap = document.createElement('div');
         wrap.className = 'app-clock app-clock-' + theme + ' clk-' + type + (portrait ? ' clk-portrait' : '');
 
-        let timeEl = null, dateEl = null, flipGroups = null;
+        let timeEl = null, dateEl = null, flipGroups = null, bentoTiles = null, ampmEl = null;
 
         if (type === 'flip') {
             const row = document.createElement('div'); row.className = 'flip-row';
@@ -132,6 +164,20 @@ window.SignageApps = (function () {
                             + '<div class="flip-half flip-bottom"><span>00</span></div>';
                 row.appendChild(g);
                 flipGroups.push({ el: g, value: null });
+            }
+            wrap.appendChild(row);
+        } else if (type === 'bento') {
+            const row = document.createElement('div'); row.className = 'bento-row';
+            bentoTiles = [];
+            const count = cfg.show_seconds ? 3 : 2;
+            for (let i = 0; i < count; i++) {
+                const t = document.createElement('div'); t.className = 'bento-tile';
+                row.appendChild(t);
+                bentoTiles.push(t);
+            }
+            if (cfg.time_format === '12h') {
+                ampmEl = document.createElement('div'); ampmEl.className = 'bento-ampm';
+                row.appendChild(ampmEl);
             }
             wrap.appendChild(row);
         } else {
@@ -177,6 +223,10 @@ window.SignageApps = (function () {
             if (type === 'flip') {
                 const vals = cfg.show_seconds ? [p.hh, p.mm, p.ss] : [p.hh, p.mm];
                 vals.forEach((val, i) => setFlip(flipGroups[i], val));
+            } else if (type === 'bento') {
+                const vals = cfg.show_seconds ? [p.hh, p.mm, p.ss] : [p.hh, p.mm];
+                vals.forEach((val, i) => { bentoTiles[i].textContent = val; });
+                if (ampmEl) ampmEl.textContent = p.ampm;
             } else {
                 timeEl.innerHTML = p.display + (p.ampm ? ' <span class="clk-ampm">' + p.ampm + '</span>' : '');
             }

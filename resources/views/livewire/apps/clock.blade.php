@@ -52,6 +52,7 @@
                                 ['value' => 'modern_digital', 'label' => 'Modern Digital'],
                                 ['value' => 'minimal', 'label' => 'Minimalistisch'],
                                 ['value' => 'flip', 'label' => 'Flip-Clock (animiert)'],
+                                ['value' => 'bento', 'label' => 'Bento (Glas-Kacheln)'],
                             ]"
                             optionValue="value" optionLabel="label" />
 

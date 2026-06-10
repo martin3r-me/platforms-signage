@@ -17,7 +17,7 @@ class Clock extends Component
     public ?int $mediaId = null;
 
     public string $name = '';
-    public string $clockType = 'modern_digital'; // modern_digital | minimal | flip
+    public string $clockType = 'modern_digital'; // modern_digital | minimal | flip | bento
     public string $theme = 'dark';               // light | dark
     public string $timeFormat = '24h';           // 24h | 12h
     public bool $showSeconds = true;
@@ -45,7 +45,7 @@ class Clock extends Component
     {
         return [
             'name'       => 'required|string|max:255',
-            'clockType'  => 'required|in:modern_digital,minimal,flip',
+            'clockType'  => 'required|in:modern_digital,minimal,flip,bento',
             'theme'      => 'required|in:light,dark',
             'timeFormat' => 'required|in:24h,12h',
             'dateFormat' => 'required|in:de_long,de_short,en_long,iso',
