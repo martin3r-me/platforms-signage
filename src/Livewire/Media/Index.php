@@ -31,10 +31,56 @@ class Index extends Component
         ];
     }
 
+    public function messages(): array
+    {
+        return [
+            'uploads.*.max'   => 'Die Datei ist zu groß (max. '.$this->maxUploadLabel().').',
+            'uploads.*.mimes' => 'Dieses Dateiformat wird nicht unterstützt.',
+            'uploads.*.file'  => 'Die Datei konnte nicht hochgeladen werden.',
+        ];
+    }
+
     public function updatedUploads(): void
     {
         $this->validate();
         $this->saveUploads();
+    }
+
+    /**
+     * Kleinste effektive Upload-Grenze aus PHP (upload_max_filesize, post_max_size)
+     * und der App-Konfiguration – als menschenlesbares Label (z.B. "500 MB").
+     */
+    public function maxUploadLabel(): string
+    {
+        $toBytes = function (string $v): int {
+            $v = trim($v);
+            if ($v === '') {
+                return 0;
+            }
+            $unit = strtolower($v[strlen($v) - 1]);
+            $num = (int) $v;
+
+            return match ($unit) {
+                'g'     => $num * 1024 ** 3,
+                'm'     => $num * 1024 ** 2,
+                'k'     => $num * 1024,
+                default => (int) $v,
+            };
+        };
+
+        $candidates = array_filter([
+            $toBytes((string) ini_get('upload_max_filesize')),
+            $toBytes((string) ini_get('post_max_size')),
+            ((int) config('signage.max_upload_kb', 512000)) * 1024,
+        ]);
+
+        $bytes = $candidates ? min($candidates) : 0;
+
+        if ($bytes >= 1024 ** 3) {
+            return round($bytes / 1024 ** 3, 1).' GB';
+        }
+
+        return round($bytes / 1024 ** 2).' MB';
     }
 
     protected function saveUploads(): void
@@ -251,6 +297,7 @@ class Index extends Component
             'folderOptions' => $folderOptions,
             'currentFolder' => $currentFolder,
             'hasProcessing' => $hasProcessing,
+            'maxUploadLabel' => $this->maxUploadLabel(),
         ])->layout('platform::layouts.app');
     }
 }

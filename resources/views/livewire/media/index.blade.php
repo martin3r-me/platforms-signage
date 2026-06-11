@@ -80,13 +80,20 @@
     </x-slot>
 
     <x-ui-page-container>
-        <div class="space-y-4 pt-4" @if($hasProcessing) wire:poll.6s @endif>
+        <div class="space-y-4 pt-4"
+             x-data="{ uploadError: '' }"
+             x-on:livewire-upload-start.window="uploadError = ''"
+             x-on:livewire-upload-error.window="uploadError = 'Upload fehlgeschlagen. Die Datei ist vermutlich zu groß (max. {{ $maxUploadLabel }}) oder hat ein nicht unterstütztes Format. Bitte verkleinern und erneut versuchen.'"
+             @if($hasProcessing) wire:poll.6s @endif>
             @if(session('signage_message'))
                 <div class="p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('signage_message') }}</div>
             @endif
             @if(session('signage_error'))
                 <div class="p-3 rounded bg-red-100 text-red-800 text-sm">{{ session('signage_error') }}</div>
             @endif
+
+            <div x-show="uploadError" x-cloak x-text="uploadError"
+                 class="p-3 rounded bg-red-100 text-red-800 text-sm"></div>
 
             <div wire:loading wire:target="uploads" class="p-3 rounded bg-blue-50 text-blue-700 text-sm">
                 Wird hochgeladen …
