@@ -2,6 +2,8 @@
 
 namespace Platform\Signage\Http\Controllers;
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Platform\Signage\Support\ApkUrlInjector;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -10,13 +12,28 @@ use Symfony\Component\HttpFoundation\Response;
  * Instanz (Schema + Host). Dadurch braucht das Gerät keine URL einzutippen und
  * keinen Standort auszuwählen – die richtige Domain steckt bereits in der APK.
  *
- * Liegt hinter der authentifizierten Modul-Route: nur berechtigte Nutzer der
- * jeweiligen Instanz/Standort kommen an den Download (= bestehende Team-Rechte).
+ * Zwei Zugänge:
+ *  - Eingeloggte Admins laden direkt (authentifizierte Route in routes/web.php).
+ *  - Auf dem Fire TV (Downloader-App, kein M365-Login) per kurzem Code-Link
+ *    /signage/firetv/{code}.apk. Der 4-stellige Code wird im Dashboard erzeugt
+ *    und ist zeitlich begrenzt gültig (siehe CODE_TTL_MINUTES).
+ * Die APK ist nur eine Player-Hülle und zeigt erst nach Kopplung Inhalte an.
  */
 class FireTvApkController
 {
-    public function download(): Response
+    /** Gültigkeitsdauer eines erzeugten Download-Codes in Minuten. */
+    public const CODE_TTL_MINUTES = 30;
+
+    public function download(Request $request, ?string $code = null): Response
     {
+        // Zugang nur für eingeloggte Admins ODER mit gültigem, im UI erzeugtem Code.
+        $validCode = $code !== null && Cache::get(self::cacheKey($code)) === true;
+        abort_unless(
+            $validCode || auth()->check(),
+            403,
+            'Dieser Download-Link ist ungültig oder abgelaufen. Bitte im Dashboard einen neuen Code erzeugen.'
+        );
+
         $path = self::apkPath();
         abort_unless($path !== null && is_file($path), 404, 'Die Fire-TV-App ist auf diesem Server noch nicht hinterlegt.');
 
@@ -30,6 +47,23 @@ class FireTvApkController
             'Content-Length'      => (string) strlen($out),
             'Cache-Control'       => 'no-store',
         ]);
+    }
+
+    /**
+     * Erzeugt einen neuen, zeitlich begrenzt gültigen 4-stelligen Download-Code
+     * und legt ihn im Cache ab. Rückgabe: der Code als String (z.B. "0427").
+     */
+    public static function issueCode(): string
+    {
+        $code = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+        Cache::put(self::cacheKey($code), true, now()->addMinutes(self::CODE_TTL_MINUTES));
+
+        return $code;
+    }
+
+    private static function cacheKey(string $code): string
+    {
+        return 'signage:firetv_apk_code:'.$code;
     }
 
     /** Ist eine APK hinterlegt (steuert die Sichtbarkeit des Buttons)? */

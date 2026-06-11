@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Platform\Signage\Http\Controllers\FireTvApkController;
 use Platform\Signage\Http\Controllers\MediaController;
 use Platform\Signage\Http\Controllers\PlayerController;
 use Platform\Signage\Http\Controllers\SiteProxyController;
@@ -33,3 +34,10 @@ Route::get('/media/{token}', [MediaController::class, 'show'])
 Route::get('/site/{media}', [SiteProxyController::class, 'show'])
     ->name('signage.site.proxy')
     ->middleware('signed');
+
+// Fire-TV-Kiosk-APK per Code-Link (für die Downloader-App auf dem Fire TV, ohne
+// M365-Login). Der 4-stellige Code wird im Dashboard erzeugt und ist zeitlich
+// begrenzt gültig. Die APK ist nur eine Player-Hülle (Inhalte erst nach Kopplung).
+Route::get('/firetv/{code}.apk', [FireTvApkController::class, 'download'])
+    ->where('code', '[0-9]{4}')
+    ->name('signage.firetv.apk.code');

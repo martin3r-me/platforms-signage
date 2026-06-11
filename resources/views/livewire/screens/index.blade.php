@@ -85,17 +85,10 @@
                                     <div class="font-semibold text-sm text-[var(--ui-secondary)]">App laden</div>
                                     <p class="mt-1 text-xs text-[var(--ui-muted)] leading-relaxed">
                                         Oben auf <strong>Für Fire TV herunterladen</strong> – oder am TV in der App
-                                        <strong>Downloader</strong> diese Adresse öffnen:
+                                        <strong>Downloader</strong> den freigeschalteten Code-Link öffnen:
                                     </p>
-                                    <div class="mt-1.5 flex items-center gap-1" x-data="{ copied: false }">
-                                        <code class="flex-1 min-w-0 overflow-x-auto whitespace-nowrap select-all rounded bg-[var(--ui-muted-5)] px-2 py-1 text-[10px] text-[var(--ui-secondary)]">{{ url('/signage/firetv/app.apk') }}</code>
-                                        <button type="button"
-                                                x-on:click="navigator.clipboard.writeText('{{ url('/signage/firetv/app.apk') }}'); copied = true; setTimeout(() => copied = false, 1500)"
-                                                x-bind:title="copied ? 'Kopiert!' : 'Adresse kopieren'"
-                                                class="shrink-0 p-1.5 rounded border border-[var(--ui-border)] text-[var(--ui-muted)] hover:text-[rgb(var(--ui-primary-rgb))] hover:border-[rgb(var(--ui-primary-rgb))] transition">
-                                            <span x-show="!copied">@svg('heroicon-o-clipboard-document', 'w-4 h-4')</span>
-                                            <span x-show="copied" x-cloak>@svg('heroicon-o-check', 'w-4 h-4 text-green-600')</span>
-                                        </button>
+                                    <div class="mt-1.5">
+                                        @include('signage::livewire.screens.partials.apk-link')
                                     </div>
                                 </li>
 
@@ -194,18 +187,11 @@
                                             <div>
                                                 <div class="text-sm font-semibold text-[var(--ui-secondary)]">Adresse in Downloader eingeben</div>
                                                 <p class="mt-0.5 text-xs text-[var(--ui-muted)] leading-relaxed">
-                                                    Downloader öffnen, im Feld <em>„URL eingeben"</em> die folgende Adresse eintippen und auf
-                                                    <strong>„Go/Los"</strong> bestätigen:
+                                                    Den Code-Link unten freischalten, dann in Downloader im Feld <em>„URL eingeben"</em>
+                                                    diese Adresse eintippen und mit <strong>„Go/Los"</strong> bestätigen:
                                                 </p>
-                                                <div class="mt-1.5 flex items-center gap-1" x-data="{ copied: false }">
-                                                    <code class="flex-1 min-w-0 overflow-x-auto whitespace-nowrap select-all rounded bg-[var(--ui-muted-5)] px-2 py-1 text-[10px] text-[var(--ui-secondary)]">{{ url('/signage/firetv/app.apk') }}</code>
-                                                    <button type="button"
-                                                            x-on:click="navigator.clipboard.writeText('{{ url('/signage/firetv/app.apk') }}'); copied = true; setTimeout(() => copied = false, 1500)"
-                                                            x-bind:title="copied ? 'Kopiert!' : 'Adresse kopieren'"
-                                                            class="shrink-0 p-1.5 rounded border border-[var(--ui-border)] text-[var(--ui-muted)] hover:text-[rgb(var(--ui-primary-rgb))] hover:border-[rgb(var(--ui-primary-rgb))] transition">
-                                                        <span x-show="!copied">@svg('heroicon-o-clipboard-document', 'w-4 h-4')</span>
-                                                        <span x-show="copied" x-cloak>@svg('heroicon-o-check', 'w-4 h-4 text-green-600')</span>
-                                                    </button>
+                                                <div class="mt-1.5">
+                                                    @include('signage::livewire.screens.partials.apk-link')
                                                 </div>
                                             </div>
                                         </li>

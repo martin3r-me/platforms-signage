@@ -15,6 +15,17 @@ class Index extends Component
     public string $pairingCode = '';
     public string $pairingName = '';
 
+    // Fire-TV-Download-Code (für die Downloader-App auf dem TV)
+    public ?string $apkCode = null;
+    public ?string $apkCodeUrl = null;
+
+    /** Erzeugt einen zeitlich begrenzten 4-stelligen Code + passende Download-URL. */
+    public function generateApkCode(): void
+    {
+        $this->apkCode = \Platform\Signage\Http\Controllers\FireTvApkController::issueCode();
+        $this->apkCodeUrl = url('/signage/firetv/'.$this->apkCode.'.apk');
+    }
+
     public function openCreateModal(): void
     {
         $this->reset('pairingCode', 'pairingName');
@@ -67,6 +78,7 @@ class Index extends Component
         return view('signage::livewire.screens.index', [
             'screens'    => $screens,
             'firetvApk'  => \Platform\Signage\Http\Controllers\FireTvApkController::available(),
+            'apkCodeTtl' => \Platform\Signage\Http\Controllers\FireTvApkController::CODE_TTL_MINUTES,
         ])->layout('platform::layouts.app');
     }
 }
