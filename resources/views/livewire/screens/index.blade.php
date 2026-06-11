@@ -144,6 +144,95 @@
                                     lässt sich die Adresse bei Bedarf ändern.
                                 </p>
                             </div>
+
+                            {{-- Ausführliche Anleitung: Installation per Downloader-App --}}
+                            <div x-data="{ dl: false }" class="mt-4 rounded-xl border border-[var(--ui-border)]/50">
+                                <button type="button" x-on:click="dl = !dl"
+                                        class="w-full flex items-center justify-between gap-2 px-4 py-3 text-left">
+                                    <span class="flex items-center gap-2 text-sm font-semibold text-[var(--ui-secondary)]">
+                                        @svg('heroicon-o-arrow-down-tray', 'w-4 h-4 text-[rgb(var(--ui-primary-rgb))]')
+                                        Installation per Downloader-App – Schritt für Schritt
+                                    </span>
+                                    @svg('heroicon-o-chevron-down', 'w-4 h-4 text-[var(--ui-muted)] transition-transform shrink-0')
+                                </button>
+
+                                <div x-show="dl" x-cloak class="border-t border-[var(--ui-border)]/50 px-4 py-4">
+                                    <ol class="space-y-3">
+                                        <li class="flex gap-3">
+                                            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">1</span>
+                                            <div>
+                                                <div class="text-sm font-semibold text-[var(--ui-secondary)]">Downloader-App installieren</div>
+                                                <p class="mt-0.5 text-xs text-[var(--ui-muted)] leading-relaxed">
+                                                    Am Fire TV oben die <strong>Suche</strong> (Lupe) öffnen, <strong>„Downloader"</strong> eingeben
+                                                    und die orange App (von AFTVnews) installieren.
+                                                </p>
+                                            </div>
+                                        </li>
+                                        <li class="flex gap-3">
+                                            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">2</span>
+                                            <div>
+                                                <div class="text-sm font-semibold text-[var(--ui-secondary)]">Entwickleroptionen freischalten</div>
+                                                <p class="mt-0.5 text-xs text-[var(--ui-muted)] leading-relaxed">
+                                                    <em>Einstellungen → Mein Fire TV → Info</em> öffnen und dort <strong>7× hintereinander</strong>
+                                                    auf den Gerätenamen (z. B. „Fire TV Stick") klicken, bis <em>„Du bist jetzt Entwickler"</em>
+                                                    erscheint. Bei älteren Geräten sind die Entwickleroptionen bereits direkt sichtbar.
+                                                </p>
+                                            </div>
+                                        </li>
+                                        <li class="flex gap-3">
+                                            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">3</span>
+                                            <div>
+                                                <div class="text-sm font-semibold text-[var(--ui-secondary)]">Installation aus unbekannten Quellen erlauben</div>
+                                                <p class="mt-0.5 text-xs text-[var(--ui-muted)] leading-relaxed">
+                                                    <em>Einstellungen → Mein Fire TV → Entwickleroptionen → „Apps unbekannter Herkunft installieren"</em>
+                                                    öffnen, in der Liste <strong>Downloader</strong> auswählen und einschalten.
+                                                </p>
+                                            </div>
+                                        </li>
+                                        <li class="flex gap-3">
+                                            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">4</span>
+                                            <div>
+                                                <div class="text-sm font-semibold text-[var(--ui-secondary)]">Adresse in Downloader eingeben</div>
+                                                <p class="mt-0.5 text-xs text-[var(--ui-muted)] leading-relaxed">
+                                                    Downloader öffnen, im Feld <em>„URL eingeben"</em> die folgende Adresse eintippen und auf
+                                                    <strong>„Go/Los"</strong> bestätigen:
+                                                </p>
+                                                <div class="mt-1.5 flex items-center gap-1" x-data="{ copied: false }">
+                                                    <code class="flex-1 min-w-0 overflow-x-auto whitespace-nowrap select-all rounded bg-[var(--ui-muted-5)] px-2 py-1 text-[10px] text-[var(--ui-secondary)]">{{ url('/signage/firetv/app.apk') }}</code>
+                                                    <button type="button"
+                                                            x-on:click="navigator.clipboard.writeText('{{ url('/signage/firetv/app.apk') }}'); copied = true; setTimeout(() => copied = false, 1500)"
+                                                            x-bind:title="copied ? 'Kopiert!' : 'Adresse kopieren'"
+                                                            class="shrink-0 p-1.5 rounded border border-[var(--ui-border)] text-[var(--ui-muted)] hover:text-[rgb(var(--ui-primary-rgb))] hover:border-[rgb(var(--ui-primary-rgb))] transition">
+                                                        <span x-show="!copied">@svg('heroicon-o-clipboard-document', 'w-4 h-4')</span>
+                                                        <span x-show="copied" x-cloak>@svg('heroicon-o-check', 'w-4 h-4 text-green-600')</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        <li class="flex gap-3">
+                                            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">5</span>
+                                            <div>
+                                                <div class="text-sm font-semibold text-[var(--ui-secondary)]">Herunterladen & installieren</div>
+                                                <p class="mt-0.5 text-xs text-[var(--ui-muted)] leading-relaxed">
+                                                    Downloader lädt die APK und fragt anschließend nach der Installation → <strong>„Installieren"</strong>.
+                                                    Nach dem Abschluss die heruntergeladene Datei <strong>löschen</strong> (Downloader bietet das an),
+                                                    um Speicher zu sparen.
+                                                </p>
+                                            </div>
+                                        </li>
+                                        <li class="flex gap-3">
+                                            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold">6</span>
+                                            <div>
+                                                <div class="text-sm font-semibold text-[var(--ui-secondary)]">Öffnen & koppeln</div>
+                                                <p class="mt-0.5 text-xs text-[var(--ui-muted)] leading-relaxed">
+                                                    <strong>Digital Signage</strong> öffnen – es erscheint der Kopplungs-Code. Diesen oben über
+                                                    <strong>Bildschirm koppeln</strong> eintragen. Fertig.
+                                                </p>
+                                            </div>
+                                        </li>
+                                    </ol>
+                                </div>
+                            </div>
                         </div>
                     </x-signage-panel>
                 </div>
