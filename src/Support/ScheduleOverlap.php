@@ -43,7 +43,7 @@ class ScheduleOverlap
                     if (!$playlistId) {
                         continue;
                     }
-                    foreach (self::intervals($rule) as $seg) {
+                    foreach ($rule->dayIntervals() as $seg) {
                         $segments[] = $seg + ['si' => $si, 'schedule' => $schedule, 'rule' => $rule];
                     }
                 }
@@ -70,45 +70,6 @@ class ScheduleOverlap
         }
 
         return null;
-    }
-
-    /**
-     * Halb-offene Minuten-Intervalle je Wochentag. Über Mitternacht laufende
-     * Fenster werden auf den Folgetag aufgeteilt. 00:00 als Ende = Tagesende (24:00).
-     *
-     * @return array<int, array{day:int,start:int,end:int}>
-     */
-    private static function intervals($rule): array
-    {
-        $start = self::minutes($rule->start_time);
-        $end = self::minutes($rule->end_time);
-        if ($end === 0) {
-            $end = 1440; // 00:00 als Endzeit meint das Tagesende
-        }
-
-        $days = array_map('intval', $rule->days_of_week ?? []);
-        $out = [];
-
-        foreach ($days as $d) {
-            if ($start < $end) {
-                $out[] = ['day' => $d, 'start' => $start, 'end' => $end];
-            } elseif ($start > $end) {
-                // Läuft über Mitternacht: heute bis 24:00, Folgetag ab 00:00.
-                $out[] = ['day' => $d, 'start' => $start, 'end' => 1440];
-                $next = $d % 7 + 1;
-                $out[] = ['day' => $next, 'start' => 0, 'end' => $end];
-            }
-            // start == end: kein sinnvolles Fenster -> ignorieren
-        }
-
-        return $out;
-    }
-
-    private static function minutes($time): int
-    {
-        $p = explode(':', (string) $time);
-
-        return ((int) ($p[0] ?? 0)) * 60 + (int) ($p[1] ?? 0);
     }
 
     private static function message(string $kind, array $a, array $b): string

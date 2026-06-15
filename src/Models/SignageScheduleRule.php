@@ -36,7 +36,8 @@ class SignageScheduleRule extends Model
     }
 
     /**
-     * Gilt diese Regel jetzt? Unterstützt auch über Mitternacht laufende Fenster.
+     * Gilt diese Regel jetzt? Nutzt dieselbe Intervall-Definition wie dayIntervals()
+     * (halb-offen) – inkl. ganztägig und sauberem Über-Mitternacht-Übergang.
      */
     public function matchesNow(\DateTimeInterface $now): bool
     {
@@ -45,25 +46,57 @@ class SignageScheduleRule extends Model
         }
 
         $dow = (int) $now->format('N'); // 1 (Mo) .. 7 (So)
-        if (!in_array($dow, array_map('intval', $this->days_of_week ?? []), true)) {
-            return false;
+        $cur = (int) $now->format('G') * 60 + (int) $now->format('i');
+
+        foreach ($this->dayIntervals() as $iv) {
+            if ($iv['day'] === $dow && $cur >= $iv['start'] && $cur < $iv['end']) {
+                return true;
+            }
         }
 
-        $current = $now->format('H:i:s');
-        $start = $this->normalizeTime($this->start_time);
-        $end = $this->normalizeTime($this->end_time);
-
-        if ($start <= $end) {
-            return $current >= $start && $current <= $end;
-        }
-
-        return $current >= $start || $current <= $end;
+        return false;
     }
 
-    private function normalizeTime($value): string
+    /**
+     * Halb-offene Minuten-Intervalle je Wochentag (ISO 1=Mo..7=So). Kanonische
+     * Quelle für Laufzeit (matchesNow) und Überlappungsprüfung (ScheduleOverlap):
+     *  - Ende 00:00 zählt als Tagesende (1440).
+     *  - start < end  -> [start, end)
+     *  - start > end  -> über Nacht: [start,1440) heute und [0,end) am Folgetag
+     *  - start == end -> ganzer Tag [0,1440)
+     *
+     * @return array<int, array{day:int,start:int,end:int}>
+     */
+    public function dayIntervals(): array
     {
-        $str = (string) $value;
+        $start = self::minutes($this->start_time);
+        $end = self::minutes($this->end_time);
+        if ($end === 0) {
+            $end = 1440; // 00:00 als Endzeit meint das Tagesende
+        }
 
-        return strlen($str) === 5 ? $str.':00' : $str;
+        $days = array_map('intval', $this->days_of_week ?? []);
+        $out = [];
+
+        foreach ($days as $d) {
+            if ($start < $end) {
+                $out[] = ['day' => $d, 'start' => $start, 'end' => $end];
+            } elseif ($start > $end) {
+                $out[] = ['day' => $d, 'start' => $start, 'end' => 1440];
+                $out[] = ['day' => $d % 7 + 1, 'start' => 0, 'end' => $end];
+            } else {
+                // start == end -> ganztägig
+                $out[] = ['day' => $d, 'start' => 0, 'end' => 1440];
+            }
+        }
+
+        return $out;
+    }
+
+    private static function minutes($time): int
+    {
+        $p = explode(':', (string) $time);
+
+        return ((int) ($p[0] ?? 0)) * 60 + (int) ($p[1] ?? 0);
     }
 }

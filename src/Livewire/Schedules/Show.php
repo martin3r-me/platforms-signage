@@ -20,6 +20,7 @@ class Show extends Component
     // Regel-Formular
     public bool $showRuleModal = false;
     public array $ruleDays = [];
+    public bool $ruleAllDay = false;
     public string $ruleStart = '08:00';
     public string $ruleEnd = '18:00';
     public ?int $rulePlaylistId = null;
@@ -46,7 +47,7 @@ class Show extends Component
      */
     public function openRuleModal(?int $day = null, ?int $hour = null): void
     {
-        $this->reset('ruleDays', 'ruleStart', 'ruleEnd', 'rulePlaylistId', 'ruleMusicId', 'rulePriority');
+        $this->reset('ruleDays', 'ruleAllDay', 'ruleStart', 'ruleEnd', 'rulePlaylistId', 'ruleMusicId', 'rulePriority');
         $this->resetValidation();
 
         if ($day !== null && $day >= 1 && $day <= 7) {
@@ -69,12 +70,21 @@ class Show extends Component
 
     public function addRule(): void
     {
-        $this->validate([
+        // Ganztägig wird als 00:00–00:00 gespeichert (= voller Tag in der Zeitlogik).
+        if ($this->ruleAllDay) {
+            $this->ruleStart = '00:00';
+            $this->ruleEnd = '00:00';
+        }
+
+        $rules = [
             'ruleDays'       => 'required|array|min:1',
-            'ruleStart'      => 'required',
-            'ruleEnd'        => 'required',
             'rulePlaylistId' => 'required|integer',
-        ]);
+        ];
+        if (!$this->ruleAllDay) {
+            $rules['ruleStart'] = 'required';
+            $rules['ruleEnd'] = 'required';
+        }
+        $this->validate($rules);
 
         SignageScheduleRule::create([
             'schedule_id'       => $this->schedule->id,
@@ -87,7 +97,7 @@ class Show extends Component
             'active'            => true,
         ]);
 
-        $this->reset('ruleDays', 'rulePlaylistId', 'ruleMusicId', 'rulePriority');
+        $this->reset('ruleDays', 'ruleAllDay', 'rulePlaylistId', 'ruleMusicId', 'rulePriority');
         $this->showRuleModal = false;
         $this->bumpScreens();
         session()->flash('signage_message', 'Zeitfenster hinzugefügt.');

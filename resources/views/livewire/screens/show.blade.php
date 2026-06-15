@@ -86,6 +86,41 @@
                         @enderror
                     </div>
 
+                    {{-- "Was läuft gerade?" – aktiver Zeitplan + Liste für die aktuelle Bildschirm-Zeit. --}}
+                    @php
+                        $fmtActive = function ($a) {
+                            if (($a['source'] ?? 'none') === 'schedule') {
+                                return '«'.$a['schedule'].'» → Liste «'.($a['playlist'] ?? '–').'»';
+                            }
+                            if (($a['source'] ?? 'none') === 'default') {
+                                return 'Standard-Wiedergabeliste «'.($a['playlist'] ?? '–').'»';
+                            }
+                            return '— nichts —';
+                        };
+                    @endphp
+                    <div>
+                        <button type="button" wire:click="$toggle('showActive')"
+                                class="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--ui-primary)] hover:underline">
+                            @svg('heroicon-o-play-circle', 'w-4 h-4')
+                            Was läuft gerade?
+                        </button>
+                        @if($showActive)
+                            <div class="mt-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-muted-5)]/40 p-3 text-sm space-y-1.5">
+                                <div class="text-xs text-[var(--ui-muted)]">
+                                    Stand: {{ $activeNow['now'] }} Uhr ({{ $activeNow['tz'] }})
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="shrink-0 font-medium text-[var(--ui-secondary)]">Anzeige:</span>
+                                    <span class="text-[var(--ui-secondary)]">{{ $fmtActive($activeNow['visual']) }}</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="shrink-0 font-medium text-[var(--ui-secondary)]">Musik:</span>
+                                    <span class="text-[var(--ui-secondary)]">{{ $fmtActive($activeNow['music']) }}</span>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+
                     <p class="text-xs text-[var(--ui-muted)]">
                         Zugewiesene Zeitpläne übersteuern die Standard-Wiedergabeliste in ihren Zeitfenstern und greifen ineinander.
                         Mehrere Pläne dürfen sich zeitlich <strong>nicht überschneiden</strong> – sonst erscheint beim Speichern eine Fehlermeldung.

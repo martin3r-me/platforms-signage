@@ -42,6 +42,19 @@
 
             <x-signage-panel color="violet" icon="plus-circle" title="Element hinzufügen" subtitle="{{ $playlist->kind === 'music' ? 'Audiodateien' : 'Bilder, Videos, Dokumente, Apps, Websites' }}">
                 <div class="p-4 space-y-3">
+                    {{-- Direkt hochladen: Datei wird angelegt (taucht auch in den Medien auf) und sofort hinzugefügt --}}
+                    <div class="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-[var(--ui-border)] px-3 py-2.5">
+                        <label class="inline-flex items-center gap-2 cursor-pointer select-none font-medium text-sm rounded-full px-3 py-1.5 bg-[rgb(var(--ui-primary-rgb))] text-[color:var(--ui-on-primary)] hover:brightness-110 transition">
+                            @svg('heroicon-o-arrow-up-tray', 'w-4 h-4')
+                            <span>Datei hochladen</span>
+                            <input type="file" class="hidden" wire:model="uploads" multiple
+                                   accept="{{ $playlist->kind === 'music' ? 'audio/*' : 'image/*,video/*,application/pdf,.ppt,.pptx' }}">
+                        </label>
+                        <span class="text-[11px] text-[var(--ui-muted)]">Wird angelegt, landet auch in den <a href="{{ route('signage.media.index') }}" wire:navigate class="underline">Medien</a> und kommt ans Ende der Liste.</span>
+                        <div wire:loading wire:target="uploads" class="w-full text-sm text-blue-700">Wird hochgeladen …</div>
+                    </div>
+                    @error('uploads.*')<p class="text-xs text-red-600">{{ $message }}</p>@enderror
+
                     {{-- Suche --}}
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ui-muted)]">

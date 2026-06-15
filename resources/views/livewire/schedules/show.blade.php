@@ -136,7 +136,12 @@
                             @error('ruleDays')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
                         </div>
 
-                        <div class="grid grid-cols-2 gap-3">
+                        <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" wire:model.live="ruleAllDay" class="rounded">
+                            Ganztägig (00:00–24:00)
+                        </label>
+
+                        <div class="grid grid-cols-2 gap-3" @if($ruleAllDay) style="display:none" @endif>
                             <div>
                                 <label class="block text-xs text-[var(--ui-muted)] mb-1">Von</label>
                                 <input type="time" wire:model="ruleStart" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">

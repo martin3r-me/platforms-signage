@@ -25,6 +25,9 @@ class Show extends Component
     public ?string $timezone = null;
     public string $name = '';
 
+    // "Jetzt aktiv"-Anzeige (welcher Zeitplan/welche Liste läuft gerade?)
+    public bool $showActive = false;
+
     public function mount(SignageScreen $screen): void
     {
         abort_unless($screen->team_id === $this->teamId(), 403);
@@ -122,6 +125,8 @@ class Show extends Component
             'scheduleOptions' => $scheduleOptions,
             'timezoneOptions' => $timezoneOptions,
             'previewUrl'      => url('/signage/play').'?token='.$this->screen->device_token,
+            'activeNow'       => app(\Platform\Signage\Services\PlayerManifestService::class)
+                                    ->activeSelection($this->screen->refresh()),
         ])->layout('platform::layouts.app');
     }
 }

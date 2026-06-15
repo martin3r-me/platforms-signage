@@ -63,20 +63,33 @@ class PlayerManifestService
         ];
     }
 
-    /**
-     * Wählt die Playlist der gegebenen Art (visual/music):
-     * passende, aktive Regel aus ALLEN zugewiesenen Zeitplänen (höchste Priorität
-     * über alle Pläne hinweg) -> sonst Standard-Playlist des Screens.
-     */
     private function pickPlaylist(SignageScreen $screen, \DateTimeInterface $now, string $kind): ?SignagePlaylist
     {
-        $rules = $screen->schedules()
-            ->with(['rules' => fn ($q) => $q->where('active', true)])
-            ->get()
-            ->flatMap(fn ($schedule) => $schedule->rules)
-            ->sortByDesc('priority');
+        return $this->pickSelection($screen, $now, $kind)['playlist'];
+    }
 
-        foreach ($rules as $rule) {
+    /**
+     * Wählt die Playlist der gegebenen Art (visual/music) und gibt zusätzlich den
+     * gewinnenden Zeitplan sowie die Quelle zurück:
+     * passende, aktive Regel aus ALLEN zugewiesenen Zeitplänen (höchste Priorität
+     * über alle Pläne hinweg) -> sonst Standard-Playlist des Screens -> sonst nichts.
+     *
+     * @return array{playlist:?SignagePlaylist, schedule:?\Platform\Signage\Models\SignageSchedule, source:string}
+     */
+    private function pickSelection(SignageScreen $screen, \DateTimeInterface $now, string $kind): array
+    {
+        $schedules = $screen->schedules()
+            ->with(['rules' => fn ($q) => $q->where('active', true)])
+            ->get();
+
+        // (Regel, Plan)-Paare über alle Pläne hinweg nach Priorität sortieren.
+        $pairs = $schedules
+            ->flatMap(fn ($schedule) => $schedule->rules->map(fn ($rule) => ['rule' => $rule, 'schedule' => $schedule]))
+            ->sortByDesc(fn ($pair) => $pair['rule']->priority)
+            ->values();
+
+        foreach ($pairs as $pair) {
+            $rule = $pair['rule'];
             if (!$rule->matchesNow($now)) {
                 continue;
             }
@@ -85,17 +98,60 @@ class PlayerManifestService
             if ($playlistId) {
                 $playlist = SignagePlaylist::with('items.media')->find($playlistId);
                 if ($playlist && $playlist->kind === $kind) {
-                    return $playlist;
+                    return ['playlist' => $playlist, 'schedule' => $pair['schedule'], 'source' => 'schedule'];
                 }
             }
         }
 
         $defaultId = $kind === 'music' ? $screen->music_playlist_id : $screen->default_playlist_id;
-        if ($defaultId) {
-            return SignagePlaylist::with('items.media')->find($defaultId);
+        if ($defaultId && ($playlist = SignagePlaylist::with('items.media')->find($defaultId))) {
+            return ['playlist' => $playlist, 'schedule' => null, 'source' => 'default'];
         }
 
-        return null;
+        return ['playlist' => null, 'schedule' => null, 'source' => 'none'];
+    }
+
+    /**
+     * Was läuft gerade? Liefert den aktiven Zeitplan + die Liste (Anzeige & Musik)
+     * für die aktuelle Bildschirm-Zeit – nutzt dieselbe Auflösung wie der Player.
+     */
+    public function activeSelection(SignageScreen $screen): array
+    {
+        $now = now();
+        $tz = $screen->timezone;
+        if ($tz) {
+            try {
+                $now = $now->copy()->setTimezone($tz);
+            } catch (\Throwable $e) {
+                $tz = null; // ungültige Zeitzone -> App-Standard
+            }
+        }
+
+        $visual = $this->pickSelection($screen, $now, 'visual');
+        $music = $this->pickSelection($screen, $now, 'music');
+
+        // Musik kann auch ein einzelnes Medium (Stream/Audio) als Standard sein.
+        $musicName = $music['playlist']?->name;
+        if ($music['source'] === 'none' && $screen->music_media_id
+            && ($m = SignageMedia::find($screen->music_media_id)) && $m->kind === 'audio') {
+            $music['source'] = 'default';
+            $musicName = $m->name;
+        }
+
+        return [
+            'now'    => $now->format('H:i'),
+            'tz'     => $tz ?: (string) config('app.timezone'),
+            'visual' => [
+                'source'   => $visual['source'],
+                'schedule' => $visual['schedule']?->name,
+                'playlist' => $visual['playlist']?->name,
+            ],
+            'music'  => [
+                'source'   => $music['source'],
+                'schedule' => $music['schedule']?->name,
+                'playlist' => $musicName,
+            ],
+        ];
     }
 
     private function buildVisualItems(SignagePlaylist $playlist): array

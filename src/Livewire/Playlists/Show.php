@@ -2,17 +2,20 @@
 
 namespace Platform\Signage\Livewire\Playlists;
 
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Platform\Signage\Livewire\Concerns\WithCurrentTeam;
 use Platform\Signage\Models\SignageMedia;
 use Platform\Signage\Models\SignagePlaylist;
 use Platform\Signage\Models\SignagePlaylistItem;
 use Platform\Signage\Models\SignageScreen;
+use Platform\Signage\Services\MediaUploadService;
 
 class Show extends Component
 {
-    use WithCurrentTeam;
+    use WithCurrentTeam, WithFileUploads;
 
     public SignagePlaylist $playlist;
 
@@ -20,6 +23,9 @@ class Show extends Component
 
     // Suche im Medien-Picker
     public string $mediaSearch = '';
+
+    // Direkt-Upload (landet auch in der Medienbibliothek)
+    public $uploads = [];
 
     // Einstellungen
     public string $name = '';
@@ -74,6 +80,57 @@ class Show extends Component
 
         $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($mediaId);
 
+        $this->appendMedia($media);
+
+        $this->addMediaId = null;
+        $this->bumpAffectedScreens();
+        session()->flash('signage_message', '„'.$media->name.'" hinzugefügt.');
+    }
+
+    /**
+     * Direkt hochgeladene Datei(en): als SignageMedia anlegen (taucht damit auch
+     * in der Medienbibliothek auf) und sofort ans Ende der Liste hängen.
+     */
+    public function updatedUploads(): void
+    {
+        $maxKb = (int) config('signage.max_upload_kb', 512000);
+        $isMusic = $this->playlist->kind === 'music';
+        $mimes = $isMusic ? 'mp3,aac,ogg,wav' : 'jpg,jpeg,png,webp,gif,mp4,webm,pdf,ppt,pptx';
+
+        $this->validate(
+            ['uploads.*' => 'file|max:'.$maxKb.'|mimes:'.$mimes],
+            [
+                'uploads.*.max'   => 'Die Datei ist zu groß.',
+                'uploads.*.mimes' => $isMusic
+                    ? 'Für eine Musik-Liste sind nur Audiodateien erlaubt.'
+                    : 'Dieses Dateiformat passt nicht in diese Wiedergabeliste.',
+                'uploads.*.file'  => 'Die Datei konnte nicht hochgeladen werden.',
+            ]
+        );
+
+        $uploader = app(MediaUploadService::class);
+        $count = 0;
+
+        foreach ($this->uploads as $file) {
+            if (!$file instanceof UploadedFile) {
+                continue;
+            }
+            $media = $uploader->store($file, $this->teamId(), auth()->id());
+            $this->appendMedia($media);
+            $count++;
+        }
+
+        $this->uploads = [];
+
+        if ($count > 0) {
+            $this->bumpAffectedScreens();
+            session()->flash('signage_message', $count.' Datei(en) hochgeladen und hinzugefügt.');
+        }
+    }
+
+    /** Hängt ein Medium ans Ende der Liste. */
+    protected function appendMedia(SignageMedia $media): void
+    {
         $position = (int) $this->playlist->items()->max('position') + 1;
 
         SignagePlaylistItem::create([
@@ -83,10 +140,6 @@ class Show extends Component
             'duration_seconds' => null,
             'transition'       => 'fade',
         ]);
-
-        $this->addMediaId = null;
-        $this->bumpAffectedScreens();
-        session()->flash('signage_message', '„'.$media->name.'" hinzugefügt.');
     }
 
     public function updateDuration(int $itemId, $seconds): void
