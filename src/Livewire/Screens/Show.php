@@ -17,7 +17,8 @@ class Show extends Component
 
     // Einstellungen
     public ?int $defaultPlaylistId = null;
-    public ?int $scheduleId = null;
+    /** @var array<int> IDs der zugewiesenen Zeitpläne (kombinierbar) */
+    public array $scheduleIds = [];
     // "playlist:ID" oder "media:ID" (einzelner Stream/Audio) oder '' (keine)
     public string $musicSource = '';
     public string $orientation = 'landscape';
@@ -29,7 +30,7 @@ class Show extends Component
         abort_unless($screen->team_id === $this->teamId(), 403);
         $this->screen = $screen;
         $this->defaultPlaylistId = $screen->default_playlist_id;
-        $this->scheduleId = $screen->schedule_id;
+        $this->scheduleIds = $screen->schedules()->pluck('signage_schedules.id')->map(fn ($id) => (int) $id)->all();
         $this->timezone = $screen->timezone;
         if ($screen->music_playlist_id) {
             $this->musicSource = 'playlist:'.$screen->music_playlist_id;
@@ -47,6 +48,19 @@ class Show extends Component
             'orientation' => 'required|in:landscape,landscape_180,portrait,portrait_180',
         ]);
 
+        // Nur eigene Zeitpläne zulassen, mit Regeln für die Überlappungsprüfung laden.
+        $scheduleIds = array_values(array_unique(array_map('intval', $this->scheduleIds)));
+        $schedules = SignageSchedule::where('team_id', $this->teamId())
+            ->whereIn('id', $scheduleIds)
+            ->with(['rules' => fn ($q) => $q->where('active', true)])
+            ->get();
+
+        if ($conflict = \Platform\Signage\Support\ScheduleOverlap::conflictMessage($schedules)) {
+            $this->addError('scheduleIds', $conflict);
+
+            return;
+        }
+
         $musicPlaylistId = null;
         $musicMediaId = null;
         if (str_starts_with($this->musicSource, 'playlist:')) {
@@ -58,12 +72,13 @@ class Show extends Component
         $this->screen->update([
             'name'                => $this->name,
             'default_playlist_id' => $this->defaultPlaylistId ?: null,
-            'schedule_id'         => $this->scheduleId ?: null,
             'music_playlist_id'   => $musicPlaylistId,
             'music_media_id'      => $musicMediaId,
             'orientation'         => $this->orientation,
             'timezone'            => $this->timezone ?: null,
         ]);
+
+        $this->screen->schedules()->sync($schedules->pluck('id')->all());
 
         $pairing->bumpVersion($this->screen->refresh());
         session()->flash('signage_message', 'Einstellungen gespeichert.');

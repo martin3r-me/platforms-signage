@@ -51,8 +51,6 @@
                             optionValue="value" optionLabel="label" />
                         <x-ui-input-select name="defaultPlaylistId" label="Standard-Wiedergabeliste" wire:model="defaultPlaylistId"
                             :options="$visualOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
-                        <x-ui-input-select name="scheduleId" label="Zeitplan" wire:model="scheduleId"
-                            :options="$scheduleOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– kein Zeitplan –" />
                         {{-- Native Select: lange Zeitzonen-Liste, OS-Dropdown wird nicht vom Panel abgeschnitten. --}}
                         <div>
                             <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Zeitzone (für Zeitpläne)</label>
@@ -67,8 +65,31 @@
                         <x-ui-input-select name="musicSource" label="Hintergrundmusik" wire:model="musicSource"
                             :options="$musicOptions" optionValue="value" optionLabel="label" :nullable="true" nullLabel="– keine –" />
                     </div>
+
+                    {{-- Zeitpläne: mehrere kombinierbar, müssen sich aber zeitlich ergänzen (keine Überschneidung). --}}
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Zeitpläne</label>
+                        @if(count($scheduleOptions))
+                            <div class="space-y-1.5 rounded-lg border border-[var(--ui-border)] p-3 max-h-56 overflow-y-auto">
+                                @foreach($scheduleOptions as $opt)
+                                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                                        <input type="checkbox" value="{{ $opt['value'] }}" wire:model="scheduleIds" class="rounded">
+                                        <span class="text-[var(--ui-secondary)]">{{ $opt['label'] }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-xs text-[var(--ui-muted)]">Noch keine Zeitpläne angelegt.</p>
+                        @endif
+                        @error('scheduleIds')
+                            <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <p class="text-xs text-[var(--ui-muted)]">
-                        Der Zeitplan übersteuert die Standard-Wiedergabeliste in seinen Zeitfenstern. Zeitpläne werden unter
+                        Zugewiesene Zeitpläne übersteuern die Standard-Wiedergabeliste in ihren Zeitfenstern und greifen ineinander.
+                        Mehrere Pläne dürfen sich zeitlich <strong>nicht überschneiden</strong> – sonst erscheint beim Speichern eine Fehlermeldung.
+                        Zeitpläne werden unter
                         <a href="{{ route('signage.schedules.index') }}" wire:navigate class="text-[var(--ui-primary)] underline">Zeitpläne</a> verwaltet.
                     </p>
                     <x-ui-button type="submit" variant="primary">Speichern</x-ui-button>

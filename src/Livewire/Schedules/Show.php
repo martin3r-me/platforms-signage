@@ -101,7 +101,8 @@ class Show extends Component
 
     protected function bumpScreens(): void
     {
-        SignageScreen::where('schedule_id', $this->schedule->id)->increment('content_version');
+        SignageScreen::whereHas('schedules', fn ($q) => $q->whereKey($this->schedule->id))
+            ->increment('content_version');
     }
 
     /** Feste Farbpalette für die Kalenderblöcke (Inline-Style -> kein Tailwind-Build nötig). */

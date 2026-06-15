@@ -4,6 +4,7 @@ namespace Platform\Signage\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\Signage\Models\Concerns\HasUuid;
@@ -16,7 +17,7 @@ class SignageScreen extends Model
 
     protected $fillable = [
         'uuid', 'team_id', 'name', 'device_token', 'pairing_code', 'status',
-        'default_playlist_id', 'schedule_id', 'music_playlist_id', 'music_media_id', 'orientation', 'timezone',
+        'default_playlist_id', 'music_playlist_id', 'music_media_id', 'orientation', 'timezone',
         'content_version', 'last_seen_at', 'paired_at', 'settings',
     ];
 
@@ -53,9 +54,15 @@ class SignageScreen extends Model
         return $this->belongsTo(SignageMedia::class, 'music_media_id');
     }
 
-    public function schedule(): BelongsTo
+    /** Einem Bildschirm können mehrere Zeitpläne zugewiesen sein (kombiniert). */
+    public function schedules(): BelongsToMany
     {
-        return $this->belongsTo(SignageSchedule::class, 'schedule_id');
+        return $this->belongsToMany(
+            SignageSchedule::class,
+            'signage_schedule_screen',
+            'screen_id',
+            'schedule_id'
+        )->withTimestamps();
     }
 
     /**
@@ -79,7 +86,7 @@ class SignageScreen extends Model
             $q->whereIn('default_playlist_id', $playlistIds)
               ->orWhereIn('music_playlist_id', $playlistIds);
             if (!empty($ruleScheduleIds)) {
-                $q->orWhereIn('schedule_id', $ruleScheduleIds);
+                $q->orWhereHas('schedules', fn ($sq) => $sq->whereIn('signage_schedules.id', $ruleScheduleIds));
             }
         })->pluck('id');
 
@@ -108,7 +115,7 @@ class SignageScreen extends Model
                   ->orWhereIn('music_playlist_id', $playlistIds);
             }
             if (!empty($ruleScheduleIds)) {
-                $q->orWhereIn('schedule_id', $ruleScheduleIds);
+                $q->orWhereHas('schedules', fn ($sq) => $sq->whereIn('signage_schedules.id', $ruleScheduleIds));
             }
         })->pluck('id');
 

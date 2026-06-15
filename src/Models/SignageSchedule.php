@@ -4,6 +4,7 @@ namespace Platform\Signage\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\Signage\Models\Concerns\HasUuid;
@@ -27,5 +28,16 @@ class SignageSchedule extends Model
     public function rules(): HasMany
     {
         return $this->hasMany(SignageScheduleRule::class, 'schedule_id')->orderByDesc('priority');
+    }
+
+    /** Bildschirme, denen dieser Plan zugewiesen ist. */
+    public function screens(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            SignageScreen::class,
+            'signage_schedule_screen',
+            'schedule_id',
+            'screen_id'
+        )->withTimestamps();
     }
 }
