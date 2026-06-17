@@ -21,12 +21,26 @@
             <x-signage-panel title="Bildschirme" subtitle="Status der gekoppelten Geräte" icon="computer-desktop">
                 <div class="divide-y divide-[var(--ui-border)]/40">
                     @forelse($screens as $screen)
-                        <a href="{{ route('signage.screens.show', $screen) }}" wire:navigate class="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-[var(--ui-muted-5)] transition">
-                            <span class="font-medium text-[var(--ui-secondary)] truncate">{{ $screen->name }}</span>
-                            <x-signage-badge :color="$screen->isOnline() ? 'green' : 'gray'" dot>
-                                {{ $screen->isOnline() ? 'Online' : ($screen->last_seen_at ? 'Zuletzt '.$screen->last_seen_at->diffForHumans() : 'Offline') }}
-                            </x-signage-badge>
-                        </a>
+                        @php $isOwn = $screen->team_id === $currentTeamId; @endphp
+                        @if($isOwn)
+                            <a href="{{ route('signage.screens.show', $screen) }}" wire:navigate class="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-[var(--ui-muted-5)] transition">
+                                <span class="font-medium text-[var(--ui-secondary)] truncate">{{ $screen->name }}</span>
+                                <x-signage-badge :color="$screen->isOnline() ? 'green' : 'gray'" dot>
+                                    {{ $screen->isOnline() ? 'Online' : ($screen->last_seen_at ? 'Zuletzt '.$screen->last_seen_at->diffForHumans() : 'Offline') }}
+                                </x-signage-badge>
+                            </a>
+                        @else
+                            {{-- Bildschirm eines Kind-Teams: nur Überblick, Bearbeiten im jeweiligen Team. --}}
+                            <div class="flex items-center justify-between gap-3 px-5 py-3.5">
+                                <span class="flex items-center gap-2 min-w-0">
+                                    <span class="font-medium text-[var(--ui-secondary)] truncate">{{ $screen->name }}</span>
+                                    <x-signage-badge color="gray">{{ $screen->team?->name }}</x-signage-badge>
+                                </span>
+                                <x-signage-badge :color="$screen->isOnline() ? 'green' : 'gray'" dot>
+                                    {{ $screen->isOnline() ? 'Online' : ($screen->last_seen_at ? 'Zuletzt '.$screen->last_seen_at->diffForHumans() : 'Offline') }}
+                                </x-signage-badge>
+                            </div>
+                        @endif
                     @empty
                         <div class="p-6 text-center text-[var(--ui-muted)]">
                             Noch keine Bildschirme gekoppelt.

@@ -15,13 +15,18 @@ class Dashboard extends Component
     public function render()
     {
         $teamId = $this->teamId();
+        $screenTeamIds = $this->screenTeamIds();
 
-        $screens = SignageScreen::where('team_id', $teamId)
+        // Im Parent-Team sind auch die Bildschirme der Kind-Teams sichtbar (read-only Überblick).
+        $screens = SignageScreen::whereIn('team_id', $screenTeamIds)
             ->where('status', 'active')
+            ->with('team')
             ->orderBy('name')
             ->get();
 
         $stats = [
+            // Bildschirme & Online beziehen die Kind-Teams ein (Überblick);
+            // Medien/Playlists bleiben aufs eigene Team bezogen.
             'screens'  => $screens->count(),
             'online'   => $screens->filter->isOnline()->count(),
             'media'    => SignageMedia::where('team_id', $teamId)->count(),
@@ -29,8 +34,9 @@ class Dashboard extends Component
         ];
 
         return view('signage::livewire.dashboard', [
-            'screens' => $screens,
-            'stats'   => $stats,
+            'screens'       => $screens,
+            'stats'         => $stats,
+            'currentTeamId' => $teamId,
         ])->layout('platform::layouts.app');
     }
 }

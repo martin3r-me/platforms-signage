@@ -15,4 +15,24 @@ trait WithCurrentTeam
     {
         return $this->currentTeam()?->id;
     }
+
+    /**
+     * Team-IDs, deren Bildschirme im aktuellen Team sichtbar sind:
+     * Im Parent-/Root-Team alle eigenen + alle (rekursiven) Kind-Teams,
+     * in Child-Teams nur das eigene. Dient nur der Anzeige (Dashboard-Überblick);
+     * Bearbeiten bleibt aufs jeweilige Team beschränkt.
+     *
+     * @return array<int>
+     */
+    protected function screenTeamIds(): array
+    {
+        $team = $this->currentTeam();
+        if (!$team) {
+            return [];
+        }
+
+        return $team->isRootTeam()
+            ? $team->getAllTeamIdsIncludingChildren()
+            : [$team->id];
+    }
 }
