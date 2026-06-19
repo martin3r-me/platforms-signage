@@ -23,6 +23,8 @@ Route::get('/apps/clock', ClockApp::class)->name('signage.apps.clock.create');
 Route::get('/apps/clock/{media}', ClockApp::class)->name('signage.apps.clock.edit');
 Route::get('/apps/weather', WeatherApp::class)->name('signage.apps.weather.create');
 Route::get('/apps/weather/{media}', WeatherApp::class)->name('signage.apps.weather.edit');
+Route::get('/apps/menu', \Platform\Signage\Livewire\Apps\Menu::class)->name('signage.apps.menu.create');
+Route::get('/apps/menu/{media}', \Platform\Signage\Livewire\Apps\Menu::class)->name('signage.apps.menu.edit');
 
 // Eigenständige App-Vorschau (iframe-Einbettung in der Bibliothek)
 Route::get('/apps/preview/{media}', [AppPreviewController::class, 'show'])->name('signage.apps.preview');

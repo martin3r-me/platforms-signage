@@ -114,6 +114,20 @@
     .wx-portrait .wx-drange { flex-direction: row; gap: 1.5vmin; }
     .wx-portrait.wx-compact .wx-head { flex-direction: column; align-items: flex-start; }
     .wx-portrait.wx-compact .wx-forecast { flex-direction: column; }
+
+    /* Menu app – Speisekarte */
+    .app-menu { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 3vmin; padding: 6vmin; overflow: hidden; }
+    .app-menu-dark  { background: #0b0f17; color: #f3f4f6; }
+    .app-menu-light { background: #f7f5f0; color: #1f2937; }
+    .menu-title { font-size: 6.5vmin; font-weight: 700; text-align: center; letter-spacing: .01em; }
+    .menu-cols { flex: 1; display: grid; gap: 5vmin; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); align-content: start; overflow: hidden; }
+    .menu-cat-name { font-size: 3.8vmin; font-weight: 600; padding-bottom: 1vmin; margin-bottom: 1.6vmin; border-bottom: .3vmin solid currentColor; opacity: .85; }
+    .menu-item { display: flex; justify-content: space-between; align-items: baseline; gap: 2vmin; margin-bottom: 1.4vmin; }
+    .menu-item-name { font-size: 3vmin; font-weight: 500; }
+    .menu-item-desc { font-size: 2.2vmin; opacity: .65; margin-top: .3vmin; }
+    .menu-item-price { font-size: 3vmin; font-weight: 600; white-space: nowrap; }
+    .menu-special { border: .3vmin solid currentColor; border-radius: 2.5vmin; padding: 2.5vmin 3.5vmin; }
+    .menu-special-label { font-size: 2.2vmin; text-transform: uppercase; letter-spacing: .12em; opacity: .6; margin-bottom: 1vmin; }
 </style>
 <script>
 window.SignageApps = (function () {
@@ -351,9 +365,50 @@ window.SignageApps = (function () {
         return { node: wrap, stop: () => { stopped = true; if (timer) clearInterval(timer); } };
     }
 
+    function buildMenu(cfg, portrait) {
+        const theme = cfg.theme === 'light' ? 'light' : 'dark';
+        const cols = portrait ? 1 : (parseInt(cfg.columns, 10) === 2 ? 2 : 1);
+        const esc = function (s) {
+            return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+            });
+        };
+
+        const wrap = document.createElement('div');
+        wrap.className = 'app-menu app-menu-' + theme;
+
+        function itemHtml(it) {
+            let h = '<div class="menu-item"><div><div class="menu-item-name">' + esc(it.name) + '</div>';
+            if (it.description) h += '<div class="menu-item-desc">' + esc(it.description) + '</div>';
+            h += '</div>';
+            if (it.price) h += '<div class="menu-item-price">' + esc(it.price) + '</div>';
+            return h + '</div>';
+        }
+
+        let html = '';
+        if (cfg.title) html += '<div class="menu-title">' + esc(cfg.title) + '</div>';
+        html += '<div class="menu-cols" style="--cols:' + cols + '">';
+        (cfg.categories || []).forEach(function (cat) {
+            if (!cat) return;
+            html += '<div class="menu-cat"><div class="menu-cat-name">' + esc(cat.name) + '</div>';
+            (cat.items || []).forEach(function (it) { if (it) html += itemHtml(it); });
+            html += '</div>';
+        });
+        html += '</div>';
+
+        const sp = cfg.special;
+        if (sp && sp.name) {
+            html += '<div class="menu-special"><div class="menu-special-label">Tagesempfehlung</div>' + itemHtml(sp) + '</div>';
+        }
+
+        wrap.innerHTML = html;
+        return { node: wrap, stop: function () {} };
+    }
+
     function build(type, cfg, portrait) {
         if (type === 'clock') return buildClock(cfg, portrait);
         if (type === 'weather') return buildWeather(cfg, portrait);
+        if (type === 'menu') return buildMenu(cfg, portrait);
         return null;
     }
 
