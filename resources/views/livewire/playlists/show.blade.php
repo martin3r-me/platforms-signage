@@ -114,9 +114,12 @@
                 @if($items->isEmpty())
                     <div class="p-8 text-center text-[var(--ui-muted)]">Noch keine Elemente.</div>
                 @else
-                    <div class="divide-y divide-[var(--ui-border)]/40">
+                    <div class="divide-y divide-[var(--ui-border)]/40" data-sortable-action="reorderItems">
                         @foreach($items as $item)
-                            <div class="flex items-center gap-3 p-3" wire:key="item-{{ $item->id }}">
+                            <div class="flex items-center gap-3 p-3" wire:key="item-{{ $item->id }}" data-sortable-id="{{ $item->id }}">
+                                <span class="js-drag-handle cursor-grab text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] shrink-0" title="Ziehen zum Sortieren">
+                                    @svg('heroicon-o-bars-2', 'w-4 h-4')
+                                </span>
                                 <div class="flex flex-col">
                                     <button wire:click="move({{ $item->id }}, 'up')" @disabled($loop->first) class="text-[var(--ui-muted)] hover:text-[var(--ui-secondary)] disabled:opacity-30">
                                         @svg('heroicon-o-chevron-up', 'w-4 h-4')
@@ -169,4 +172,6 @@
             </x-signage-panel>
         </div>
     </x-ui-page-container>
+
+    @include('signage::partials.sortable-init')
 </x-ui-page>

@@ -47,6 +47,34 @@ class Index extends Component
         $this->redirectRoute('signage.playlists.show', $playlist, navigate: true);
     }
 
+    public function duplicatePlaylist(int $id): void
+    {
+        $source = SignagePlaylist::where('team_id', $this->teamId())
+            ->with('items')
+            ->findOrFail($id);
+
+        $copy = SignagePlaylist::create([
+            'team_id'     => $this->teamId(),
+            'user_id'     => auth()->id(),
+            'name'        => $source->name.' (Kopie)',
+            'kind'        => $source->kind,
+            'description' => $source->description,
+            'fit'         => $source->fit,
+        ]);
+
+        foreach ($source->items as $item) {
+            \Platform\Signage\Models\SignagePlaylistItem::create([
+                'playlist_id'      => $copy->id,
+                'media_id'         => $item->media_id,
+                'position'         => $item->position,
+                'duration_seconds' => $item->duration_seconds,
+                'transition'       => $item->transition,
+            ]);
+        }
+
+        session()->flash('signage_message', '„'.$source->name.'" dupliziert.');
+    }
+
     public function deletePlaylist(int $id): void
     {
         SignagePlaylist::where('team_id', $this->teamId())->findOrFail($id)->delete();

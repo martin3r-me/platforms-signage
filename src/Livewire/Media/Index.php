@@ -20,6 +20,35 @@ class Index extends Component
     public ?int $currentFolderId = null;
     public string $newFolderName = '';
 
+    // Sortierung / Filter / Mehrfachauswahl
+    public string $sortBy = 'created_desc'; // created_desc | created_asc | name_asc | name_desc
+    public string $filterKind = '';         // '' = alle | image|video|audio|document|app|website
+    /** @var array<int> */
+    public array $selectedMediaIds = [];
+
+    public function updatedSortBy(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedFilterKind(): void
+    {
+        $this->resetPage();
+    }
+
+    public function bulkDeleteMedia(): void
+    {
+        $ids = array_map('intval', $this->selectedMediaIds);
+        if (empty($ids)) {
+            return;
+        }
+        $count = SignageMedia::where('team_id', $this->teamId())->whereIn('id', $ids)->count();
+        SignageMedia::where('team_id', $this->teamId())->whereIn('id', $ids)->get()
+            ->each(fn ($m) => $m->delete());
+        $this->selectedMediaIds = [];
+        session()->flash('signage_message', $count.' Medium(e) gelöscht.');
+    }
+
     public function rules(): array
     {
         $maxKb = (int) config('signage.max_upload_kb', 512000);
@@ -200,11 +229,19 @@ class Index extends Component
     {
         $teamId = $this->teamId();
 
+        [$sortCol, $sortDir] = match ($this->sortBy) {
+            'created_asc' => ['created_at', 'asc'],
+            'name_asc'    => ['name', 'asc'],
+            'name_desc'   => ['name', 'desc'],
+            default       => ['created_at', 'desc'],
+        };
+
         $media = SignageMedia::where('team_id', $teamId)
             ->with('firstPage') // Dokument-Vorschau ohne N+1
             ->when($this->currentFolderId, fn ($q) => $q->where('folder_id', $this->currentFolderId))
             ->when($this->currentFolderId === null, fn ($q) => $q->whereNull('folder_id'))
-            ->orderByDesc('created_at')
+            ->when($this->filterKind !== '', fn ($q) => $q->where('kind', $this->filterKind))
+            ->orderBy($sortCol, $sortDir)
             ->paginate(24);
 
         $folders = \Platform\Signage\Models\SignageMediaFolder::where('team_id', $teamId)

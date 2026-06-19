@@ -143,6 +143,16 @@ class Show extends Component
         ]);
     }
 
+    /** Neue Reihenfolge per Drag&Drop: IDs in gewünschter Reihenfolge -> position. */
+    public function reorderItems(array $ids): void
+    {
+        $position = 1;
+        foreach ($ids as $id) {
+            $this->playlist->items()->whereKey((int) $id)->update(['position' => $position++]);
+        }
+        $this->bumpAffectedScreens();
+    }
+
     public function updateDuration(int $itemId, $seconds): void
     {
         $item = $this->playlist->items()->findOrFail($itemId);

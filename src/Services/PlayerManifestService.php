@@ -112,6 +112,70 @@ class PlayerManifestService
     }
 
     /**
+     * Wann schaltet die Auswahl (visual/music) das nächste Mal um? Prüft die
+     * Intervall-Grenzen aller zugewiesenen Regeln (heute + morgen) und liefert die
+     * erste Grenze, an der sich die aufgelöste Liste/Quelle ändert.
+     *
+     * @return array{at:string, schedule:?string, playlist:?string, source:string}|null
+     */
+    public function nextChange(SignageScreen $screen, \DateTimeInterface $now, string $kind): ?array
+    {
+        $current = $this->pickSelection($screen, $now, $kind);
+        $currentName = $current['playlist']?->name;
+
+        $schedules = $screen->schedules()
+            ->with(['rules' => fn ($q) => $q->where('active', true)])
+            ->get();
+
+        $dowToday = (int) $now->format('N');
+        $curMin = (int) $now->format('G') * 60 + (int) $now->format('i');
+
+        // Kandidaten = Minuten-Abstand bis zur nächsten Intervall-Grenze (heute + morgen).
+        $deltas = [];
+        foreach ([0, 1] as $offset) {
+            $dow = ($dowToday - 1 + $offset) % 7 + 1;
+            foreach ($schedules as $schedule) {
+                foreach ($schedule->rules as $rule) {
+                    $playlistId = $kind === 'music' ? $rule->music_playlist_id : $rule->playlist_id;
+                    if (!$playlistId) {
+                        continue;
+                    }
+                    foreach ($rule->dayIntervals() as $iv) {
+                        if ($iv['day'] !== $dow) {
+                            continue;
+                        }
+                        foreach ([$iv['start'], $iv['end']] as $boundary) {
+                            $delta = $offset * 1440 + $boundary - $curMin;
+                            if ($delta > 0 && $delta <= 1440) {
+                                $deltas[$delta] = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        $deltas = array_keys($deltas);
+        sort($deltas);
+
+        $base = \Illuminate\Support\Carbon::instance($now);
+        foreach ($deltas as $delta) {
+            $candidate = $base->copy()->addMinutes($delta);
+            $sel = $this->pickSelection($screen, $candidate, $kind);
+            if (($sel['playlist']?->name) !== $currentName || $sel['source'] !== $current['source']) {
+                return [
+                    'at'       => $candidate->format('H:i'),
+                    'schedule' => $sel['schedule']?->name,
+                    'playlist' => $sel['playlist']?->name,
+                    'source'   => $sel['source'],
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Was läuft gerade? Liefert den aktiven Zeitplan + die Liste (Anzeige & Musik)
      * für die aktuelle Bildschirm-Zeit – nutzt dieselbe Auflösung wie der Player.
      */
@@ -151,6 +215,8 @@ class PlayerManifestService
                 'schedule' => $music['schedule']?->name,
                 'playlist' => $musicName,
             ],
+            // Nächste Umschaltung (Anzeige): wann + was kommt danach (oder null).
+            'next'   => $this->nextChange($screen, $now, 'visual'),
         ];
     }
 

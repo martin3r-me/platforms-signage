@@ -84,6 +84,22 @@
                         @error('scheduleIds')
                             <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
                         @enderror
+
+                        {{-- Abdeckung: greifen die Pläne durchgehend oder gibt es Lücken? --}}
+                        @if(count($scheduleIds))
+                            <div class="mt-2 text-xs">
+                                @if($coverage['full'])
+                                    <span class="text-emerald-600">✅ Anzeige durchgehend abgedeckt (Mo–So).</span>
+                                @else
+                                    <div class="text-amber-600 font-medium">⚠️ Lücken (dort greift die Standard-Wiedergabeliste, sonst leer):</div>
+                                    <div class="mt-1 flex flex-wrap gap-1.5">
+                                        @foreach($coverage['labels'] as $g)
+                                            <span class="rounded bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-amber-700">{{ $g }}</span>
+                                        @endforeach
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
                     </div>
 
                     {{-- "Was läuft gerade?" – aktiver Zeitplan + Liste für die aktuelle Bildschirm-Zeit. --}}
@@ -117,6 +133,12 @@
                                     <span class="shrink-0 font-medium text-[var(--ui-secondary)]">Musik:</span>
                                     <span class="text-[var(--ui-secondary)]">{{ $fmtActive($activeNow['music']) }}</span>
                                 </div>
+                                @if(!empty($activeNow['next']))
+                                    <div class="flex gap-2 pt-1.5 border-t border-[var(--ui-border)]/40 text-xs text-[var(--ui-muted)]">
+                                        <span class="shrink-0 font-medium">Danach (Anzeige):</span>
+                                        <span>ab {{ $activeNow['next']['at'] }} Uhr → {{ $fmtActive($activeNow['next']) }}</span>
+                                    </div>
+                                @endif
                             </div>
                         @endif
                     </div>

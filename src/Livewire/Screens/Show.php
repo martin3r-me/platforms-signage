@@ -142,6 +142,12 @@ class Show extends Component
             \DateTimeZone::listIdentifiers()
         );
 
+        $this->screen->refresh();
+
+        $coverage = \Platform\Signage\Support\ScheduleCoverage::summary(
+            $this->screen->schedules()->with(['rules' => fn ($q) => $q->where('active', true)])->get()
+        );
+
         return view('signage::livewire.screens.show', [
             'visualPlaylists' => $playlists->where('kind', 'visual')->values(),
             'musicOptions'    => $musicOptions,
@@ -149,7 +155,8 @@ class Show extends Component
             'timezoneOptions' => $timezoneOptions,
             'previewUrl'      => url('/signage/play').'?token='.$this->screen->device_token,
             'activeNow'       => app(\Platform\Signage\Services\PlayerManifestService::class)
-                                    ->activeSelection($this->screen->refresh()),
+                                    ->activeSelection($this->screen),
+            'coverage'        => $coverage,
         ])->layout('platform::layouts.app');
     }
 }

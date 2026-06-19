@@ -95,6 +95,21 @@
             <div x-show="uploadError" x-cloak x-text="uploadError"
                  class="p-3 rounded bg-red-100 text-red-800 text-sm"></div>
 
+            {{-- Bulk-Aktionsleiste bei Mehrfachauswahl --}}
+            @if(count($selectedMediaIds))
+                <div class="flex items-center justify-between gap-3 p-3 rounded-lg border border-[rgb(var(--ui-primary-rgb))]/30 bg-[rgb(var(--ui-primary-rgb))]/5">
+                    <span class="text-sm text-[var(--ui-secondary)]">{{ count($selectedMediaIds) }} ausgewählt</span>
+                    <div class="flex items-center gap-3">
+                        <button type="button" wire:click="$set('selectedMediaIds', [])" class="text-xs text-[var(--ui-muted)] hover:underline">Auswahl aufheben</button>
+                        <x-ui-button size="sm" variant="secondary" wire:click="bulkDeleteMedia"
+                                     wire:confirm="{{ count($selectedMediaIds) }} Medium(e) wirklich löschen?">
+                            @svg('heroicon-o-trash', 'w-4 h-4')
+                            Löschen
+                        </x-ui-button>
+                    </div>
+                </div>
+            @endif
+
             <div wire:loading wire:target="uploads" class="p-3 rounded bg-blue-50 text-blue-700 text-sm">
                 Wird hochgeladen …
             </div>
@@ -142,6 +157,25 @@
                         <span>Tipp: Dateien einfach per <strong>Drag &amp; Drop</strong> hier ablegen{{ $currentFolder ? ' – Ziel-Ordner: '.$currentFolder->name : '' }}.</span>
                     </div>
 
+                    {{-- Sortierung & Typ-Filter --}}
+                    <div class="mx-4 mt-3 flex flex-wrap items-center gap-2">
+                        <select wire:model.live="sortBy" class="px-2 py-1.5 text-sm rounded-lg border border-[var(--ui-border)] bg-white text-[var(--ui-secondary)]">
+                            <option value="created_desc">Neueste zuerst</option>
+                            <option value="created_asc">Älteste zuerst</option>
+                            <option value="name_asc">Name A–Z</option>
+                            <option value="name_desc">Name Z–A</option>
+                        </select>
+                        <select wire:model.live="filterKind" class="px-2 py-1.5 text-sm rounded-lg border border-[var(--ui-border)] bg-white text-[var(--ui-secondary)]">
+                            <option value="">Alle Typen</option>
+                            <option value="image">Bilder</option>
+                            <option value="video">Videos</option>
+                            <option value="audio">Audio</option>
+                            <option value="document">Dokumente</option>
+                            <option value="app">Apps</option>
+                            <option value="website">Websites</option>
+                        </select>
+                    </div>
+
                     @if($media->isEmpty())
                         <div class="p-10 text-center text-[var(--ui-muted)]">
                             @svg('heroicon-o-arrow-down-tray', 'w-8 h-8 mx-auto mb-2 opacity-60')
@@ -170,8 +204,11 @@
                                         @endif
                                     </div>
                                     <div class="p-2 flex-1 flex flex-col">
-                                        {{-- Kopf: Name + URL-Zeile (immer reserviert, damit die Badges überall auf gleicher Höhe sitzen) --}}
-                                        <div class="text-xs font-medium text-[var(--ui-secondary)] truncate" title="{{ $m->name }}">{{ $m->name }}</div>
+                                        {{-- Kopf: Auswahl + Name + URL-Zeile (immer reserviert, damit die Badges überall auf gleicher Höhe sitzen) --}}
+                                        <div class="flex items-center gap-1.5">
+                                            <input type="checkbox" value="{{ $m->id }}" wire:model.live="selectedMediaIds" class="rounded shrink-0" title="Auswählen">
+                                            <div class="text-xs font-medium text-[var(--ui-secondary)] truncate" title="{{ $m->name }}">{{ $m->name }}</div>
+                                        </div>
                                         <div class="text-[10px] text-[var(--ui-muted)] truncate h-[14px]" title="{{ $m->stream_url }}">{{ ($m->isStream() || $m->isWebsite()) ? $m->stream_url : '' }}</div>
                                         <div class="flex items-center justify-between gap-1 mt-1.5">
                                             @if($m->isStream())

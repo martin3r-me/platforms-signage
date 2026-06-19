@@ -32,20 +32,41 @@
             <x-signage-panel icon="computer-desktop" title="Gekoppelte Bildschirme">
                 <div class="divide-y divide-[var(--ui-border)]/40">
                     @forelse($screens as $screen)
-                        <div class="flex items-center justify-between p-4" wire:key="screen-{{ $screen->id }}">
-                            <a href="{{ route('signage.screens.show', $screen) }}" wire:navigate class="flex items-center gap-3 flex-1 min-w-0">
+                        <div class="flex items-center justify-between p-4" wire:key="screen-{{ $screen->id }}"
+                             x-data="{ editing: false, name: @js($screen->name) }">
+                            <div class="flex items-center gap-3 flex-1 min-w-0">
                                 <x-signage-badge :color="$screen->isOnline() ? 'green' : 'gray'" dot class="shrink-0">
                                     {{ $screen->isOnline() ? 'Online' : 'Offline' }}
                                 </x-signage-badge>
-                                <div class="min-w-0">
-                                    <div class="font-medium text-[var(--ui-secondary)] truncate">{{ $screen->name }}</div>
-                                    <div class="text-xs text-[var(--ui-muted)] truncate">
-                                        {{ $screen->isOnline() ? 'Gerade erreichbar' : ($screen->last_seen_at ? 'Zuletzt '.$screen->last_seen_at->diffForHumans() : 'Noch nie online') }}
-                                        @if($screen->defaultPlaylist) · {{ $screen->defaultPlaylist->name }} @endif
-                                    </div>
+                                <div class="min-w-0 flex-1">
+                                    <template x-if="!editing">
+                                        <a href="{{ route('signage.screens.show', $screen) }}" wire:navigate class="block min-w-0">
+                                            <div class="font-medium text-[var(--ui-secondary)] truncate">{{ $screen->name }}</div>
+                                            <div class="text-xs text-[var(--ui-muted)] truncate">
+                                                {{ $screen->isOnline() ? 'Gerade erreichbar' : ($screen->last_seen_at ? 'Zuletzt '.$screen->last_seen_at->diffForHumans() : 'Noch nie online') }}
+                                                @if($screen->defaultPlaylist) · {{ $screen->defaultPlaylist->name }} @endif
+                                            </div>
+                                        </a>
+                                    </template>
+                                    <template x-if="editing">
+                                        <div class="flex items-center gap-2">
+                                            <input type="text" x-model="name" maxlength="255"
+                                                   x-on:keydown.enter.prevent="$wire.renameScreen({{ $screen->id }}, name); editing = false"
+                                                   x-on:keydown.escape="editing = false; name = @js($screen->name)"
+                                                   class="flex-1 min-w-0 px-2 py-1 text-sm rounded border border-[var(--ui-border)]">
+                                            <button type="button" x-on:click="$wire.renameScreen({{ $screen->id }}, name); editing = false"
+                                                    class="shrink-0 p-1.5 rounded text-[var(--ui-muted)] hover:text-green-600" title="Speichern">
+                                                @svg('heroicon-o-check', 'w-4 h-4')
+                                            </button>
+                                        </div>
+                                    </template>
                                 </div>
-                            </a>
+                            </div>
                             <div class="flex items-center gap-2">
+                                <button type="button" x-show="!editing" x-on:click="editing = true" title="Umbenennen"
+                                        class="p-1.5 rounded text-[var(--ui-muted)] hover:text-[var(--ui-secondary)]">
+                                    @svg('heroicon-o-pencil-square', 'w-4 h-4')
+                                </button>
                                 <x-ui-button size="sm" variant="secondary" wire:click="reload({{ $screen->id }})" title="Neuladen erzwingen">
                                     @svg('heroicon-o-arrow-path', 'w-4 h-4')
                                 </x-ui-button>

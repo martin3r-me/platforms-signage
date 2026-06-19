@@ -62,6 +62,18 @@ class Index extends Component
         session()->flash('signage_message', 'Neuladen ausgelöst.');
     }
 
+    public function renameScreen(int $id, string $name): void
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return;
+        }
+
+        SignageScreen::where('team_id', $this->teamId())->findOrFail($id)
+            ->update(['name' => mb_substr($name, 0, 255)]);
+        session()->flash('signage_message', 'Bildschirm umbenannt.');
+    }
+
     public function deleteScreen(int $id): void
     {
         SignageScreen::where('team_id', $this->teamId())->findOrFail($id)->delete();
