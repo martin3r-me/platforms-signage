@@ -19,6 +19,7 @@ Route::get('/media', MediaIndex::class)->name('signage.media.index');
 Route::get('/media/{media}/edit', \Platform\Signage\Livewire\Media\Edit::class)->name('signage.media.edit');
 
 // App-Editoren – erstellen + bearbeiten
+Route::get('/apps', \Platform\Signage\Livewire\Apps\Index::class)->name('signage.apps.index');
 Route::get('/apps/clock', ClockApp::class)->name('signage.apps.clock.create');
 Route::get('/apps/clock/{media}', ClockApp::class)->name('signage.apps.clock.edit');
 Route::get('/apps/weather', WeatherApp::class)->name('signage.apps.weather.create');

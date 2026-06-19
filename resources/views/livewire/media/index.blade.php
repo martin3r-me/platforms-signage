@@ -9,21 +9,9 @@
             ['label' => 'Medien'],
         ]">
             <div class="flex items-center gap-2">
-                <x-ui-button variant="secondary" size="sm" :href="route('signage.apps.clock.create')">
-                    @svg('heroicon-o-clock', 'w-4 h-4')
-                    Uhr-App
-                </x-ui-button>
-                <x-ui-button variant="secondary" size="sm" :href="route('signage.apps.weather.create')">
-                    @svg('heroicon-o-cloud', 'w-4 h-4')
-                    Wetter-App
-                </x-ui-button>
-                <x-ui-button variant="secondary" size="sm" :href="route('signage.apps.menu.create')">
-                    @svg('heroicon-o-queue-list', 'w-4 h-4')
-                    Menü-App
-                </x-ui-button>
-                <x-ui-button variant="secondary" size="sm" :href="route('signage.apps.events.create')">
-                    @svg('heroicon-o-calendar-days', 'w-4 h-4')
-                    Veranstaltungen
+                <x-ui-button variant="secondary" size="sm" :href="route('signage.apps.index')">
+                    @svg('heroicon-o-squares-2x2', 'w-4 h-4')
+                    Apps
                 </x-ui-button>
                 <x-ui-button variant="secondary" size="sm" :href="route('signage.streams.create')">
                     @svg('heroicon-o-signal', 'w-4 h-4')
