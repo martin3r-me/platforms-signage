@@ -136,19 +136,22 @@
                             @error('ruleDays')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
                         </div>
 
-                        <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
-                            <input type="checkbox" wire:model.live="ruleAllDay" class="rounded">
-                            Ganztägig (00:00–24:00)
-                        </label>
+                        {{-- Ganztägig: Ein-/Ausblenden sofort über Alpine; Wert via @entangle ohne Roundtrip --}}
+                        <div x-data="{ allDay: @entangle('ruleAllDay') }">
+                            <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                                <input type="checkbox" x-model="allDay" class="rounded">
+                                Ganztägig (00:00–24:00)
+                            </label>
 
-                        <div class="grid grid-cols-2 gap-3" @if($ruleAllDay) style="display:none" @endif>
-                            <div>
-                                <label class="block text-xs text-[var(--ui-muted)] mb-1">Von</label>
-                                <input type="time" wire:model="ruleStart" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-[var(--ui-muted)] mb-1">Bis</label>
-                                <input type="time" wire:model="ruleEnd" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
+                            <div class="grid grid-cols-2 gap-3 mt-3" x-show="!allDay" x-cloak>
+                                <div>
+                                    <label class="block text-xs text-[var(--ui-muted)] mb-1">Von</label>
+                                    <input type="time" wire:model="ruleStart" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-[var(--ui-muted)] mb-1">Bis</label>
+                                    <input type="time" wire:model="ruleEnd" class="w-full px-2 py-1.5 rounded border border-[var(--ui-border)]">
+                                </div>
                             </div>
                         </div>
 

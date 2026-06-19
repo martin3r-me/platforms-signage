@@ -183,8 +183,9 @@
                     @else
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 p-4">
                             @foreach($media as $m)
-                                <div class="group relative rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)] flex flex-col h-full transition"
+                                <div class="group relative rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)] flex flex-col h-full transition cursor-pointer"
                                      :class="selected.includes('{{ $m->id }}') && 'border-[rgb(var(--ui-primary-rgb))] ring-2 ring-[rgb(var(--ui-primary-rgb))]'"
+                                     x-on:click="if (! $event.target.closest('a,button,input,select,label,iframe')) { const id = '{{ $m->id }}'; selected = selected.includes(id) ? selected.filter(i => i !== id) : [...selected, id] }"
                                      wire:key="media-{{ $m->id }}">
                                     {{-- Auswahl-Häkchen: erscheint beim Hover, bleibt sichtbar wenn ausgewählt (clientseitig) --}}
                                     <label class="absolute top-2 left-2 z-20 cursor-pointer transition opacity-0 group-hover:opacity-100 focus-within:opacity-100"
