@@ -20,8 +20,10 @@ class Events extends Component
     public ?int $mediaId = null;
     public string $name = '';
 
+    public const STYLES = ['elegant', 'warm', 'modern', 'night'];
+
     public array $config = [
-        'theme'  => 'dark',                      // dark | light
+        'style'  => 'elegant',                   // elegant | warm | modern | night
         'title'  => 'Heutige Veranstaltungen',
         'days'   => 1,                           // 1..14
         'status' => [],                          // leer = alle, sonst z.B. ['Definitiv','Vertrag']
@@ -36,7 +38,9 @@ class Events extends Component
             $this->mediaId = $media->id;
             $this->name = (string) $media->name;
             $this->config = [
-                'theme'  => ($cfg['theme'] ?? 'dark') === 'light' ? 'light' : 'dark',
+                'style'  => in_array($cfg['style'] ?? '', self::STYLES, true)
+                                ? $cfg['style']
+                                : (($cfg['theme'] ?? 'dark') === 'light' ? 'warm' : 'elegant'),
                 'title'  => (string) ($cfg['title'] ?? 'Heutige Veranstaltungen'),
                 'days'   => max(1, min(14, (int) ($cfg['days'] ?? 1))),
                 'status' => is_array($cfg['status'] ?? null) ? array_values($cfg['status']) : [],
@@ -55,7 +59,7 @@ class Events extends Component
 
         $allowed = EventBoardService::knownStatuses();
         $config = [
-            'theme'  => ($this->config['theme'] ?? 'dark') === 'light' ? 'light' : 'dark',
+            'style'  => in_array($this->config['style'] ?? '', self::STYLES, true) ? $this->config['style'] : 'elegant',
             'title'  => mb_substr((string) ($this->config['title'] ?? ''), 0, 120),
             'days'   => max(1, min(14, (int) ($this->config['days'] ?? 1))),
             'status' => array_values(array_intersect(

@@ -165,19 +165,49 @@
     .menu-special { margin-top: auto; border: .25vmin solid var(--menu-accent); border-radius: 3vmin; padding: 2.8vmin 3.5vmin; background: var(--menu-special-bg); }
     .menu-special-label { font-size: 2.2vmin; text-transform: uppercase; letter-spacing: .18em; color: var(--menu-accent); font-weight: 700; margin-bottom: 1.2vmin; }
 
-    /* Events app – Veranstaltungs-/Belegungs-Board */
-    .app-ev { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 3vmin; padding: 6vmin; overflow: hidden; }
-    .app-ev-dark  { background: #0b0f17; color: #f3f4f6; }
-    .app-ev-light { background: #f7f5f0; color: #1f2937; }
-    .ev-title { font-size: 6vmin; font-weight: 700; }
-    .ev-loading, .ev-empty { margin: auto; font-size: 3.8vmin; opacity: .7; text-align: center; }
+    /* Events app – Veranstaltungs-/Belegungs-Board (Stil-Presets via CSS-Variablen) */
+    .app-ev {
+        position: absolute; inset: 0; display: flex; flex-direction: column; gap: 3.5vmin;
+        padding: 7vmin 8vmin; overflow: hidden;
+        background: var(--ev-bg); color: var(--ev-fg);
+        font-family: var(--ev-font, system-ui, -apple-system, sans-serif);
+    }
+    .app-ev::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--ev-glow, none); }
+    .app-ev > * { position: relative; }
+
+    .ev-style-elegant {
+        --ev-bg: radial-gradient(125% 130% at 18% 0%, #2c2640 0%, #15121d 55%, #0c0a12 100%);
+        --ev-fg: #f4efe6; --ev-muted: rgba(244,239,230,.6); --ev-accent: #d9b46a; --ev-line: rgba(244,239,230,.14);
+        --ev-font: 'Georgia', 'Times New Roman', serif;
+        --ev-glow: radial-gradient(55% 45% at 82% 8%, rgba(217,180,106,.12), transparent 70%);
+    }
+    .ev-style-warm {
+        --ev-bg: linear-gradient(160deg, #f6eddd 0%, #efe1cb 55%, #e6d4b6 100%);
+        --ev-fg: #3a2c1d; --ev-muted: rgba(58,44,29,.6); --ev-accent: #a9743b; --ev-line: rgba(58,44,29,.15);
+        --ev-font: 'Georgia', 'Times New Roman', serif; --ev-glow: none;
+    }
+    .ev-style-modern {
+        --ev-bg: linear-gradient(160deg, #f8fafc 0%, #eef2f7 55%, #e1e8f0 100%);
+        --ev-fg: #1f2937; --ev-muted: rgba(31,41,55,.55); --ev-accent: #0d9488; --ev-line: rgba(31,41,55,.12);
+        --ev-font: system-ui, -apple-system, 'Segoe UI', sans-serif; --ev-glow: none;
+    }
+    .ev-style-night {
+        --ev-bg: radial-gradient(125% 130% at 82% 0%, #142440 0%, #0b1424 55%, #070d18 100%);
+        --ev-fg: #e8eefc; --ev-muted: rgba(232,238,252,.6); --ev-accent: #56c2e6; --ev-line: rgba(232,238,252,.14);
+        --ev-font: system-ui, -apple-system, sans-serif;
+        --ev-glow: radial-gradient(55% 45% at 15% 8%, rgba(86,194,230,.12), transparent 70%);
+    }
+
+    .ev-title { font-size: 6vmin; font-weight: 700; letter-spacing: .02em; }
+    .ev-title::after { content: ''; display: block; width: 12vmin; height: .5vmin; margin-top: 1.4vmin; border-radius: 1vmin; background: var(--ev-accent); }
+    .ev-loading, .ev-empty { margin: auto; font-size: 3.8vmin; color: var(--ev-muted); text-align: center; }
     .ev-list { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .ev-day { font-size: 2.8vmin; font-weight: 600; opacity: .6; margin-top: 2vmin; }
-    .ev-row { display: flex; align-items: baseline; gap: 2.5vmin; font-size: 3.2vmin; padding: 1.3vmin 0; border-bottom: .2vmin solid rgba(127,127,127,.25); }
-    .ev-time { width: 16vmin; font-weight: 600; white-space: nowrap; }
-    .ev-room { width: 18vmin; opacity: .85; }
+    .ev-day { font-size: 2.8vmin; font-weight: 700; color: var(--ev-accent); letter-spacing: .04em; text-transform: uppercase; margin-top: 2.2vmin; }
+    .ev-row { display: flex; align-items: baseline; gap: 2.5vmin; font-size: 3.2vmin; padding: 1.5vmin 0; border-bottom: .2vmin solid var(--ev-line); }
+    .ev-time { width: 17vmin; font-weight: 700; color: var(--ev-accent); white-space: nowrap; }
+    .ev-room { width: 18vmin; color: var(--ev-muted); }
     .ev-name { flex: 1; min-width: 0; }
-    .ev-pers { opacity: .6; font-size: 2.6vmin; white-space: nowrap; }
+    .ev-pers { color: var(--ev-muted); font-size: 2.6vmin; white-space: nowrap; }
 </style>
 <script>
 window.SignageApps = (function () {
@@ -462,7 +492,11 @@ window.SignageApps = (function () {
     }
 
     function buildEvents(cfg, portrait) {
-        const theme = cfg.theme === 'light' ? 'light' : 'dark';
+        const STYLES = ['elegant', 'warm', 'modern', 'night'];
+        let style = cfg.style;
+        if (STYLES.indexOf(style) < 0) {
+            style = cfg.theme === 'light' ? 'warm' : 'elegant'; // Legacy-Mapping
+        }
         const days = parseInt(cfg.days, 10) || 1;
         const title = cfg.title || 'Veranstaltungen';
         const esc = function (s) {
@@ -472,7 +506,7 @@ window.SignageApps = (function () {
         };
 
         const wrap = document.createElement('div');
-        wrap.className = 'app-ev app-ev-' + theme;
+        wrap.className = 'app-ev ev-style-' + style;
         wrap.innerHTML = '<div class="ev-loading">Veranstaltungen werden geladen …</div>';
 
         let stopped = false, timer = null;

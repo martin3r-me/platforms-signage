@@ -55,10 +55,12 @@
                             <input type="text" x-model="cfg.title" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Thema</label>
-                            <select x-model="cfg.theme" x-on:change="send()" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
-                                <option value="dark">Dunkel</option>
-                                <option value="light">Hell</option>
+                            <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Stil</label>
+                            <select x-model="cfg.style" x-on:change="send()" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
+                                <option value="elegant">Elegant (dunkel, Gold)</option>
+                                <option value="warm">Warm (creme, Gastro)</option>
+                                <option value="modern">Modern (hell, Teal)</option>
+                                <option value="night">Night (dunkelblau)</option>
                             </select>
                         </div>
                         <div>
