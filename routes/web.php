@@ -53,6 +53,9 @@ Route::get('/schedules/{schedule}', ScheduleShow::class)->name('signage.schedule
 Route::get('/screens', ScreenIndex::class)->name('signage.screens.index');
 Route::get('/screens/{screen}', ScreenShow::class)->name('signage.screens.show');
 
+Route::get('/groups', \Platform\Signage\Livewire\Groups\Index::class)->name('signage.groups.index');
+Route::get('/groups/{group}', \Platform\Signage\Livewire\Groups\Show::class)->name('signage.groups.show');
+
 // Fire-TV-Kiosk-APK – Direkt-Download für eingeloggte Admins (ohne Code).
 Route::get('/firetv/app.apk', [\Platform\Signage\Http\Controllers\FireTvApkController::class, 'download'])
     ->name('signage.firetv.apk');

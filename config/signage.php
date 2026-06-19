@@ -59,6 +59,11 @@ return [
                     'route' => 'signage.screens.index',
                     'icon'  => 'heroicon-o-computer-desktop',
                 ],
+                [
+                    'label' => 'Gruppen',
+                    'route' => 'signage.groups.index',
+                    'icon'  => 'heroicon-o-rectangle-group',
+                ],
             ],
         ],
     ],

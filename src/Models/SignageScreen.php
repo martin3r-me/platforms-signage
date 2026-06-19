@@ -73,6 +73,17 @@ class SignageScreen extends Model
         )->withTimestamps();
     }
 
+    /** Bildschirm-Gruppen, denen dieser Bildschirm angehört. */
+    public function groups(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            SignageScreenGroup::class,
+            'signage_screen_group',
+            'screen_id',
+            'group_id'
+        )->withTimestamps();
+    }
+
     /**
      * Erhöht content_version aller Bildschirme, die die gegebenen Playlists nutzen
      * (direkt als Standard/Musik oder über eine Zeitplan-Regel).
