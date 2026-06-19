@@ -201,6 +201,7 @@ class Index extends Component
         $teamId = $this->teamId();
 
         $media = SignageMedia::where('team_id', $teamId)
+            ->with('firstPage') // Dokument-Vorschau ohne N+1
             ->when($this->currentFolderId, fn ($q) => $q->where('folder_id', $this->currentFolderId))
             ->when($this->currentFolderId === null, fn ($q) => $q->whereNull('folder_id'))
             ->orderByDesc('created_at')

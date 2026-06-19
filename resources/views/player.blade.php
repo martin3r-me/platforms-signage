@@ -124,6 +124,21 @@
             overlayBody.innerHTML = html;
             overlay.classList.remove('hidden');
         }
+        // Overlay mit dynamischem Text – setzt label/hint per textContent (XSS-sicher,
+        // da z.B. der frei wählbare Bildschirm-Name nicht als HTML interpretiert wird).
+        function showOverlayText(label, hint) {
+            const l = document.createElement('div');
+            l.className = 'pair-label';
+            l.textContent = label;
+            overlayBody.replaceChildren(l);
+            if (hint) {
+                const h = document.createElement('div');
+                h.className = 'pair-hint';
+                h.textContent = hint;
+                overlayBody.appendChild(h);
+            }
+            overlay.classList.remove('hidden');
+        }
         function hideOverlay() { overlay.classList.add('hidden'); }
 
         async function postJson(url) {
@@ -209,7 +224,10 @@
 
             if (!playlist.length) {
                 stopPlayback();
-                showOverlay('<div class="pair-label">' + (manifest.screen && manifest.screen.name ? manifest.screen.name : 'Bildschirm') + '</div><div class="pair-hint">Diesem Bildschirm ist noch keine Wiedergabeliste zugewiesen.</div>');
+                showOverlayText(
+                    (manifest.screen && manifest.screen.name) ? manifest.screen.name : 'Bildschirm',
+                    'Diesem Bildschirm ist noch keine Wiedergabeliste zugewiesen.'
+                );
                 return;
             }
 
@@ -308,11 +326,13 @@
         }
 
         function advance() {
+            if (!playlist.length) { stopPlayback(); return; } // Liste zur Laufzeit geleert
             playIndex = (playIndex + 1) % playlist.length;
             renderFrame(playlist[playIndex]);
         }
 
         function renderFrame(item) {
+            if (!item) { return; } // defensiv: kein gültiges Item (z.B. Liste schrumpfte)
             const frame = document.createElement('div');
             frame.className = 'frame';
 

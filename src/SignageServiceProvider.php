@@ -2,8 +2,11 @@
 
 namespace Platform\Signage;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -36,6 +39,12 @@ class SignageServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Rate-Limit für die Geräte-API: pro device_token (NICHT pro IP – mehrere
+        // Fire-TVs hinter einer Filiale-NAT teilen sich eine IP). 30/min = 1 Req/2s,
+        // großzügig über dem ~10s-Poll, fängt aber Loops/Missbrauch ab.
+        RateLimiter::for('signage-device', fn (Request $request) => Limit::perMinute(30)
+            ->by('signage-dev:'.(string) $request->route('deviceToken')));
+
         // Livewire-Standard für temporäre Uploads (12 MB) anheben, damit auch
         // Videos hochgeladen werden können – nur, wenn die App nichts Eigenes gesetzt hat.
         if (config('livewire.temporary_file_upload.rules') === null) {

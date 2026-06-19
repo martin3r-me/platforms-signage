@@ -2,8 +2,10 @@
 
 namespace Platform\Signage\Livewire\Screens;
 
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Platform\Signage\Livewire\Concerns\WithCurrentTeam;
+use Platform\Signage\Models\SignageMedia;
 use Platform\Signage\Models\SignagePlaylist;
 use Platform\Signage\Models\SignageSchedule;
 use Platform\Signage\Models\SignageScreen;
@@ -46,9 +48,30 @@ class Show extends Component
 
     public function saveSettings(ScreenPairingService $pairing): void
     {
+        $teamId = $this->teamId();
+
         $this->validate([
             'name' => 'required|string|max:255',
             'orientation' => 'required|in:landscape,landscape_180,portrait,portrait_180',
+            // Standard-Wiedergabeliste: nur eigene visuelle (Team-)Playlist.
+            'defaultPlaylistId' => ['nullable', 'integer', Rule::exists('signage_playlists', 'id')
+                ->where('team_id', $teamId)->where('kind', 'visual')->whereNull('deleted_at')],
+            // Musikquelle "playlist:ID" (kind=music) oder "media:ID" (kind=audio), jeweils eigenes Team.
+            'musicSource' => [function ($attribute, $value, $fail) use ($teamId) {
+                if ($value === '') {
+                    return;
+                }
+                [$type, $id] = array_pad(explode(':', $value, 2), 2, null);
+                $id = (int) $id;
+                $ok = match ($type) {
+                    'playlist' => SignagePlaylist::where('team_id', $teamId)->where('kind', 'music')->whereKey($id)->exists(),
+                    'media'    => SignageMedia::where('team_id', $teamId)->where('kind', 'audio')->whereKey($id)->exists(),
+                    default    => false,
+                };
+                if (!$ok) {
+                    $fail('Ungültige Musikquelle.');
+                }
+            }],
         ]);
 
         // Nur eigene Zeitpläne zulassen, mit Regeln für die Überlappungsprüfung laden.

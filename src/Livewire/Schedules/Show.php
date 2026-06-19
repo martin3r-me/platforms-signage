@@ -2,6 +2,7 @@
 
 namespace Platform\Signage\Livewire\Schedules;
 
+use Illuminate\Validation\Rule;
 use Livewire\Component;
 use Platform\Signage\Livewire\Concerns\WithCurrentTeam;
 use Platform\Signage\Models\SignagePlaylist;
@@ -76,13 +77,20 @@ class Show extends Component
             $this->ruleEnd = '00:00';
         }
 
+        $teamId = $this->teamId();
         $rules = [
             'ruleDays'       => 'required|array|min:1',
-            'rulePlaylistId' => 'required|integer',
+            'ruleDays.*'     => 'integer|between:1,7',
+            // Nur eigene (Team-)Playlists des passenden Typs zulassen.
+            'rulePlaylistId' => ['required', 'integer', Rule::exists('signage_playlists', 'id')
+                ->where('team_id', $teamId)->where('kind', 'visual')->whereNull('deleted_at')],
+            'ruleMusicId'    => ['nullable', 'integer', Rule::exists('signage_playlists', 'id')
+                ->where('team_id', $teamId)->where('kind', 'music')->whereNull('deleted_at')],
+            'rulePriority'   => 'integer|min:0|max:9999',
         ];
         if (!$this->ruleAllDay) {
-            $rules['ruleStart'] = 'required';
-            $rules['ruleEnd'] = 'required';
+            $rules['ruleStart'] = 'required|date_format:H:i';
+            $rules['ruleEnd'] = 'required|date_format:H:i';
         }
         $this->validate($rules);
 

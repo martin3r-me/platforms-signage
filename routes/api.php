@@ -12,7 +12,12 @@ Route::post('/register', [RegisterController::class, 'register'])
     ->name('signage.api.register');
 
 // State/Heartbeat: liefert Status + content_version, aktualisiert last_seen_at.
-Route::get('/screen/{deviceToken}', [ScreenController::class, 'state'])->name('signage.api.screen.state');
+// Pro device_token gedrosselt (siehe RateLimiter 'signage-device' im ServiceProvider).
+Route::get('/screen/{deviceToken}', [ScreenController::class, 'state'])
+    ->middleware('throttle:signage-device')
+    ->name('signage.api.screen.state');
 
 // Manifest: aufgelöste Playlist (Visual + Musik) mit signierten Medien-URLs.
-Route::get('/screen/{deviceToken}/manifest', [ScreenController::class, 'manifest'])->name('signage.api.screen.manifest');
+Route::get('/screen/{deviceToken}/manifest', [ScreenController::class, 'manifest'])
+    ->middleware('throttle:signage-device')
+    ->name('signage.api.screen.manifest');

@@ -67,6 +67,7 @@ class Show extends Component
 
         return SignageMedia::where('team_id', $this->teamId())
             ->whereIn('kind', $kinds)
+            ->with('firstPage') // Dokument-Vorschau ohne N+1
             ->when($search !== '', fn ($q) => $q->where('name', 'like', '%'.$search.'%'))
             ->orderBy('name')
             ->limit(60)
@@ -145,8 +146,9 @@ class Show extends Component
     public function updateDuration(int $itemId, $seconds): void
     {
         $item = $this->playlist->items()->findOrFail($itemId);
+        // 1..86400s; <=0/leer -> Standarddauer (null). Verhindert 0ms-Frame-Spin im Player.
         $seconds = (int) $seconds;
-        $item->update(['duration_seconds' => $seconds > 0 ? $seconds : null]);
+        $item->update(['duration_seconds' => $seconds > 0 ? min($seconds, 86400) : null]);
         $this->bumpAffectedScreens();
     }
 

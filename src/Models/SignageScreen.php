@@ -28,6 +28,14 @@ class SignageScreen extends Model
         'settings' => 'array',
     ];
 
+    protected static function booted(): void
+    {
+        // Beim (Soft-)Löschen die Zeitplan-Verknüpfung lösen (keine Pivot-Leichen).
+        static::deleting(function (self $screen) {
+            $screen->schedules()->detach();
+        });
+    }
+
     // Routen binden über die UUID statt der numerischen ID.
     public function getRouteKeyName(): string
     {

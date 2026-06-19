@@ -20,6 +20,19 @@ class SignageSchedule extends Model
 
     protected $fillable = ['uuid', 'team_id', 'name'];
 
+    protected static function booted(): void
+    {
+        // Beim (Soft-)Löschen: betroffene Bildschirme neu laden lassen und die
+        // Pivot-Verknüpfung lösen (Soft-Delete löst keine FK-Cascade aus).
+        static::deleting(function (self $schedule) {
+            $screenIds = $schedule->screens()->pluck('signage_screens.id');
+            if ($screenIds->isNotEmpty()) {
+                SignageScreen::whereIn('id', $screenIds)->increment('content_version');
+            }
+            $schedule->screens()->detach();
+        });
+    }
+
     public function team(): BelongsTo
     {
         return $this->belongsTo(\Platform\Core\Models\Team::class, 'team_id');

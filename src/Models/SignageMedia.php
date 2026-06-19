@@ -4,6 +4,7 @@ namespace Platform\Signage\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Platform\Signage\Models\Concerns\HasUuid;
 
@@ -106,6 +107,12 @@ class SignageMedia extends Model
         return $this->hasMany(SignageMediaPage::class, 'media_id')->orderBy('page_number');
     }
 
+    /** Erste Dokumentseite – eager-loadbar (Vorschau ohne N+1). */
+    public function firstPage(): HasOne
+    {
+        return $this->hasOne(SignageMediaPage::class, 'media_id')->oldestOfMany('page_number');
+    }
+
     public function team()
     {
         return $this->belongsTo(\Platform\Core\Models\Team::class, 'team_id');
@@ -151,7 +158,8 @@ class SignageMedia extends Model
         }
 
         if ($this->kind === 'document') {
-            $page = $this->pages()->orderBy('page_number')->first();
+            // Nutzt die eager-geladene firstPage-Relation, sonst genau eine Query.
+            $page = $this->firstPage;
 
             return $page ? $gen($page->disk, $page->path, $page->token) : null;
         }
