@@ -21,6 +21,34 @@ class SignagePlaylist extends Model
         'loop' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        // Beim (Soft-)Löschen einer Wiedergabeliste alle Verweise sauber lösen,
+        // damit Zeitpläne/Bildschirme nicht still auf eine verschwundene Liste zeigen.
+        static::deleting(function (self $playlist) {
+            $id = $playlist->id;
+
+            // 1) Betroffene Bildschirme neu laden lassen – VOR dem Entfernen der
+            //    Referenzen, solange bumpForPlaylists sie noch findet.
+            SignageScreen::bumpForPlaylists([$id]);
+
+            // 2) Direkte Screen-Verweise lösen.
+            SignageScreen::where('default_playlist_id', $id)->update(['default_playlist_id' => null]);
+            SignageScreen::where('music_playlist_id', $id)->update(['music_playlist_id' => null]);
+
+            // 3) Zeitplan-Regeln: betroffene Verweise lösen, danach leer gewordene Regeln entfernen.
+            $ruleIds = SignageScheduleRule::where('playlist_id', $id)
+                ->orWhere('music_playlist_id', $id)
+                ->pluck('id');
+            SignageScheduleRule::where('playlist_id', $id)->update(['playlist_id' => null]);
+            SignageScheduleRule::where('music_playlist_id', $id)->update(['music_playlist_id' => null]);
+            SignageScheduleRule::whereIn('id', $ruleIds)
+                ->whereNull('playlist_id')
+                ->whereNull('music_playlist_id')
+                ->delete();
+        });
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(SignagePlaylistItem::class, 'playlist_id')->orderBy('position');
