@@ -21,3 +21,8 @@ Route::get('/screen/{deviceToken}', [ScreenController::class, 'state'])
 Route::get('/screen/{deviceToken}/manifest', [ScreenController::class, 'manifest'])
     ->middleware('throttle:signage-device')
     ->name('signage.api.screen.manifest');
+
+// Daten fürs Veranstaltungs-Board (events-App).
+Route::get('/screen/{deviceToken}/events', [ScreenController::class, 'events'])
+    ->middleware('throttle:signage-device')
+    ->name('signage.api.screen.events');

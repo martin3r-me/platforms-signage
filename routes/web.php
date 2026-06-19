@@ -25,6 +25,10 @@ Route::get('/apps/weather', WeatherApp::class)->name('signage.apps.weather.creat
 Route::get('/apps/weather/{media}', WeatherApp::class)->name('signage.apps.weather.edit');
 Route::get('/apps/menu', \Platform\Signage\Livewire\Apps\Menu::class)->name('signage.apps.menu.create');
 Route::get('/apps/menu/{media}', \Platform\Signage\Livewire\Apps\Menu::class)->name('signage.apps.menu.edit');
+Route::get('/apps/events', \Platform\Signage\Livewire\Apps\Events::class)->name('signage.apps.events.create');
+Route::get('/apps/events/{media}', \Platform\Signage\Livewire\Apps\Events::class)->name('signage.apps.events.edit');
+// Daten fürs Veranstaltungs-Board in der Editor-/Bibliotheks-Vorschau (session-auth).
+Route::get('/apps/events-data', [AppPreviewController::class, 'eventsData'])->name('signage.apps.events.data');
 
 // Eigenständige App-Vorschau (iframe-Einbettung in der Bibliothek)
 Route::get('/apps/preview/{media}', [AppPreviewController::class, 'show'])->name('signage.apps.preview');

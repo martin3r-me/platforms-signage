@@ -3,11 +3,14 @@
 namespace Platform\Signage\Http\Controllers;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Platform\Signage\Models\SignageMedia;
+use Platform\Signage\Support\EventBoardService;
 
 /**
- * Rendert eine einzelne App (Uhr/Wetter) als eigenständige Seite – wird in der
- * Bibliothek als iframe-Vorschau eingebettet.
+ * Rendert eine einzelne App (Uhr/Wetter/Menü/Veranstaltungen) als eigenständige
+ * Seite – wird in der Bibliothek als iframe-Vorschau eingebettet.
  */
 class AppPreviewController
 {
@@ -18,9 +21,30 @@ class AppPreviewController
             404
         );
 
+        $config = $media->config ?? [];
+
+        // Dynamische Apps brauchen eine Daten-Endpoint-URL (hier session-authentifiziert,
+        // damit in der Vorschau kein Geräte-Token nötig ist).
+        if ($media->app_type === 'events') {
+            $config['endpoint'] = route('signage.apps.events.data');
+        }
+
         return view('signage::apps.preview', [
             'appType' => $media->app_type,
-            'config'  => $media->config ?? [],
+            'config'  => $config,
+        ]);
+    }
+
+    /** JSON fürs Veranstaltungs-Board in der Vorschau (Team aus der Session). */
+    public function eventsData(Request $request): JsonResponse
+    {
+        $teamId = (int) (auth()->user()?->currentTeam?->id ?? 0);
+        $days = (int) $request->query('days', 1);
+        $statuses = array_values(array_filter(explode(',', (string) $request->query('status', ''))));
+
+        return response()->json([
+            'available' => EventBoardService::available(),
+            'events'    => EventBoardService::upcoming($teamId, $days, $statuses),
         ]);
     }
 }

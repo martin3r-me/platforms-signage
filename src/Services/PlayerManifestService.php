@@ -56,7 +56,7 @@ class PlayerManifestService
             ],
             'content_version'   => (int) $screen->content_version,
             'poll_interval'     => (int) config('signage.poll_interval_seconds', 10),
-            'items'             => $visualPlaylist ? $this->buildVisualItems($visualPlaylist) : [],
+            'items'             => $visualPlaylist ? $this->buildVisualItems($visualPlaylist, $screen) : [],
             'music'             => $music,
             'visual_playlist'   => $visualPlaylist?->name,
             'music_playlist'    => $musicName,
@@ -220,7 +220,7 @@ class PlayerManifestService
         ];
     }
 
-    private function buildVisualItems(SignagePlaylist $playlist): array
+    private function buildVisualItems(SignagePlaylist $playlist, SignageScreen $screen): array
     {
         $defaultDuration = (int) config('signage.default_image_duration', 10);
         $fit = $playlist->fit === 'cover' ? 'cover' : 'contain';
@@ -235,10 +235,15 @@ class PlayerManifestService
             $duration = $item->duration_seconds ?: $defaultDuration;
 
             if ($media->kind === 'app') {
+                $config = $media->config ?? [];
+                // Dynamische Apps bekommen ihre Daten-Endpoint-URL (Geräte-Token) injiziert.
+                if ($media->app_type === 'events') {
+                    $config['endpoint'] = route('signage.api.screen.events', ['deviceToken' => $screen->device_token]);
+                }
                 $frames[] = [
                     'type'       => 'app',
                     'app_type'   => $media->app_type,
-                    'config'     => $media->config ?? [],
+                    'config'     => $config,
                     'duration'   => $duration,
                     'transition' => $item->transition,
                 ];

@@ -128,6 +128,20 @@
     .menu-item-price { font-size: 3vmin; font-weight: 600; white-space: nowrap; }
     .menu-special { border: .3vmin solid currentColor; border-radius: 2.5vmin; padding: 2.5vmin 3.5vmin; }
     .menu-special-label { font-size: 2.2vmin; text-transform: uppercase; letter-spacing: .12em; opacity: .6; margin-bottom: 1vmin; }
+
+    /* Events app – Veranstaltungs-/Belegungs-Board */
+    .app-ev { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 3vmin; padding: 6vmin; overflow: hidden; }
+    .app-ev-dark  { background: #0b0f17; color: #f3f4f6; }
+    .app-ev-light { background: #f7f5f0; color: #1f2937; }
+    .ev-title { font-size: 6vmin; font-weight: 700; }
+    .ev-loading, .ev-empty { margin: auto; font-size: 3.8vmin; opacity: .7; text-align: center; }
+    .ev-list { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .ev-day { font-size: 2.8vmin; font-weight: 600; opacity: .6; margin-top: 2vmin; }
+    .ev-row { display: flex; align-items: baseline; gap: 2.5vmin; font-size: 3.2vmin; padding: 1.3vmin 0; border-bottom: .2vmin solid rgba(127,127,127,.25); }
+    .ev-time { width: 16vmin; font-weight: 600; white-space: nowrap; }
+    .ev-room { width: 18vmin; opacity: .85; }
+    .ev-name { flex: 1; min-width: 0; }
+    .ev-pers { opacity: .6; font-size: 2.6vmin; white-space: nowrap; }
 </style>
 <script>
 window.SignageApps = (function () {
@@ -405,10 +419,78 @@ window.SignageApps = (function () {
         return { node: wrap, stop: function () {} };
     }
 
+    function buildEvents(cfg, portrait) {
+        const theme = cfg.theme === 'light' ? 'light' : 'dark';
+        const days = parseInt(cfg.days, 10) || 1;
+        const title = cfg.title || 'Veranstaltungen';
+        const esc = function (s) {
+            return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+            });
+        };
+
+        const wrap = document.createElement('div');
+        wrap.className = 'app-ev app-ev-' + theme;
+        wrap.innerHTML = '<div class="ev-loading">Veranstaltungen werden geladen …</div>';
+
+        let stopped = false, timer = null;
+
+        function fmtDate(iso) {
+            const d = new Date(iso + 'T00:00:00');
+            if (isNaN(d.getTime())) return iso;
+            return DE_DAYS[d.getDay()].slice(0, 2) + ', ' + pad2(d.getDate()) + '.' + pad2(d.getMonth() + 1) + '.';
+        }
+
+        function render(data) {
+            if (!data || !data.available) {
+                wrap.innerHTML = '<div class="ev-empty">Veranstaltungsdaten nicht verfügbar.</div>';
+                return;
+            }
+            const evs = data.events || [];
+            let html = '<div class="ev-title">' + esc(title) + '</div>';
+            if (!evs.length) {
+                wrap.innerHTML = html + '<div class="ev-empty">Keine Veranstaltungen.</div>';
+                return;
+            }
+            html += '<div class="ev-list">';
+            let lastDate = null;
+            evs.forEach(function (e) {
+                if (days > 1 && e.date !== lastDate) { html += '<div class="ev-day">' + esc(fmtDate(e.date)) + '</div>'; lastDate = e.date; }
+                const time = (e.start || '') + (e.end ? '–' + e.end : '');
+                html += '<div class="ev-row"><div class="ev-time">' + esc(time || '—') + '</div>'
+                      + '<div class="ev-room">' + esc(e.room || '') + '</div>'
+                      + '<div class="ev-name">' + esc(e.title || '') + '</div>'
+                      + (e.pers ? '<div class="ev-pers">' + esc(e.pers) + ' P.</div>' : '')
+                      + '</div>';
+            });
+            wrap.innerHTML = html + '</div>';
+        }
+
+        async function load() {
+            if (!cfg.endpoint) { wrap.innerHTML = '<div class="ev-empty">Keine Datenquelle.</div>'; return; }
+            try {
+                const status = Array.isArray(cfg.status) ? cfg.status.join(',') : (cfg.status || '');
+                const url = cfg.endpoint + (cfg.endpoint.indexOf('?') >= 0 ? '&' : '?')
+                          + 'days=' + days + (status ? '&status=' + encodeURIComponent(status) : '');
+                const r = await fetch(url, { cache: 'no-store' });
+                const d = await r.json();
+                if (stopped) return;
+                render(d);
+            } catch (e) {
+                if (!stopped) wrap.innerHTML = '<div class="ev-empty">Veranstaltungen nicht verfügbar.</div>';
+            }
+        }
+
+        load();
+        timer = setInterval(load, 5 * 60 * 1000);
+        return { node: wrap, stop: function () { stopped = true; if (timer) clearInterval(timer); } };
+    }
+
     function build(type, cfg, portrait) {
         if (type === 'clock') return buildClock(cfg, portrait);
         if (type === 'weather') return buildWeather(cfg, portrait);
         if (type === 'menu') return buildMenu(cfg, portrait);
+        if (type === 'events') return buildEvents(cfg, portrait);
         return null;
     }
 

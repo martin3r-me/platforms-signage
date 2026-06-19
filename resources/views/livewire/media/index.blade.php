@@ -21,6 +21,10 @@
                     @svg('heroicon-o-queue-list', 'w-4 h-4')
                     Menü-App
                 </x-ui-button>
+                <x-ui-button variant="secondary" size="sm" :href="route('signage.apps.events.create')">
+                    @svg('heroicon-o-calendar-days', 'w-4 h-4')
+                    Veranstaltungen
+                </x-ui-button>
                 <x-ui-button variant="secondary" size="sm" :href="route('signage.streams.create')">
                     @svg('heroicon-o-signal', 'w-4 h-4')
                     Stream einbinden

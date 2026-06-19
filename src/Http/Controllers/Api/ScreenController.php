@@ -3,8 +3,10 @@
 namespace Platform\Signage\Http\Controllers\Api;
 
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Platform\Signage\Models\SignageScreen;
 use Platform\Signage\Services\PlayerManifestService;
+use Platform\Signage\Support\EventBoardService;
 
 class ScreenController
 {
@@ -63,5 +65,25 @@ class ScreenController
             ['status' => 'active'],
             $this->manifests->resolve($screen)
         ));
+    }
+
+    /**
+     * Daten fürs Veranstaltungs-Board (vom events-App-Frame des Players abgerufen).
+     * Team ergibt sich aus dem Bildschirm; gefiltert nach Tagen/Status.
+     */
+    public function events(Request $request, string $deviceToken): JsonResponse
+    {
+        $screen = SignageScreen::where('device_token', $deviceToken)->first();
+        if (!$screen || $screen->status !== 'active') {
+            return response()->json(['available' => false, 'events' => []]);
+        }
+
+        $days = (int) $request->query('days', 1);
+        $statuses = array_values(array_filter(explode(',', (string) $request->query('status', ''))));
+
+        return response()->json([
+            'available' => EventBoardService::available(),
+            'events'    => EventBoardService::upcoming((int) $screen->team_id, $days, $statuses),
+        ]);
     }
 }
