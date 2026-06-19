@@ -19,8 +19,10 @@ class Menu extends Component
     public string $name = '';
 
     /** Komplette Menü-Konfiguration (clientseitig via Alpine bearbeitet, @entangle). */
+    public const STYLES = ['elegant', 'warm', 'modern', 'night'];
+
     public array $config = [
-        'theme'      => 'dark',   // dark | light
+        'style'      => 'elegant', // elegant | warm | modern | night
         'title'      => 'Speisekarte',
         'columns'    => 1,        // 1 | 2
         'categories' => [],       // [ { name, items: [ { name, description, price } ] } ]
@@ -36,7 +38,7 @@ class Menu extends Component
             $this->mediaId = $media->id;
             $this->name = (string) $media->name;
             $this->config = [
-                'theme'      => ($cfg['theme'] ?? 'dark') === 'light' ? 'light' : 'dark',
+                'style'      => $this->resolveStyle($cfg),
                 'title'      => (string) ($cfg['title'] ?? 'Speisekarte'),
                 'columns'    => (int) ($cfg['columns'] ?? 1) === 2 ? 2 : 1,
                 'categories' => is_array($cfg['categories'] ?? null) ? $cfg['categories'] : [],
@@ -59,7 +61,7 @@ class Menu extends Component
         $this->validate();
 
         $config = [
-            'theme'      => ($this->config['theme'] ?? 'dark') === 'light' ? 'light' : 'dark',
+            'style'      => in_array($this->config['style'] ?? '', self::STYLES, true) ? $this->config['style'] : 'elegant',
             'title'      => mb_substr((string) ($this->config['title'] ?? ''), 0, 120),
             'columns'    => (int) ($this->config['columns'] ?? 1) === 2 ? 2 : 1,
             'categories' => $this->sanitizeCategories($this->config['categories'] ?? []),
@@ -89,6 +91,16 @@ class Menu extends Component
         session()->flash('signage_message', 'Menü-App gespeichert.');
 
         return $this->redirectRoute('signage.media.index', navigate: true);
+    }
+
+    /** Stil aus der Config bestimmen; altes theme (dark/light) wird gemappt. */
+    private function resolveStyle(array $cfg): string
+    {
+        if (in_array($cfg['style'] ?? '', self::STYLES, true)) {
+            return $cfg['style'];
+        }
+
+        return ($cfg['theme'] ?? 'dark') === 'light' ? 'warm' : 'elegant';
     }
 
     private function sanitizeCategories($categories): array

@@ -115,19 +115,55 @@
     .wx-portrait.wx-compact .wx-head { flex-direction: column; align-items: flex-start; }
     .wx-portrait.wx-compact .wx-forecast { flex-direction: column; }
 
-    /* Menu app – Speisekarte */
-    .app-menu { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 3vmin; padding: 6vmin; overflow: hidden; }
-    .app-menu-dark  { background: #0b0f17; color: #f3f4f6; }
-    .app-menu-light { background: #f7f5f0; color: #1f2937; }
-    .menu-title { font-size: 6.5vmin; font-weight: 700; text-align: center; letter-spacing: .01em; }
-    .menu-cols { flex: 1; display: grid; gap: 5vmin; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); align-content: start; overflow: hidden; }
-    .menu-cat-name { font-size: 3.8vmin; font-weight: 600; padding-bottom: 1vmin; margin-bottom: 1.6vmin; border-bottom: .3vmin solid currentColor; opacity: .85; }
-    .menu-item { display: flex; justify-content: space-between; align-items: baseline; gap: 2vmin; margin-bottom: 1.4vmin; }
-    .menu-item-name { font-size: 3vmin; font-weight: 500; }
-    .menu-item-desc { font-size: 2.2vmin; opacity: .65; margin-top: .3vmin; }
-    .menu-item-price { font-size: 3vmin; font-weight: 600; white-space: nowrap; }
-    .menu-special { border: .3vmin solid currentColor; border-radius: 2.5vmin; padding: 2.5vmin 3.5vmin; }
-    .menu-special-label { font-size: 2.2vmin; text-transform: uppercase; letter-spacing: .12em; opacity: .6; margin-bottom: 1vmin; }
+    /* Menu app – Speisekarte (Stil-Presets via CSS-Variablen) */
+    .app-menu {
+        position: absolute; inset: 0; display: flex; flex-direction: column; gap: 3.5vmin;
+        padding: 7vmin 8vmin; overflow: hidden;
+        background: var(--menu-bg); color: var(--menu-fg);
+        font-family: var(--menu-font, system-ui, -apple-system, sans-serif);
+    }
+    .app-menu::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--menu-glow, none); }
+    .app-menu > * { position: relative; }
+
+    .menu-style-elegant {
+        --menu-bg: radial-gradient(125% 130% at 18% 0%, #2c2640 0%, #15121d 55%, #0c0a12 100%);
+        --menu-fg: #f4efe6; --menu-muted: rgba(244,239,230,.58); --menu-accent: #d9b46a;
+        --menu-line: rgba(217,180,106,.42); --menu-special-bg: rgba(217,180,106,.12);
+        --menu-font: 'Georgia', 'Times New Roman', serif;
+        --menu-glow: radial-gradient(55% 45% at 82% 8%, rgba(217,180,106,.12), transparent 70%);
+    }
+    .menu-style-warm {
+        --menu-bg: linear-gradient(160deg, #f6eddd 0%, #efe1cb 55%, #e6d4b6 100%);
+        --menu-fg: #3a2c1d; --menu-muted: rgba(58,44,29,.6); --menu-accent: #a9743b;
+        --menu-line: rgba(169,116,59,.4); --menu-special-bg: rgba(169,116,59,.12);
+        --menu-font: 'Georgia', 'Times New Roman', serif; --menu-glow: none;
+    }
+    .menu-style-modern {
+        --menu-bg: linear-gradient(160deg, #f8fafc 0%, #eef2f7 55%, #e1e8f0 100%);
+        --menu-fg: #1f2937; --menu-muted: rgba(31,41,55,.55); --menu-accent: #0d9488;
+        --menu-line: rgba(13,148,136,.32); --menu-special-bg: rgba(13,148,136,.10);
+        --menu-font: system-ui, -apple-system, 'Segoe UI', sans-serif; --menu-glow: none;
+    }
+    .menu-style-night {
+        --menu-bg: radial-gradient(125% 130% at 82% 0%, #142440 0%, #0b1424 55%, #070d18 100%);
+        --menu-fg: #e8eefc; --menu-muted: rgba(232,238,252,.6); --menu-accent: #56c2e6;
+        --menu-line: rgba(86,194,230,.4); --menu-special-bg: rgba(86,194,230,.12);
+        --menu-font: system-ui, -apple-system, sans-serif;
+        --menu-glow: radial-gradient(55% 45% at 15% 8%, rgba(86,194,230,.12), transparent 70%);
+    }
+
+    .menu-title { font-size: 6.5vmin; font-weight: 700; text-align: center; letter-spacing: .02em; }
+    .menu-title::after { content: ''; display: block; width: 14vmin; height: .5vmin; margin: 1.6vmin auto 0; border-radius: 1vmin; background: var(--menu-accent); }
+    .menu-cols { flex: 1; display: grid; gap: 4.5vmin 6vmin; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); align-content: start; overflow: hidden; }
+    .menu-cat-name { font-size: 3.4vmin; font-weight: 700; color: var(--menu-accent); letter-spacing: .05em; text-transform: uppercase; padding-bottom: 1vmin; margin-bottom: 1.8vmin; border-bottom: .25vmin solid var(--menu-line); }
+    .menu-item { display: flex; align-items: baseline; gap: 1.5vmin; margin-bottom: 1.8vmin; }
+    .menu-item-main { display: flex; flex-direction: column; min-width: 0; }
+    .menu-item-name { font-size: 3vmin; font-weight: 600; }
+    .menu-item-desc { font-size: 2.2vmin; color: var(--menu-muted); margin-top: .4vmin; font-style: italic; }
+    .menu-item-dots { flex: 1; min-width: 3vmin; border-bottom: .2vmin dotted var(--menu-line); transform: translateY(-.6vmin); }
+    .menu-item-price { font-size: 3vmin; font-weight: 700; color: var(--menu-accent); white-space: nowrap; }
+    .menu-special { margin-top: auto; border: .25vmin solid var(--menu-accent); border-radius: 3vmin; padding: 2.8vmin 3.5vmin; background: var(--menu-special-bg); }
+    .menu-special-label { font-size: 2.2vmin; text-transform: uppercase; letter-spacing: .18em; color: var(--menu-accent); font-weight: 700; margin-bottom: 1.2vmin; }
 
     /* Events app – Veranstaltungs-/Belegungs-Board */
     .app-ev { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 3vmin; padding: 6vmin; overflow: hidden; }
@@ -380,7 +416,12 @@ window.SignageApps = (function () {
     }
 
     function buildMenu(cfg, portrait) {
-        const theme = cfg.theme === 'light' ? 'light' : 'dark';
+        const STYLES = ['elegant', 'warm', 'modern', 'night'];
+        let style = cfg.style;
+        if (STYLES.indexOf(style) < 0) {
+            // Legacy: altes Hell/Dunkel-Thema auf die neuen Stile mappen.
+            style = cfg.theme === 'light' ? 'warm' : 'elegant';
+        }
         const cols = portrait ? 1 : (parseInt(cfg.columns, 10) === 2 ? 2 : 1);
         const esc = function (s) {
             return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
@@ -389,12 +430,13 @@ window.SignageApps = (function () {
         };
 
         const wrap = document.createElement('div');
-        wrap.className = 'app-menu app-menu-' + theme;
+        wrap.className = 'app-menu menu-style-' + style;
 
-        function itemHtml(it) {
-            let h = '<div class="menu-item"><div><div class="menu-item-name">' + esc(it.name) + '</div>';
+        function itemHtml(it, withDots) {
+            let h = '<div class="menu-item"><div class="menu-item-main"><div class="menu-item-name">' + esc(it.name) + '</div>';
             if (it.description) h += '<div class="menu-item-desc">' + esc(it.description) + '</div>';
             h += '</div>';
+            if (withDots) h += '<div class="menu-item-dots"></div>';
             if (it.price) h += '<div class="menu-item-price">' + esc(it.price) + '</div>';
             return h + '</div>';
         }
@@ -405,14 +447,14 @@ window.SignageApps = (function () {
         (cfg.categories || []).forEach(function (cat) {
             if (!cat) return;
             html += '<div class="menu-cat"><div class="menu-cat-name">' + esc(cat.name) + '</div>';
-            (cat.items || []).forEach(function (it) { if (it) html += itemHtml(it); });
+            (cat.items || []).forEach(function (it) { if (it) html += itemHtml(it, true); });
             html += '</div>';
         });
         html += '</div>';
 
         const sp = cfg.special;
         if (sp && sp.name) {
-            html += '<div class="menu-special"><div class="menu-special-label">Tagesempfehlung</div>' + itemHtml(sp) + '</div>';
+            html += '<div class="menu-special"><div class="menu-special-label">Tagesempfehlung</div>' + itemHtml(sp, false) + '</div>';
         }
 
         wrap.innerHTML = html;
