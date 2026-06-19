@@ -4,6 +4,7 @@ namespace Platform\Signage\Http\Controllers\Api;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Platform\Signage\Models\SignageProofOfPlay;
 use Platform\Signage\Models\SignageScreen;
 use Platform\Signage\Services\PlayerManifestService;
 use Platform\Signage\Support\EventBoardService;
@@ -85,5 +86,54 @@ class ScreenController
             'available' => EventBoardService::available(),
             'events'    => EventBoardService::upcoming((int) $screen->team_id, $days, $statuses),
         ]);
+    }
+
+    /**
+     * Proof-of-Play: der Player meldet gebündelt, welche Medien wann liefen.
+     * Erwartet { plays: [ { media_id, played_at, seconds } ] }.
+     */
+    public function recordPlays(Request $request, string $deviceToken): JsonResponse
+    {
+        $screen = SignageScreen::where('device_token', $deviceToken)->first();
+        if (!$screen || $screen->status !== 'active') {
+            return response()->json(['ok' => false], 200);
+        }
+
+        $plays = $request->input('plays', []);
+        if (!is_array($plays)) {
+            return response()->json(['ok' => false], 200);
+        }
+
+        $now = now();
+        $rows = [];
+        foreach (array_slice($plays, 0, 500) as $p) {
+            $mediaId = isset($p['media_id']) ? (int) $p['media_id'] : 0;
+            if ($mediaId <= 0) {
+                continue;
+            }
+            $playedAt = $now;
+            if (!empty($p['played_at'])) {
+                try {
+                    $playedAt = \Illuminate\Support\Carbon::parse($p['played_at']);
+                } catch (\Throwable $e) {
+                    $playedAt = $now;
+                }
+            }
+            $rows[] = [
+                'team_id'    => $screen->team_id,
+                'screen_id'  => $screen->id,
+                'media_id'   => $mediaId,
+                'played_at'  => $playedAt,
+                'seconds'    => isset($p['seconds']) ? max(0, min(86400, (int) $p['seconds'])) : null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        if ($rows) {
+            SignageProofOfPlay::insert($rows);
+        }
+
+        return response()->json(['ok' => true, 'stored' => count($rows)]);
     }
 }

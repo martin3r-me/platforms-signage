@@ -64,6 +64,11 @@ return [
                     'route' => 'signage.groups.index',
                     'icon'  => 'heroicon-o-rectangle-group',
                 ],
+                [
+                    'label' => 'Statistik',
+                    'route' => 'signage.reports.playback',
+                    'icon'  => 'heroicon-o-chart-bar',
+                ],
             ],
         ],
     ],

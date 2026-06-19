@@ -246,6 +246,7 @@ class PlayerManifestService
                     'config'     => $config,
                     'duration'   => $duration,
                     'transition' => $item->transition,
+                    'media_id'   => $media->id,
                 ];
             } elseif ($media->kind === 'image') {
                 $frames[] = [
@@ -254,6 +255,7 @@ class PlayerManifestService
                     'duration'   => $duration,
                     'transition' => $item->transition,
                     'fit'        => $fit,
+                    'media_id'   => $media->id,
                 ];
             } elseif ($media->kind === 'video') {
                 $frames[] = [
@@ -261,6 +263,7 @@ class PlayerManifestService
                     'url'        => $this->mediaUrl($media),
                     'transition' => $item->transition,
                     'fit'        => $fit,
+                    'media_id'   => $media->id,
                 ];
             } elseif ($media->kind === 'document') {
                 // Nur fertig konvertierte Dokumente einblenden.
@@ -274,6 +277,7 @@ class PlayerManifestService
                         'duration'   => $duration,
                         'transition' => $item->transition,
                         'fit'        => $fit,
+                        'media_id'   => $media->id, // Parent-Dokument
                     ];
                 }
             } elseif ($media->kind === 'website') {
@@ -286,6 +290,7 @@ class PlayerManifestService
                     'proxied'    => $proxied,
                     'duration'   => $duration,
                     'transition' => $item->transition,
+                    'media_id'   => $media->id,
                 ];
             }
             // Audio in einer Visual-Playlist wird ignoriert.

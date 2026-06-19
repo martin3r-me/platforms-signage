@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -33,6 +34,7 @@ class SignageServiceProvider extends ServiceProvider
             $this->commands([
                 \Platform\Signage\Console\Commands\ProcessDocuments::class,
                 \Platform\Signage\Console\Commands\PruneScreens::class,
+                \Platform\Signage\Console\Commands\PrunePlaybackLogs::class,
             ]);
         }
     }
@@ -44,6 +46,11 @@ class SignageServiceProvider extends ServiceProvider
         // großzügig über dem ~10s-Poll, fängt aber Loops/Missbrauch ab.
         RateLimiter::for('signage-device', fn (Request $request) => Limit::perMinute(30)
             ->by('signage-dev:'.(string) $request->route('deviceToken')));
+
+        // Geplante Wartung: alte Proof-of-Play-Einträge täglich aufräumen.
+        if ($this->app->runningInConsole()) {
+            Schedule::command('signage:prune-playback')->dailyAt('03:30')->withoutOverlapping();
+        }
 
         // Livewire-Standard für temporäre Uploads (12 MB) anheben, damit auch
         // Videos hochgeladen werden können – nur, wenn die App nichts Eigenes gesetzt hat.

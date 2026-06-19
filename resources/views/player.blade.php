@@ -96,6 +96,7 @@
         };
         const stateUrl    = (token) => CONFIG.stateUrlTemplate.replace('__TOKEN__', token);
         const manifestUrl = (token) => CONFIG.manifestUrlTemplate.replace('__TOKEN__', token);
+        const playedUrl   = (token) => CONFIG.manifestUrlTemplate.replace('/manifest', '/played').replace('__TOKEN__', token);
         const STORAGE_KEY = 'signage_device_token';
 
         const stage    = document.getElementById('stage');
@@ -140,6 +141,32 @@
             overlay.classList.remove('hidden');
         }
         function hideOverlay() { overlay.classList.add('hidden'); }
+
+        // ---- Proof-of-Play -------------------------------------------------
+        // Gebündelte Wiedergabe-Meldung: pro angezeigtem Frame ein Eintrag, periodisch
+        // gesendet (und beim Verlassen via sendBeacon). Im Vorschau-Modus deaktiviert.
+        let playBuffer = [];
+        function recordPlay(item) {
+            if (previewMode || !deviceToken || !item || !item.media_id) return;
+            playBuffer.push({ media_id: item.media_id, played_at: new Date().toISOString(), seconds: item.duration || null });
+            if (playBuffer.length >= 50) flushPlays(false);
+        }
+        function flushPlays(useBeacon) {
+            if (previewMode || !deviceToken || !playBuffer.length) return;
+            const payload = JSON.stringify({ plays: playBuffer });
+            const url = playedUrl(deviceToken);
+            playBuffer = [];
+            try {
+                if (useBeacon && navigator.sendBeacon) {
+                    navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+                } else {
+                    fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(function () {});
+                }
+            } catch (e) {}
+        }
+        setInterval(function () { flushPlays(false); }, 60000);
+        document.addEventListener('visibilitychange', function () { if (document.hidden) flushPlays(true); });
+        window.addEventListener('pagehide', function () { flushPlays(true); });
 
         async function postJson(url) {
             const res = await fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' } });
@@ -333,6 +360,7 @@
 
         function renderFrame(item) {
             if (!item) { return; } // defensiv: kein gültiges Item (z.B. Liste schrumpfte)
+            recordPlay(item);
             const frame = document.createElement('div');
             frame.className = 'frame';
 

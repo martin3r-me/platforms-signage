@@ -26,3 +26,8 @@ Route::get('/screen/{deviceToken}/manifest', [ScreenController::class, 'manifest
 Route::get('/screen/{deviceToken}/events', [ScreenController::class, 'events'])
     ->middleware('throttle:signage-device')
     ->name('signage.api.screen.events');
+
+// Proof-of-Play: gebündelte Wiedergabe-Meldungen des Players.
+Route::post('/screen/{deviceToken}/played', [ScreenController::class, 'recordPlays'])
+    ->middleware('throttle:signage-device')
+    ->name('signage.api.screen.played');
