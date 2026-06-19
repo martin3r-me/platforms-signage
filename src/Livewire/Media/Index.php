@@ -20,11 +20,9 @@ class Index extends Component
     public ?int $currentFolderId = null;
     public string $newFolderName = '';
 
-    // Sortierung / Filter / Mehrfachauswahl
+    // Sortierung / Filter (Auswahl wird clientseitig in Alpine gehalten -> sofortiges Markieren)
     public string $sortBy = 'created_desc'; // created_desc | created_asc | name_asc | name_desc
     public string $filterKind = '';         // '' = alle | image|video|audio|document|app|website
-    /** @var array<int> */
-    public array $selectedMediaIds = [];
 
     public function updatedSortBy(): void
     {
@@ -36,17 +34,16 @@ class Index extends Component
         $this->resetPage();
     }
 
-    public function bulkDeleteMedia(): void
+    /** Löscht die per Mehrfachauswahl übergebenen Medien (IDs aus dem Client). */
+    public function bulkDeleteMedia(array $ids): void
     {
-        $ids = array_map('intval', $this->selectedMediaIds);
+        $ids = array_filter(array_map('intval', $ids));
         if (empty($ids)) {
             return;
         }
-        $count = SignageMedia::where('team_id', $this->teamId())->whereIn('id', $ids)->count();
-        SignageMedia::where('team_id', $this->teamId())->whereIn('id', $ids)->get()
-            ->each(fn ($m) => $m->delete());
-        $this->selectedMediaIds = [];
-        session()->flash('signage_message', $count.' Medium(e) gelöscht.');
+        $items = SignageMedia::where('team_id', $this->teamId())->whereIn('id', $ids)->get();
+        $items->each(fn ($m) => $m->delete());
+        session()->flash('signage_message', $items->count().' Medium(e) gelöscht.');
     }
 
     public function rules(): array

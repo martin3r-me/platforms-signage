@@ -81,7 +81,7 @@
 
     <x-ui-page-container>
         <div class="space-y-4 pt-4"
-             x-data="{ uploadError: '' }"
+             x-data="{ uploadError: '', selected: [] }"
              x-on:livewire-upload-start.window="uploadError = ''"
              x-on:livewire-upload-error.window="uploadError = 'Upload fehlgeschlagen. Die Datei ist vermutlich zu groß (max. {{ $maxUploadLabel }}) oder hat ein nicht unterstütztes Format. Bitte verkleinern und erneut versuchen.'"
              @if($hasProcessing) wire:poll.6s @endif>
@@ -95,20 +95,19 @@
             <div x-show="uploadError" x-cloak x-text="uploadError"
                  class="p-3 rounded bg-red-100 text-red-800 text-sm"></div>
 
-            {{-- Bulk-Aktionsleiste bei Mehrfachauswahl --}}
-            @if(count($selectedMediaIds))
-                <div class="flex items-center justify-between gap-3 p-3 rounded-lg border border-[rgb(var(--ui-primary-rgb))]/30 bg-[rgb(var(--ui-primary-rgb))]/5">
-                    <span class="text-sm text-[var(--ui-secondary)]">{{ count($selectedMediaIds) }} ausgewählt</span>
-                    <div class="flex items-center gap-3">
-                        <button type="button" wire:click="$set('selectedMediaIds', [])" class="text-xs text-[var(--ui-muted)] hover:underline">Auswahl aufheben</button>
-                        <x-ui-button size="sm" variant="secondary" wire:click="bulkDeleteMedia"
-                                     wire:confirm="{{ count($selectedMediaIds) }} Medium(e) wirklich löschen?">
-                            @svg('heroicon-o-trash', 'w-4 h-4')
-                            Löschen
-                        </x-ui-button>
-                    </div>
+            {{-- Bulk-Aktionsleiste bei Mehrfachauswahl (clientseitig, ohne Lag) --}}
+            <div x-show="selected.length" x-cloak
+                 class="flex items-center justify-between gap-3 p-3 rounded-lg border border-[rgb(var(--ui-primary-rgb))]/30 bg-[rgb(var(--ui-primary-rgb))]/5">
+                <span class="text-sm text-[var(--ui-secondary)]"><span x-text="selected.length"></span> ausgewählt</span>
+                <div class="flex items-center gap-3">
+                    <button type="button" x-on:click="selected = []" class="text-xs text-[var(--ui-muted)] hover:underline">Auswahl aufheben</button>
+                    <x-ui-button size="sm" variant="secondary"
+                                 x-on:click="if (confirm(selected.length + ' Medium(e) wirklich löschen?')) { $wire.bulkDeleteMedia(selected).then(() => selected = []) }">
+                        @svg('heroicon-o-trash', 'w-4 h-4')
+                        Löschen
+                    </x-ui-button>
                 </div>
-            @endif
+            </div>
 
             <div wire:loading wire:target="uploads" class="p-3 rounded bg-blue-50 text-blue-700 text-sm">
                 Wird hochgeladen …
@@ -184,11 +183,13 @@
                     @else
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 p-4">
                             @foreach($media as $m)
-                                @php($isSelected = in_array($m->id, $selectedMediaIds))
-                                <div class="group relative rounded-lg overflow-hidden border bg-[var(--ui-muted-5)] flex flex-col h-full transition {{ $isSelected ? 'border-[rgb(var(--ui-primary-rgb))] ring-2 ring-[rgb(var(--ui-primary-rgb))]' : 'border-[var(--ui-border)]/40' }}" wire:key="media-{{ $m->id }}">
-                                    {{-- Auswahl-Häkchen: erscheint beim Hover, bleibt sichtbar wenn ausgewählt --}}
-                                    <label class="absolute top-2 left-2 z-20 cursor-pointer transition {{ $isSelected ? '' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100' }}" title="Auswählen">
-                                        <input type="checkbox" value="{{ $m->id }}" wire:model.live="selectedMediaIds"
+                                <div class="group relative rounded-lg overflow-hidden border border-[var(--ui-border)]/40 bg-[var(--ui-muted-5)] flex flex-col h-full transition"
+                                     :class="selected.includes('{{ $m->id }}') && 'border-[rgb(var(--ui-primary-rgb))] ring-2 ring-[rgb(var(--ui-primary-rgb))]'"
+                                     wire:key="media-{{ $m->id }}">
+                                    {{-- Auswahl-Häkchen: erscheint beim Hover, bleibt sichtbar wenn ausgewählt (clientseitig) --}}
+                                    <label class="absolute top-2 left-2 z-20 cursor-pointer transition opacity-0 group-hover:opacity-100 focus-within:opacity-100"
+                                           :class="selected.includes('{{ $m->id }}') && '!opacity-100'" title="Auswählen">
+                                        <input type="checkbox" value="{{ $m->id }}" x-model="selected"
                                                class="w-5 h-5 rounded-md border-2 border-white shadow-md bg-white/90 accent-[rgb(var(--ui-primary-rgb))] cursor-pointer align-top">
                                     </label>
                                     <div class="w-full flex items-center justify-center bg-black/5 shrink-0 overflow-hidden" style="aspect-ratio: 16 / 9">
