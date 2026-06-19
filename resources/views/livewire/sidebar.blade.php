@@ -33,6 +33,14 @@
                 @svg('heroicon-o-computer-desktop', 'w-4 h-4 text-[var(--ui-secondary)]')
                 <span class="ml-2 text-sm">Bildschirme</span>
             </x-ui-sidebar-item>
+            <x-ui-sidebar-item :href="route('signage.groups.index')">
+                @svg('heroicon-o-rectangle-group', 'w-4 h-4 text-[var(--ui-secondary)]')
+                <span class="ml-2 text-sm">Gruppen</span>
+            </x-ui-sidebar-item>
+            <x-ui-sidebar-item :href="route('signage.reports.playback')">
+                @svg('heroicon-o-chart-bar', 'w-4 h-4 text-[var(--ui-secondary)]')
+                <span class="ml-2 text-sm">Statistik</span>
+            </x-ui-sidebar-item>
         </x-ui-sidebar-list>
     </div>
 
@@ -53,6 +61,12 @@
             </a>
             <a href="{{ route('signage.screens.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]" title="Bildschirme">
                 @svg('heroicon-o-computer-desktop', 'w-5 h-5')
+            </a>
+            <a href="{{ route('signage.groups.index') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]" title="Gruppen">
+                @svg('heroicon-o-rectangle-group', 'w-5 h-5')
+            </a>
+            <a href="{{ route('signage.reports.playback') }}" wire:navigate class="flex items-center justify-center p-2 rounded-md text-[var(--ui-secondary)] hover:bg-[var(--ui-muted-5)]" title="Statistik">
+                @svg('heroicon-o-chart-bar', 'w-5 h-5')
             </a>
         </div>
     </div>
