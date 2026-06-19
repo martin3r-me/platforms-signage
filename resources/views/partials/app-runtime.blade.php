@@ -129,14 +129,14 @@
         --menu-bg: radial-gradient(125% 130% at 18% 0%, #2c2640 0%, #15121d 55%, #0c0a12 100%);
         --menu-fg: #f4efe6; --menu-muted: rgba(244,239,230,.58); --menu-accent: #d9b46a;
         --menu-line: rgba(217,180,106,.42); --menu-special-bg: rgba(217,180,106,.12);
-        --menu-font: 'Georgia', 'Times New Roman', serif;
+        --menu-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         --menu-glow: radial-gradient(55% 45% at 82% 8%, rgba(217,180,106,.12), transparent 70%);
     }
     .menu-style-warm {
         --menu-bg: linear-gradient(160deg, #f6eddd 0%, #efe1cb 55%, #e6d4b6 100%);
         --menu-fg: #3a2c1d; --menu-muted: rgba(58,44,29,.6); --menu-accent: #a9743b;
         --menu-line: rgba(169,116,59,.4); --menu-special-bg: rgba(169,116,59,.12);
-        --menu-font: 'Georgia', 'Times New Roman', serif; --menu-glow: none;
+        --menu-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; --menu-glow: none;
     }
     .menu-style-modern {
         --menu-bg: linear-gradient(160deg, #f8fafc 0%, #eef2f7 55%, #e1e8f0 100%);
@@ -178,13 +178,13 @@
     .ev-style-elegant {
         --ev-bg: radial-gradient(125% 130% at 18% 0%, #2c2640 0%, #15121d 55%, #0c0a12 100%);
         --ev-fg: #f4efe6; --ev-muted: rgba(244,239,230,.6); --ev-accent: #d9b46a; --ev-line: rgba(244,239,230,.14);
-        --ev-font: 'Georgia', 'Times New Roman', serif;
+        --ev-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         --ev-glow: radial-gradient(55% 45% at 82% 8%, rgba(217,180,106,.12), transparent 70%);
     }
     .ev-style-warm {
         --ev-bg: linear-gradient(160deg, #f6eddd 0%, #efe1cb 55%, #e6d4b6 100%);
         --ev-fg: #3a2c1d; --ev-muted: rgba(58,44,29,.6); --ev-accent: #a9743b; --ev-line: rgba(58,44,29,.15);
-        --ev-font: 'Georgia', 'Times New Roman', serif; --ev-glow: none;
+        --ev-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; --ev-glow: none;
     }
     .ev-style-modern {
         --ev-bg: linear-gradient(160deg, #f8fafc 0%, #eef2f7 55%, #e1e8f0 100%);
