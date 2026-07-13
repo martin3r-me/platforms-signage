@@ -117,6 +117,7 @@
         let playlist = [];
         let musicTracks = [];
         let frameTimer = null;
+        let frameGen = 0;          // Generation je Frame – nur der aktuelle Timer darf weiterschalten
         let playIndex = 0;
         let userInteracted = false;
 
@@ -360,9 +361,17 @@
 
         function renderFrame(item) {
             if (!item) { return; } // defensiv: kein gültiges Item (z.B. Liste schrumpfte)
+            const gen = ++frameGen;         // Generation dieses Frames
+            clearTimeout(frameTimer);       // evtl. noch laufenden Timer sofort stoppen
             recordPlay(item);
             const frame = document.createElement('div');
             frame.className = 'frame';
+
+            // Nur die AKTUELLE Generation darf weiterschalten – so kann kein alter
+            // (Race-/Fallback-)Timer den neuen Frame vorzeitig abbrechen (Ursache für
+            // ungleiche Anzeigedauern). schedule() setzt immer genau EINEN Timer.
+            const go = () => { if (gen === frameGen) advance(); };
+            const schedule = (ms) => { clearTimeout(frameTimer); frameTimer = setTimeout(go, ms); };
 
             // Wichtig: Den neuen Frame erst einblenden, wenn das Medium geladen ist –
             // bis dahin bleibt der vorherige Frame sichtbar (kein Black-Screen während
@@ -375,16 +384,20 @@
                 v.autoplay = true;
                 v.playsInline = true;
                 v.style.objectFit = item.fit === 'cover' ? 'cover' : 'contain';
-                v.onended = () => { advance(); };
+                v.onended = () => { go(); };
                 const show = () => { if (done) return; done = true; mount(frame); v.play().catch(() => {}); };
                 v.addEventListener('loadeddata', show, { once: true });
-                v.onerror = () => { if (done) return; done = true; flagManifestRefresh(); advance(); };
+                v.onerror = () => { if (done) return; done = true; flagManifestRefresh(); go(); };
                 v.src = item.url;
                 frame.appendChild(v);
                 // Fallback, falls loadeddata nicht feuert.
-                setTimeout(show, 8000);
+                setTimeout(() => { if (gen === frameGen) show(); }, 8000);
             } else if (item.type === 'app') {
-                renderApp(item, frame);
+                const portrait = currentOrientation.indexOf('portrait') === 0;
+                const built = window.SignageApps.build(item.app_type, item.config || {}, portrait);
+                if (built) { frame.appendChild(built.node); frame._cleanup = built.stop; }
+                mount(frame);
+                schedule((item.duration || 10) * 1000);
             } else if (item.type === 'website') {
                 const f = document.createElement('iframe');
                 f.style.cssText = 'position:absolute; inset:0; width:100%; height:100%; border:0; background:#fff;';
@@ -396,42 +409,25 @@
                     f.setAttribute('sandbox', 'allow-scripts allow-popups allow-forms allow-presentation allow-pointer-lock');
                 }
                 const ms = (item.duration || 10) * 1000;
-                const show = () => { if (done) return; done = true; mount(frame); frameTimer = setTimeout(() => { advance(); }, ms); };
+                const show = () => { if (done) return; done = true; mount(frame); schedule(ms); };
                 f.addEventListener('load', show, { once: true });
                 f.src = item.url;
                 frame.appendChild(f);
                 // Fallback, falls 'load' nicht feuert (z.B. geblockte Seite).
-                setTimeout(show, 4000);
+                setTimeout(() => { if (gen === frameGen) show(); }, 4000);
             } else {
                 const img = document.createElement('img');
                 img.style.objectFit = item.fit === 'cover' ? 'cover' : 'contain';
                 const ms = (item.duration || 10) * 1000;
-                const show = () => {
-                    if (done) return; done = true;
-                    mount(frame);
-                    frameTimer = setTimeout(() => { advance(); }, ms);
-                };
+                const show = () => { if (done) return; done = true; mount(frame); schedule(ms); };
                 img.onload = show;
-                img.onerror = () => { if (done) return; done = true; flagManifestRefresh(); advance(); };
+                img.onerror = () => { if (done) return; done = true; flagManifestRefresh(); go(); };
                 img.src = item.url;
                 frame.appendChild(img);
                 if (img.complete && img.naturalWidth) show();
                 // Fallback bei hängendem Laden -> überspringen.
-                setTimeout(() => { if (!done) { done = true; advance(); } }, 20000);
+                setTimeout(() => { if (!done && gen === frameGen) { done = true; go(); } }, 20000);
             }
-        }
-
-        // App-Frames (Uhr, …) werden clientseitig gerendert und für die Dauer angezeigt.
-        function renderApp(item, frame) {
-            const portrait = currentOrientation.indexOf('portrait') === 0;
-            const built = window.SignageApps.build(item.app_type, item.config || {}, portrait);
-            if (built) {
-                frame.appendChild(built.node);
-                frame._cleanup = built.stop;
-            }
-            mount(frame);
-            const ms = (item.duration || 10) * 1000;
-            frameTimer = setTimeout(() => { advance(); }, ms);
         }
 
         function runCleanup(f) {
