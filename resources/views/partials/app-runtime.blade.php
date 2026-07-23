@@ -208,6 +208,80 @@
     .ev-room { width: 18vmin; color: var(--ev-muted); }
     .ev-name { flex: 1; min-width: 0; }
     .ev-pers { color: var(--ev-muted); font-size: 2.6vmin; white-space: nowrap; }
+
+    /* Fleet app – DedeFleet-Tourenplan (Stil-Presets via CSS-Variablen) */
+    .app-fleet {
+        position: absolute; inset: 0; display: flex; flex-direction: column; gap: 2.5vmin;
+        padding: 5vmin 5.5vmin; overflow: hidden;
+        background: var(--fl-bg); color: var(--fl-fg);
+        font-family: var(--fl-font, system-ui, -apple-system, sans-serif);
+    }
+    .app-fleet::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--fl-glow, none); }
+    .app-fleet > * { position: relative; }
+
+    .fl-style-elegant {
+        --fl-bg: radial-gradient(125% 130% at 18% 0%, #2c2640 0%, #15121d 55%, #0c0a12 100%);
+        --fl-fg: #f4efe6; --fl-muted: rgba(244,239,230,.6); --fl-accent: #d9b46a; --fl-line: rgba(244,239,230,.14);
+        --fl-card: rgba(255,255,255,.05); --fl-done: rgba(244,239,230,.4);
+        --fl-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        --fl-glow: radial-gradient(55% 45% at 82% 8%, rgba(217,180,106,.12), transparent 70%);
+    }
+    .fl-style-warm {
+        --fl-bg: linear-gradient(160deg, #f6eddd 0%, #efe1cb 55%, #e6d4b6 100%);
+        --fl-fg: #3a2c1d; --fl-muted: rgba(58,44,29,.6); --fl-accent: #a9743b; --fl-line: rgba(58,44,29,.14);
+        --fl-card: rgba(255,255,255,.45); --fl-done: rgba(58,44,29,.4);
+        --fl-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; --fl-glow: none;
+    }
+    .fl-style-modern {
+        --fl-bg: linear-gradient(160deg, #f8fafc 0%, #eef2f7 55%, #e1e8f0 100%);
+        --fl-fg: #1f2937; --fl-muted: rgba(31,41,55,.55); --fl-accent: #0d9488; --fl-line: rgba(31,41,55,.1);
+        --fl-card: rgba(255,255,255,.7); --fl-done: rgba(31,41,55,.38);
+        --fl-font: system-ui, -apple-system, 'Segoe UI', sans-serif; --fl-glow: none;
+    }
+    .fl-style-night {
+        --fl-bg: radial-gradient(125% 130% at 82% 0%, #142440 0%, #0b1424 55%, #070d18 100%);
+        --fl-fg: #e8eefc; --fl-muted: rgba(232,238,252,.6); --fl-accent: #56c2e6; --fl-line: rgba(232,238,252,.14);
+        --fl-card: rgba(255,255,255,.06); --fl-done: rgba(232,238,252,.4);
+        --fl-font: system-ui, -apple-system, sans-serif;
+        --fl-glow: radial-gradient(55% 45% at 15% 8%, rgba(86,194,230,.12), transparent 70%);
+    }
+
+    .fl-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 3vmin; }
+    .fl-title { font-size: 5vmin; font-weight: 700; letter-spacing: .01em; }
+    .fl-title span { display: block; font-size: 2.4vmin; font-weight: 500; color: var(--fl-muted); margin-top: .4vmin; }
+    .fl-clock { text-align: right; line-height: 1; }
+    .fl-clock-time { font-size: 6vmin; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+    .fl-clock-date { font-size: 2.4vmin; color: var(--fl-muted); margin-top: .8vmin; }
+    .fl-loading, .fl-empty { margin: auto; font-size: 3.6vmin; color: var(--fl-muted); text-align: center; padding: 4vmin; }
+
+    .fl-tours { flex: 1; display: grid; gap: 2.5vmin; grid-template-columns: repeat(var(--fl-cols, 2), minmax(0, 1fr)); align-content: start; overflow: hidden; }
+    .fl-tour { border: .22vmin solid var(--fl-line); border-radius: 2.2vmin; background: var(--fl-card); padding: 2.2vmin 2.6vmin; display: flex; flex-direction: column; gap: 1.6vmin; overflow: hidden; }
+    .fl-tour-head { display: flex; align-items: center; gap: 1.8vmin; flex-wrap: wrap; }
+    .fl-dep { font-size: 3.6vmin; font-weight: 800; color: var(--fl-accent); font-variant-numeric: tabular-nums; line-height: 1; }
+    .fl-tour-name { font-size: 2.6vmin; font-weight: 700; }
+    .fl-tour-meta { margin-left: auto; display: flex; align-items: center; gap: 1.4vmin; font-size: 2.2vmin; color: var(--fl-muted); }
+    .fl-chip { padding: .5vmin 1.4vmin; border-radius: 100vmin; border: .18vmin solid var(--fl-line); white-space: nowrap; }
+    .fl-veh { font-weight: 700; color: var(--fl-fg); }
+
+    .fl-stops { display: flex; flex-direction: column; }
+    .fl-stop { display: grid; grid-template-columns: 16vmin 1fr auto; gap: 1.4vmin; align-items: baseline; padding: 1.1vmin 0; border-top: .18vmin solid var(--fl-line); font-size: 2.2vmin; }
+    .fl-stop:first-child { border-top: 0; }
+    .fl-stop-win { font-weight: 700; color: var(--fl-accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .fl-stop-main { min-width: 0; }
+    .fl-stop-cust { font-weight: 600; }
+    .fl-stop-cust .fl-va { color: var(--fl-muted); font-weight: 500; margin-left: .8vmin; font-size: 1.9vmin; }
+    .fl-stop-addr { color: var(--fl-muted); font-size: 1.9vmin; margin-top: .2vmin; }
+    .fl-stop-note { color: var(--fl-accent); font-size: 1.9vmin; margin-top: .2vmin; }
+    .fl-stop-flags { display: flex; gap: .8vmin; align-items: center; white-space: nowrap; }
+    .fl-flag { font-size: 1.7vmin; font-weight: 700; padding: .3vmin 1vmin; border-radius: .8vmin; border: .16vmin solid var(--fl-line); color: var(--fl-muted); }
+    .fl-mark { font-size: 2.4vmin; line-height: 1; }
+    .fl-stop.done { opacity: .5; }
+    .fl-stop.done .fl-stop-cust { text-decoration: line-through; text-decoration-color: var(--fl-done); }
+    .fl-stop.active { background: color-mix(in srgb, var(--fl-accent) 12%, transparent); border-radius: 1vmin; }
+
+    .fl-portrait .fl-tours { grid-template-columns: 1fr; }
+    .fl-portrait .fl-stop { grid-template-columns: 14vmin 1fr; }
+    .fl-portrait .fl-stop-flags { grid-column: 2; justify-content: flex-start; }
 </style>
 <script>
 window.SignageApps = (function () {
@@ -562,11 +636,121 @@ window.SignageApps = (function () {
         return { node: wrap, stop: function () { stopped = true; if (timer) clearInterval(timer); } };
     }
 
+    function buildFleet(cfg, portrait) {
+        const STYLES = ['elegant', 'warm', 'modern', 'night'];
+        const style = STYLES.indexOf(cfg.style) >= 0 ? cfg.style : 'modern';
+        const title = cfg.title || 'Tourenplan';
+        const showClock = cfg.show_clock !== false;
+        const showProgress = cfg.show_progress !== false;
+        const esc = function (s) {
+            return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+            });
+        };
+
+        const wrap = document.createElement('div');
+        wrap.className = 'app-fleet fl-style-' + style + (portrait ? ' fl-portrait' : '');
+        wrap.style.setProperty('--fl-cols', portrait ? 1 : 2);
+
+        let stopped = false, dataTimer = null, clockTimer = null, clockEl = null;
+
+        function headHtml() {
+            let h = '<div class="fl-head"><div class="fl-title">' + esc(title);
+            const d = new Date();
+            h += '<span>' + DE_DAYS[d.getDay()] + ', ' + d.getDate() + '. ' + DE_MONTHS[d.getMonth()] + ' ' + d.getFullYear() + '</span></div>';
+            if (showClock) h += '<div class="fl-clock"><div class="fl-clock-time" data-clock>--:--</div></div>';
+            h += '</div>';
+            return h;
+        }
+
+        function stopHtml(s) {
+            const cls = showProgress && (s.state === 'done' || s.state === 'active') ? ' ' + s.state : '';
+            const mark = showProgress && s.state === 'done' ? '<span class="fl-mark">✓</span>'
+                       : (showProgress && s.state === 'active' ? '<span class="fl-mark">▸</span>' : '');
+            let flags = '';
+            if (s.anl) flags += '<span class="fl-flag">Anl</span>';
+            if (s.abh) flags += '<span class="fl-flag">Abh</span>';
+            let main = '<div class="fl-stop-main"><div class="fl-stop-cust">' + esc(s.customer || '—')
+                     + (s.va ? '<span class="fl-va">#' + esc(s.va) + '</span>' : '') + '</div>';
+            if (s.address) main += '<div class="fl-stop-addr">' + esc(s.address) + '</div>';
+            if (s.note) main += '<div class="fl-stop-note">' + esc(s.note) + '</div>';
+            main += '</div>';
+            return '<div class="fl-stop' + cls + '">'
+                 + '<div class="fl-stop-win">' + esc(s.window || '') + '</div>'
+                 + main
+                 + '<div class="fl-stop-flags">' + flags + mark + '</div></div>';
+        }
+
+        function tourHtml(t) {
+            let h = '<div class="fl-tour"><div class="fl-tour-head">';
+            if (t.departure) h += '<div class="fl-dep">' + esc(t.departure) + '</div>';
+            h += '<div class="fl-tour-name">' + esc(t.name || '') + '</div>';
+            h += '<div class="fl-tour-meta">';
+            if (t.driver) h += '<span class="fl-chip">' + esc(t.driver) + '</span>';
+            if (t.vehicle) h += '<span class="fl-chip fl-veh">' + esc(t.vehicle) + '</span>';
+            h += '</div></div>';
+            h += '<div class="fl-stops">' + (t.stops || []).map(stopHtml).join('') + '</div>';
+            return h + '</div>';
+        }
+
+        function render(data) {
+            if (!data || !data.available) {
+                wrap.innerHTML = headHtml() + '<div class="fl-empty">Tourenplan wird vorbereitet …</div>';
+                bindClock();
+                return;
+            }
+            const tours = data.tours || [];
+            if (!tours.length) {
+                wrap.innerHTML = headHtml() + '<div class="fl-empty">Keine Touren für heute.</div>';
+                bindClock();
+                return;
+            }
+            wrap.innerHTML = headHtml() + '<div class="fl-tours">' + tours.map(tourHtml).join('') + '</div>';
+            bindClock();
+        }
+
+        function bindClock() {
+            clockEl = showClock ? wrap.querySelector('[data-clock]') : null;
+            tickClock();
+        }
+
+        function tickClock() {
+            if (!clockEl) return;
+            const d = new Date();
+            clockEl.textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+        }
+
+        async function load() {
+            if (!cfg.endpoint) { render({ available: false }); return; }
+            try {
+                const sep = cfg.endpoint.indexOf('?') >= 0 ? '&' : '?';
+                const url = cfg.endpoint + sep
+                          + 'connection_id=' + encodeURIComponent(cfg.connection_id || '')
+                          + '&progress=' + (showProgress ? 1 : 0);
+                const r = await fetch(url, { cache: 'no-store' });
+                const d = await r.json();
+                if (stopped) return;
+                render(d);
+            } catch (e) {
+                if (!stopped) render({ available: false });
+            }
+        }
+
+        wrap.innerHTML = headHtml() + '<div class="fl-loading">Tourenplan wird geladen …</div>';  // sofortiger Kopf inkl. Uhr
+        bindClock();
+        load();
+        dataTimer = setInterval(load, 2 * 60 * 1000);
+        clockTimer = setInterval(tickClock, 1000);
+
+        return { node: wrap, stop: function () { stopped = true; if (dataTimer) clearInterval(dataTimer); if (clockTimer) clearInterval(clockTimer); } };
+    }
+
     function build(type, cfg, portrait) {
         if (type === 'clock') return buildClock(cfg, portrait);
         if (type === 'weather') return buildWeather(cfg, portrait);
         if (type === 'menu') return buildMenu(cfg, portrait);
         if (type === 'events') return buildEvents(cfg, portrait);
+        if (type === 'dedefleet') return buildFleet(cfg, portrait);
         return null;
     }
 

@@ -239,6 +239,8 @@ class PlayerManifestService
                 // Dynamische Apps bekommen ihre Daten-Endpoint-URL (Geräte-Token) injiziert.
                 if ($media->app_type === 'events') {
                     $config['endpoint'] = route('signage.api.screen.events', ['deviceToken' => $screen->device_token]);
+                } elseif ($media->app_type === 'dedefleet') {
+                    $config['endpoint'] = route('signage.api.screen.fleet', ['deviceToken' => $screen->device_token]);
                 }
                 $frames[] = [
                     'type'       => 'app',

@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Platform\Signage\Models\SignageMedia;
 use Platform\Signage\Support\EventBoardService;
+use Platform\Signage\Support\FleetBoardService;
 
 /**
  * Rendert eine einzelne App (Uhr/Wetter/Menü/Veranstaltungen) als eigenständige
@@ -27,6 +28,8 @@ class AppPreviewController
         // damit in der Vorschau kein Geräte-Token nötig ist).
         if ($media->app_type === 'events') {
             $config['endpoint'] = route('signage.apps.events.data');
+        } elseif ($media->app_type === 'dedefleet') {
+            $config['endpoint'] = route('signage.apps.dedefleet.data');
         }
 
         return view('signage::apps.preview', [
@@ -46,5 +49,17 @@ class AppPreviewController
             'available' => EventBoardService::available(),
             'events'    => EventBoardService::upcoming($teamId, $days, $statuses),
         ]);
+    }
+
+    /** JSON fürs Tourenplan-Board in der Vorschau (Team aus der Session). */
+    public function fleetData(Request $request): JsonResponse
+    {
+        $teamId = (int) (auth()->user()?->currentTeam?->id ?? 0);
+        $connectionId = (int) $request->query('connection_id', 0) ?: null;
+
+        return response()->json(FleetBoardService::board($teamId, $connectionId, [
+            'show_progress' => $request->boolean('progress', true),
+            'date'          => $request->query('date'),
+        ]));
     }
 }

@@ -27,6 +27,11 @@ Route::get('/screen/{deviceToken}/events', [ScreenController::class, 'events'])
     ->middleware('throttle:signage-device')
     ->name('signage.api.screen.events');
 
+// Daten fürs Tourenplan-Board (dedefleet-App).
+Route::get('/screen/{deviceToken}/fleet', [ScreenController::class, 'fleet'])
+    ->middleware('throttle:signage-device')
+    ->name('signage.api.screen.fleet');
+
 // Proof-of-Play: gebündelte Wiedergabe-Meldungen des Players.
 Route::post('/screen/{deviceToken}/played', [ScreenController::class, 'recordPlays'])
     ->middleware('throttle:signage-device')

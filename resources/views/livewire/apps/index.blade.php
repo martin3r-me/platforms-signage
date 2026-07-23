@@ -25,6 +25,10 @@
                     @svg('heroicon-o-calendar-days', 'w-4 h-4')
                     Veranstaltungen
                 </x-ui-button>
+                <x-ui-button variant="secondary" size="sm" :href="route('signage.apps.dedefleet.create')">
+                    @svg('heroicon-o-truck', 'w-4 h-4')
+                    Tourenplan
+                </x-ui-button>
             </div>
         </x-ui-page-actionbar>
     </x-slot>

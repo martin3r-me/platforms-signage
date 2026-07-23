@@ -98,8 +98,9 @@ class SignageMedia extends Model
         return match ($this->app_type) {
             'clock'   => 'Uhr',
             'weather' => 'Wetter',
-            'menu'    => 'Menü',
-            'events'  => 'Veranstaltungen',
+            'menu'     => 'Menü',
+            'events'   => 'Veranstaltungen',
+            'dedefleet' => 'Tourenplan',
             default   => (string) $this->app_type,
         };
     }

@@ -8,6 +8,7 @@ use Platform\Signage\Models\SignageProofOfPlay;
 use Platform\Signage\Models\SignageScreen;
 use Platform\Signage\Services\PlayerManifestService;
 use Platform\Signage\Support\EventBoardService;
+use Platform\Signage\Support\FleetBoardService;
 
 class ScreenController
 {
@@ -86,6 +87,26 @@ class ScreenController
             'available' => EventBoardService::available(),
             'events'    => EventBoardService::upcoming((int) $screen->team_id, $days, $statuses),
         ]);
+    }
+
+    /**
+     * Daten fürs Tourenplan-Board (vom dedefleet-App-Frame des Players abgerufen).
+     * Team ergibt sich aus dem Bildschirm; Connection/Optionen kommen als Query-Param
+     * aus der App-Config.
+     */
+    public function fleet(Request $request, string $deviceToken): JsonResponse
+    {
+        $screen = SignageScreen::where('device_token', $deviceToken)->first();
+        if (!$screen || $screen->status !== 'active') {
+            return response()->json(['available' => false, 'tours' => []]);
+        }
+
+        $connectionId = (int) $request->query('connection_id', 0) ?: null;
+
+        return response()->json(FleetBoardService::board((int) $screen->team_id, $connectionId, [
+            'show_progress' => $request->boolean('progress', true),
+            'date'          => $request->query('date'),
+        ]));
     }
 
     /**

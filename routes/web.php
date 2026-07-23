@@ -30,6 +30,10 @@ Route::get('/apps/events', \Platform\Signage\Livewire\Apps\Events::class)->name(
 Route::get('/apps/events/{media}', \Platform\Signage\Livewire\Apps\Events::class)->name('signage.apps.events.edit');
 // Daten fürs Veranstaltungs-Board in der Editor-/Bibliotheks-Vorschau (session-auth).
 Route::get('/apps/events-data', [AppPreviewController::class, 'eventsData'])->name('signage.apps.events.data');
+Route::get('/apps/dedefleet', \Platform\Signage\Livewire\Apps\Fleet::class)->name('signage.apps.dedefleet.create');
+Route::get('/apps/dedefleet/{media}', \Platform\Signage\Livewire\Apps\Fleet::class)->name('signage.apps.dedefleet.edit');
+// Daten fürs Tourenplan-Board in der Editor-/Bibliotheks-Vorschau (session-auth).
+Route::get('/apps/dedefleet-data', [AppPreviewController::class, 'fleetData'])->name('signage.apps.dedefleet.data');
 
 // Eigenständige App-Vorschau (iframe-Einbettung in der Bibliothek)
 Route::get('/apps/preview/{media}', [AppPreviewController::class, 'show'])->name('signage.apps.preview');
