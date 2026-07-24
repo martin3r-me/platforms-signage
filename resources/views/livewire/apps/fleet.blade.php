@@ -42,13 +42,6 @@
                         <div class="p-3 rounded bg-amber-50 border border-amber-200 text-amber-800 text-sm">
                             Hinweis: Die DedeFleet-Integration ist hier nicht aktiv – das Board bleibt leer, bis sie verfügbar ist.
                         </div>
-                    @else
-                        @unless($liveAvailable)
-                            <div class="p-3 rounded bg-sky-50 border border-sky-200 text-sky-800 text-sm">
-                                Der Live-Abruf wird noch vorbereitet (headless-Schnittstelle in der Integration).
-                                Du kannst die App schon anlegen und konfigurieren – die Daten erscheinen automatisch, sobald sie bereitsteht.
-                            </div>
-                        @endunless
                     @endunless
 
                     <div>

@@ -51,13 +51,12 @@ class AppPreviewController
         ]);
     }
 
-    /** JSON fürs Tourenplan-Board in der Vorschau (Team aus der Session). */
+    /** JSON fürs Tourenplan-Board in der Vorschau (eingeloggter Editor als User). */
     public function fleetData(Request $request): JsonResponse
     {
-        $teamId = (int) (auth()->user()?->currentTeam?->id ?? 0);
         $connectionId = (int) $request->query('connection_id', 0) ?: null;
 
-        return response()->json(FleetBoardService::board($teamId, $connectionId, [
+        return response()->json(FleetBoardService::board(auth()->user(), $connectionId, [
             'show_progress' => $request->boolean('progress', true),
             'date'          => $request->query('date'),
         ]));

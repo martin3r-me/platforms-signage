@@ -3,24 +3,27 @@
 namespace Platform\Signage\Support;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Platform\Core\Models\User;
 
 /**
  * Liest den Tages-Tourenplan aus der DedeFleet-Integration (platforms-integrations)
  * für das Signage-Tourenplan-Board. Strikt gekapselt + per class_exists/method_exists
- * gegatet: ohne installierte/erweiterte Integration liefert der Service einfach nichts
+ * gegatet: ohne installierte Integration liefert der Service einfach nichts
  * (Board zeigt einen Hinweis).
  *
  * WICHTIG – Modul-Schnitt:
  *  - Die eigentliche API-Logik (Base-URL, Bearer-Token, Datumskonvertierung,
  *    Fehlerbehandlung) bleibt vollständig in platforms-integrations. Wir rufen nur.
- *  - Das Editor-Dropdown nutzt die BESTEHENDE Methode
- *    IntegrationConnectionResolver::resolveAllForUser() (read-only, User-Kontext).
- *  - Der headless Player-Abruf braucht EINE neue Methode in platforms-integrations:
- *    DedefleetApiService::callForTeam(int $teamId, int $connectionId, string $method,
- *        string $endpoint, array $payload = []): ?array
- *    Sie prüft die Team-Zugehörigkeit der Connection und ruft die API ohne User.
- *    Solange sie fehlt, meldet available() => false und das Board zeigt
- *    "Datenquelle wird vorbereitet" statt zu crashen. Siehe docs/dedefleet-integration-handoff.md.
+ *  - Alle Abrufe laufen über den bestehenden, USER-basierten DedefleetApiService
+ *    (listTours/listCustomers). KEINE Integrations-Änderung nötig:
+ *      · Editor/Vorschau: der eingeloggte User.
+ *      · Player (headless, kein Login): der ERSTELLER der App (SignageMedia->user_id).
+ *        Dessen Connector-Zugriff (user-gebundene Freigabe) wird via
+ *        forConnection($id)->listTours($user, …) → resolveById($id, $user) → canUse()
+ *        geprüft. Der user_id kommt serverseitig aus dem Media-Record, nie vom Gerät.
+ *  - Kunde + Adresse fehlen in Tour/List (order.location.* = null) und werden per
+ *    Customer/List angereichert (Join order.location.id == customerNumber).
  */
 class FleetBoardService
 {
@@ -30,16 +33,16 @@ class FleetBoardService
     private const RESOLVER    = \Platform\Integrations\Services\IntegrationConnectionResolver::class;
 
     /**
-     * Ist der Live-Abruf möglich? Erfordert die Integration UND den headless-Einstieg
-     * (callForTeam), den der Kollege in platforms-integrations ergänzt.
+     * Ist der Live-Abruf möglich? Erfordert nur die installierte Integration mit der
+     * bestehenden user-basierten listTours()-Methode (kein headless-Handoff mehr nötig).
      */
     public static function available(): bool
     {
         return class_exists(self::API_SERVICE)
-            && method_exists(self::API_SERVICE, 'callForTeam');
+            && method_exists(self::API_SERVICE, 'listTours');
     }
 
-    /** Ist die Integration überhaupt vorhanden (fürs Editor-Dropdown, unabhängig von callForTeam)? */
+    /** Ist die Integration überhaupt vorhanden (fürs Editor-Dropdown). */
     public static function integrationPresent(): bool
     {
         return class_exists(self::RESOLVER) && class_exists(self::API_SERVICE);
@@ -73,42 +76,42 @@ class FleetBoardService
     }
 
     /**
-     * Tages-Tourenplan für ein Team + eine gewählte Connection.
+     * Tages-Tourenplan für einen User (Ersteller bzw. eingeloggter Editor) + gewählte Connection.
      *
      * @param  array{show_progress?:bool, date?:?string}  $opts
      * @return array{available:bool, error?:bool, date:string, tours:array<int,array<string,mixed>>}
      */
-    public static function board(int $teamId, ?int $connectionId, array $opts = []): array
+    public static function board(?User $user, ?int $connectionId, array $opts = []): array
     {
         $date = self::resolveDate($opts['date'] ?? null);
         $empty = ['available' => false, 'date' => $date, 'tours' => []];
 
-        if (!self::available() || $teamId <= 0 || !$connectionId) {
+        if (!self::available() || !$user || !$connectionId) {
             return $empty;
         }
 
-        // Tagesgrenzen als ISO 8601 – der ApiService konvertiert selbst ins DedeFleet-Format.
-        $start = Carbon::parse($date)->startOfDay()->toIso8601String();
-        $end   = Carbon::parse($date)->endOfDay()->toIso8601String();
+        // Tagesgrenzen als ISO 8601 OHNE Zeitzonen-Offset – der ApiService konvertiert selbst
+        // ins DedeFleet-Format. WICHTIG: mit Offset (+02:00) antwortet Tour/List mit HTTP 500
+        // "Start is not a valid date!" (2026-07 an echter API verifiziert). Zusätzlich gilt die
+        // 7-Tage-Range-Grenze der API – hier unkritisch, da immer nur ein einzelner Tag.
+        $start = Carbon::parse($date)->startOfDay()->format('Y-m-d\TH:i:s');
+        $end   = Carbon::parse($date)->endOfDay()->format('Y-m-d\TH:i:s');
 
         try {
-            $raw = app(self::API_SERVICE)->callForTeam(
-                $teamId,
-                $connectionId,
-                'POST',
-                'Tour/List',
-                ['start' => $start, 'end' => $end],
-            );
+            // forConnection() pinnt die gewählte Connection; listTours() prüft via
+            // resolveById($connectionId, $user) den Zugriff des Users (canUse) und ruft
+            // POST /Tour/List. Wirft DedefleetApiException bei API-/Zugriffsfehlern.
+            $raw = app(self::API_SERVICE)
+                ->forConnection($connectionId)
+                ->listTours($user, ['start' => $start, 'end' => $end]);
         } catch (\Throwable $e) {
             return ['available' => true, 'error' => true, 'date' => $date, 'tours' => []];
         }
 
-        if ($raw === null) {
-            // Connection gehört nicht zum Team / nicht auflösbar.
-            return $empty;
-        }
-
         $showProgress = (bool) ($opts['show_progress'] ?? true);
+
+        // Kunde + Adresse sind in Tour/List nicht enthalten → aus Customer/List anreichern.
+        $raw = self::enrichWithCustomers($raw, $user, $connectionId);
 
         return [
             'available' => true,
@@ -118,15 +121,123 @@ class FleetBoardService
     }
 
     // =========================================================================
+    // Anreicherung: Kunde + Adresse aus Customer/List (fehlen in Tour/List)
+    // =========================================================================
+
+    /**
+     * Füllt je Order die (in Tour/List leere) location mit Name/Adresse des Kunden.
+     * Join: order.location.id == customer.customerNumber. Ein Customer/List-Call pro
+     * Connection, 10 min gecacht (Stammdaten ändern sich selten, viele Screens teilen sie).
+     *
+     * @param  mixed  $raw
+     * @return mixed
+     */
+    private static function enrichWithCustomers($raw, User $user, int $connectionId)
+    {
+        if (!is_array($raw)) {
+            return $raw;
+        }
+
+        $map = self::customerMap($user, $connectionId);
+        if (!$map) {
+            return $raw;
+        }
+
+        // Referenz DIREKT auf die Tour-Liste innerhalb von $raw (in-place anreichern) –
+        // entweder ist $raw selbst die Liste oder sie steckt in einem bekannten Unterschlüssel.
+        if (array_is_list($raw)) {
+            $listRef = &$raw;
+        } else {
+            $key = null;
+            foreach (['tours', 'data', 'result', 'items'] as $k) {
+                if (isset($raw[$k]) && is_array($raw[$k])) {
+                    $key = $k;
+                    break;
+                }
+            }
+            if ($key === null) {
+                return $raw;
+            }
+            $listRef = &$raw[$key];
+        }
+
+        foreach ($listRef as &$tour) {
+            if (!is_array($tour)) {
+                continue;
+            }
+            foreach (['orders', 'stops', 'orderList'] as $ok) {
+                if (!isset($tour[$ok]) || !is_array($tour[$ok])) {
+                    continue;
+                }
+                foreach ($tour[$ok] as &$order) {
+                    if (!is_array($order) || !isset($order['location']) || !is_array($order['location'])) {
+                        continue;
+                    }
+                    $custNo = (string) ($order['location']['id'] ?? '');
+                    if ($custNo === '' || !isset($map[$custNo])) {
+                        continue;
+                    }
+                    // Nur leere Felder auffüllen – vorhandene Werte nie überschreiben.
+                    foreach ($map[$custNo] as $mk => $mv) {
+                        if ($mv !== '' && (($order['location'][$mk] ?? '') === '' || ($order['location'][$mk] ?? null) === null)) {
+                            $order['location'][$mk] = $mv;
+                        }
+                    }
+                }
+                unset($order);
+            }
+        }
+        unset($tour, $listRef);
+
+        return $raw;
+    }
+
+    /**
+     * customerNumber => ['name','street','postal','city'] aus Customer/List.
+     *
+     * @return array<string, array<string,string>>
+     */
+    private static function customerMap(User $user, int $connectionId): array
+    {
+        try {
+            $raw = Cache::remember(
+                'signage.dedefleet.customers.' . $connectionId,
+                600,
+                fn () => app(self::API_SERVICE)->forConnection($connectionId)->listCustomers($user),
+            );
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        $map = [];
+        foreach (self::asList($raw, ['customers', 'data', 'result', 'items']) as $c) {
+            if (!is_array($c)) {
+                continue;
+            }
+            $no = (string) (self::pick($c, ['customerNumber', 'number', 'id']) ?? '');
+            if ($no === '') {
+                continue;
+            }
+            $loc = is_array($c['location'] ?? null) ? $c['location'] : $c;
+            $map[$no] = [
+                'name'   => (string) (self::pick($c, ['name', 'customerName']) ?? ''),
+                'street' => (string) (self::pick($loc, ['street', 'strasse', 'addressLine1']) ?? ''),
+                'postal' => (string) (self::pick($loc, ['postal', 'zip', 'postalCode', 'plz']) ?? ''),
+                'city'   => (string) (self::pick($loc, ['city', 'ort']) ?? ''),
+            ];
+        }
+
+        return $map;
+    }
+
+    // =========================================================================
     // Normalisierung der rohen DedeFleet-Antwort ins stabile Renderer-Schema
     // =========================================================================
 
     /**
-     * ACHTUNG: Die genauen Feldnamen der Tour/List-Antwort sind im Repo nicht
-     * dokumentiert (keine DTOs/Fixtures). Die Extraktion ist deshalb bewusst
-     * tolerant (mehrere mögliche Schlüssel pro Feld). Sobald eine echte Response
-     * vorliegt, hier gegen die tatsächlichen Feldnamen justieren – siehe die
-     * TODO-Marker. Fehlende Felder bleiben schlicht leer, das Board bleibt stabil.
+     * Feldnamen an einer echten Tour/List-Antwort verifiziert (2026-07-24, siehe
+     * docs/dedefleet-integration-handoff.md). Die Extraktion bleibt tolerant (mehrere
+     * Kandidaten je Feld); fehlende Felder bleiben leer, das Board bleibt stabil.
      *
      * @param  mixed  $raw
      * @return array<int, array<string,mixed>>
@@ -171,27 +282,50 @@ class FleetBoardService
     {
         $state = self::pick($order, ['orderStatus', 'orderState', 'status']);
 
+        // Verifiziert an echter Tour/List-Antwort (2026-07):
+        //  - Auftragsnr steht in 'order' ("Auf1004"), Lieferschein-Nr in 'delivery' ("Lief1004").
+        //  - Anlieferung/Abholung wird über 'type' (int) unterschieden, NICHT über bool-Felder.
+        //  - Kunde + Adresse sind in der eingebetteten Order NICHT enthalten (order.location.*
+        //    ist null); sie müssen per Customer/List (Join order.location.id == customerNumber)
+        //    oder Order/Get nachgeladen werden. Siehe docs/dedefleet-integration-handoff.md.
         return [
-            // TODO(verify): Feldnamen an echter Order-Struktur prüfen.
-            'va'       => (string) (self::pick($order, ['vaNumber', 'orderNumber', 'referenceNumber', 'number', 'va']) ?? ''),
-            'customer' => (string) (self::pick($order, ['customerName', 'customer', 'clientName', 'name']) ?? ''),
+            'va'       => (string) (self::pick($order, ['order', 'vaNumber', 'orderNumber', 'referenceNumber', 'number', 'va']) ?? ''),
+            'customer' => self::customerOf($order),
             'address'  => self::addressOf($order),
             'window'   => self::windowOf($order),
-            'anl'      => (bool) (self::pick($order, ['delivery', 'isDelivery', 'anlieferung', 'anl']) ?? true),
-            'abh'      => (bool) (self::pick($order, ['pickup', 'isPickup', 'abholung', 'abh']) ?? false),
-            'note'     => (string) (self::pick($order, ['remark', 'note', 'comment', 'notes', 'bemerkung']) ?? ''),
+            'anl'      => ((int) (self::pick($order, ['type']) ?? 0)) === 0,
+            'abh'      => ((int) (self::pick($order, ['type']) ?? 0)) === 1,
+            'note'     => (string) (self::pick($order, ['driverMessage', 'remark', 'note', 'comment', 'notes', 'bemerkung']) ?? ''),
             'state'    => $showProgress ? self::orderStateKey($state) : null,
         ];
     }
 
     private static function tourName(array $tour, int $i): string
     {
-        $name = self::pick($tour, ['name', 'tourName', 'title', 'label']);
+        // Verifiziert an echter Tour/List-Antwort (2026-07): der Name steht in 'tour'
+        // (z.B. "Kalt-1", "Import"). Die übrigen Kandidaten bleiben als Fallback.
+        $name = self::pick($tour, ['tour', 'name', 'tourName', 'title', 'label']);
         if (is_string($name) && $name !== '') {
             return $name;
         }
 
         return 'Tour ' . ($i + 1);
+    }
+
+    /** Kundenname: direkt am Order oder aus der verschachtelten location (DedeFleet: location.name). */
+    private static function customerOf(array $order): string
+    {
+        $direct = self::pick($order, ['customerName', 'customer', 'clientName', 'name']);
+        if (is_string($direct) && $direct !== '') {
+            return $direct;
+        }
+
+        $loc = $order['location'] ?? null;
+        if (is_array($loc)) {
+            return (string) (self::pick($loc, ['name', 'customerName']) ?? '');
+        }
+
+        return '';
     }
 
     private static function addressOf(array $order): string
@@ -201,13 +335,15 @@ class FleetBoardService
             return $direct;
         }
 
-        // Ggf. aus Einzelteilen zusammensetzen.
-        $street = self::pick($order, ['street', 'strasse', 'addressLine1']);
-        $zip    = self::pick($order, ['zip', 'postalCode', 'plz']);
-        $city   = self::pick($order, ['city', 'ort']);
+        // DedeFleet liefert die Adresse verschachtelt unter 'location' (street/postal/city);
+        // in der eingebetteten Tour/List-Order ist sie leer, via Order/Get bzw. Customer-Join gefüllt.
+        $src    = is_array($order['location'] ?? null) ? $order['location'] : $order;
+        $street = self::pick($src, ['street', 'strasse', 'addressLine1']);
+        $zip    = self::pick($src, ['postal', 'zip', 'postalCode', 'plz']);
+        $city   = self::pick($src, ['city', 'ort']);
         $parts  = array_filter([
             trim((string) $street),
-            trim(implode(' ', array_filter([(string) $zip, (string) $city]))),
+            trim(implode(' ', array_filter([trim((string) $zip), trim((string) $city)]))),
         ]);
 
         return implode(', ', $parts);

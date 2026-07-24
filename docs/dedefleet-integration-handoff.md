@@ -1,135 +1,76 @@
-# Handoff: headless-Einstieg für die DedeFleet-Tourenplan-App
+# DedeFleet-Tourenplan-App – Integrations-Notizen
 
-**An:** Betreuer von `platforms-integrations`
-**Von:** Signage (Tourenplan-App, `app_type = dedefleet`)
-**Aufwand:** eine neue Methode (~15–25 Zeilen), additiv, keine Breaking Changes.
+**Modul:** Signage (Tourenplan-App, `app_type = dedefleet`)
+**Status:** ✅ Kein Eingriff in `platforms-integrations` nötig.
 
-## Warum
+## Wie der Abruf läuft (finaler Stand)
 
-Die neue Signage-App „Tourenplan" zeigt den DedeFleet-Tagesplan live auf Displays.
-Der Player läuft **headless** (nur Geräte-Token, **kein eingeloggter User**). Der
-bestehende `DedefleetApiService` verlangt aber bei jedem Call ein `User`-Objekt
-(`listTours(User $user, …)`, intern `resolveConnection(User $user)`).
+Signage nutzt ausschließlich die **bestehenden, user-basierten** Methoden des
+`DedefleetApiService` (`listTours(User $user, …)`, `listCustomers(User $user, …)`),
+gekapselt in `Platform\Signage\Support\FleetBoardService`. **Es gibt keinen headless
+`callForTeam`-Einstieg mehr** – der frühere Handoff ist damit hinfällig.
 
-Damit Signage die **bestehende API-Schicht wiederverwendet** (Base-URL, Bearer-Token,
-Datumskonvertierung, Fehlerbehandlung) statt sie zu duplizieren, brauchen wir **einen
-einzigen** user-losen, team-abgesicherten Einstieg.
+Der User wird je Kontext bestimmt:
 
-Signage ruft ihn ausschließlich über `Platform\Signage\Support\FleetBoardService`
-auf und ist bereits so gebaut, dass es sauber „Datenquelle wird vorbereitet" anzeigt,
-solange die Methode fehlt (`method_exists`-Gate). Sobald sie da ist, geht das Board
-**automatisch** live – keine weitere Signage-Änderung nötig.
+- **Editor/Vorschau:** der eingeloggte User (`auth()->user()`).
+- **Player (headless, kein Login):** der **Ersteller der App** (`SignageMedia->user_id`).
+  Der Player-Endpoint (`ScreenController::fleet`) löst die App über die im Manifest
+  hinterlegte `media`-Kennung auf – **eingegrenzt aufs Team des Bildschirms** –, liest
+  `connection_id` + Ersteller-User aus dem Record (nie vom Gerät) und ruft:
 
-## Die Methode
+  ```php
+  app(DedefleetApiService::class)
+      ->forConnection($connectionId)
+      ->listTours($creatorUser, ['start' => '2026-07-24T00:00:00', 'end' => '2026-07-24T23:59:59']);
+  ```
 
-In `Platform\Integrations\Services\DedefleetApiService`:
+  Die Zugriffsprüfung passiert in der Integration selbst: `listTours` →
+  `resolveConnection` → `resolveById($connectionId, $user)` → `access->canUse(...)`.
+  Da der Connector **user-gebunden an den Ersteller** freigegeben ist, greift das sauber.
 
-```php
-/**
- * Headless-Aufruf im Team-Kontext (ohne eingeloggten User) – für Consumer wie
- * Signage-Displays. Prüft, dass die Connection zum Team gehört (Owner ist
- * Team-Mitglied ODER explizit fürs Team geteilt) und den DedeFleet-Key hat,
- * und ruft dann die API.
- *
- * @return array|null  Rohe API-Antwort, oder null wenn die Connection nicht
- *                     zum Team auflösbar ist. Bei API-Fehlern: DedefleetApiException.
- */
-public function callForTeam(
-    int $teamId,
-    int $connectionId,
-    string $method,      // 'GET' | 'POST'
-    string $endpoint,    // z.B. 'Tour/List'
-    array $payload = []
-): ?array;
-```
+## Kunde + Adresse: Customer-Join (Signage-seitig)
 
-### Semantik / Vertrag
+`Tour/List` liefert je Order **keinen** Kundennamen/Adresse (`order.location.*` = null,
+nur `location.id`). `FleetBoardService::enrichWithCustomers()` holt daher einmal
+`listCustomers($user)` (10 min gecacht pro Connection) und joint lokal
+**`order.location.id` == `customer.customerNumber`** → füllt `location.name/street/postal/city`.
+`Order/Get` pro Stopp wäre die Alternative, ist aber teurer (N Calls) und nicht nötig.
 
-1. **Auflösen + absichern:** Connection per `$connectionId` laden. Nur zurückgeben, wenn
-   - `integration->key === 'dedefleet'` **und**
-   - sie dem Team `$teamId` gehört: Owner ist Mitglied des Teams **oder** sie ist per
-     `shares` fürs Team geteilt (gleiche Logik wie `IntegrationConnectionResolver::resolveForTeam()`).
-   - sonst → **`null`** (Signage zeigt dann „nicht verfügbar", kein Fehler).
-2. **Call:** über den bestehenden `request()`-Pfad mit dem Token dieser Connection
-   (ISO-Datumskonvertierung, Bearer-Header, `handleResponse()` unverändert nutzen).
-3. **Fehler:** API-/HTTP-Fehler wie gehabt als `DedefleetApiException` werfen – Signage
-   fängt das ab und zeigt einen neutralen Hinweis.
+## Verifizierte `Tour/List`-Felder (2026-07-24)
 
-### Vorschlag zur Umsetzung
+Anhand einer echten Response (Team BHG.DIGITAL, Connection „DedeFleet") verifiziert und
+`normalizeTours()`/`normalizeStop()` entsprechend justiert. Die **realen** Feldnamen:
 
-Am einfachsten eine team-scoped Resolver-Methode + ein user-loser Request-Pfad:
+**Tour-Ebene:**
 
-```php
-// IntegrationConnectionResolver – neu:
-public function resolveByIdForTeam(int $connectionId, int $teamId): ?IntegrationConnection
-{
-    $team = Team::find($teamId);
-    if (!$team) return null;
+| Anzeige       | echtes Feld                     | Hinweis                                              |
+|---------------|---------------------------------|------------------------------------------------------|
+| Tour-Name     | `tour`                          | z.B. „Kalt-1", „Import" (NICHT `name`/`tourName`)    |
+| Abfahrt       | `departure.time`                | „06:44:39" → Board zeigt „06:44" ✓                    |
+| Fahrer        | `driverName`                    | im Testdatensatz `null` (keine Fahrer zugewiesen)    |
+| Fahrzeug/KFZ  | `vehicleApiID`                  | ⚠ nur numerische ID („639192…"), KEIN Klartext/Kennzeichen in Tour/List |
+| Tour-Status   | `status`                        | 0=Planung,1=Freigegeben,2=Abgeschlossen ✓            |
+| Stopps        | `orders[]`                      | ✓                                                    |
 
-    $conn = IntegrationConnection::with('integration')->find($connectionId);
-    if (!$conn || optional($conn->integration)->key !== 'dedefleet') return null;
+**Stopp/Order-Ebene (eingebettet in `orders[]`):**
 
-    $memberIds = $team->users()->pluck('users.id')->toArray();
-    $ownedByTeam = in_array($conn->owner_user_id, $memberIds, true);
-    $sharedWithTeam = $conn->shares()->where('team_id', $team->id)->exists();
+| Anzeige            | echtes Feld            | Hinweis                                                    |
+|--------------------|------------------------|------------------------------------------------------------|
+| #VA / Auftragsnr   | `order`                | „Auf1004" (Lieferschein-Nr separat in `delivery` = „Lief1004") |
+| Anlieferung/Abh.   | `type` (int)           | 0=Anlieferung, 1=Abholung (NICHT bool-Felder!)             |
+| Zeitfenster/Ankunft| `tourArrival`          | „07:00" ✓                                                  |
+| Fortschritt        | `orderStatus`          | 0=Offen,1=Gelesen,2=Aktiv,3=Erledigt,4=Gelöscht,5=In Navigation ✓ |
+| Kunde              | `location.name`        | ⚠ in Tour/List `null` — siehe „Kernbefund" unten           |
+| Lieferadresse      | `location.{street,postal,city}` | ⚠ in Tour/List `null` — siehe „Kernbefund" unten  |
+| Bemerkung          | `notes` / `driverMessage` | `notes` in Tour/List meist `null`; die brauchbare Fahrer-Notiz („ebenerdig, Temperaturmessung…") liefert nur `Order/Get` als `driverMessage` |
 
-    return ($ownedByTeam || $sharedWithTeam) ? $conn : null;
-}
+(Kunde/Adresse werden per Customer-Join angereichert – siehe Abschnitt „Kunde + Adresse" oben.
+`location.id="42"` → Kunde „Herrenshof", Schaffenbergstraße 27b, Korschenbroich, verifiziert.)
 
-// DedefleetApiService – neu:
-public function callForTeam(int $teamId, int $connectionId, string $method, string $endpoint, array $payload = []): ?array
-{
-    $conn = app(IntegrationConnectionResolver::class)->resolveByIdForTeam($connectionId, $teamId);
-    if (!$conn) return null;
+### Weitere verifizierte API-Constraints
 
-    // request() so anpassen/überladen, dass es eine bereits aufgelöste Connection
-    // akzeptiert statt zwingend einen User (resolveConnection(?User) → nutzt $conn).
-    return $this->requestWithConnection($conn, $method, $endpoint, $payload);
-}
-```
-
-`requestWithConnection()` kann die vorhandene `request()`-Logik teilen – nur die
-Connection-Beschaffung (aktuell `resolveConnection(User $user)`) wird durch die bereits
-aufgelöste `$conn` ersetzt. Der Token kommt wie gehabt aus
-`DedefleetIntegrationService::getApiToken($conn)`.
-
-## Was Signage damit macht
-
-Signage ruft genau einen Endpoint auf (ein Call pro Tagesplan):
-
-```php
-$raw = app(DedefleetApiService::class)->callForTeam(
-    $teamId, $connectionId, 'POST', 'Tour/List',
-    ['start' => '2026-07-23T00:00:00+02:00', 'end' => '2026-07-23T23:59:59+02:00'],
-);
-```
-
-(Das Editor-Dropdown zum Auswählen der Connection nutzt bereits die vorhandene
-`resolveAllForUser('dedefleet', $user)` – da ist nichts zu tun.)
-
-## Bitte mit-verifizieren: `orders[]`-Felder in der Tour/List-Antwort
-
-Signage normalisiert die rohe Antwort in `FleetBoardService::normalizeTours()`. Die
-genauen Feldnamen sind im Repo nicht dokumentiert (keine DTOs/Fixtures), deshalb liest
-Signage tolerant mehrere Kandidaten. **Bitte einmal eine echte `Tour/List`-Response
-gegen die Swagger-Spec abgleichen** und uns die realen Feldnamen nennen (oder direkt in
-`normalizeTours()` justieren). Signage erwartet/sucht je Tour bzw. Stopp:
-
-| Anzeige            | gesuchte Schlüssel (erste Treffer gewinnen)                                   |
-|--------------------|--------------------------------------------------------------------------------|
-| Tour-Name          | `name`, `tourName`, `title`, `label` (sonst „Tour N")                           |
-| Abfahrt            | `departure.time`, `departureTime`, `startTime`, `departure`                     |
-| Fahrer             | `driverName`, `driver`, `driverDisplayName`                                     |
-| Fahrzeug/KFZ       | `vehicleName`, `vehicleLabel`, `licenseNumber`, `vehicleApiID`, `vehicle`       |
-| Tour-Status        | `status`, `tourStatus` (0=Planung,1=Freigegeben,2=Abgeschlossen)                |
-| Stopps             | `orders[]`, `stops[]`, `orderList[]`                                            |
-| — #VA / Auftragsnr | `vaNumber`, `orderNumber`, `referenceNumber`, `number`, `va`                    |
-| — Kunde            | `customerName`, `customer`, `clientName`, `name`                                |
-| — Lieferadresse    | `deliveryAddress`, `address`, `destinationAddress`, `fullAddress` (oder Teile: `street`/`zip`/`city`) |
-| — Zeitfenster      | `windowFrom`/`windowTo`, `timeWindowFrom`/`…To`, `arrivalFrom`, `tourArrival`, `eta` |
-| — Anlieferung/Abh. | `delivery`/`isDelivery`/`anlieferung`, `pickup`/`isPickup`/`abholung`           |
-| — Bemerkung        | `remark`, `note`, `comment`, `notes`, `bemerkung`                               |
-| — Fortschritt      | `orderStatus`, `orderState`, `status` (0=Offen…3=Erledigt,5=In Navigation)      |
-
-Falls `Tour/List` die Detailfelder je Order nicht liefert, sagt uns das Bescheid –
-dann ergänzen wir in Signage einen zweiten Call (`Tour/GetBulk` oder `Order/Get`).
+- **`Tour/List` erlaubt max. 7 Tage** `start`–`end` (sonst HTTP 500 „Start/End has a Time
+  Range over 7 Days!"). Signage fragt nur einen Tag ab → unkritisch.
+- **Datumsformat:** ISO `yyyy-MM-dd` bzw. `yyyy-MM-ddTHH:mm:ss` **ohne Zeitzonen-Offset**.
+  Mit `+02:00` → 500 „Start is not a valid date!". `FleetBoardService::board()` sendet daher
+  offset-freies `Y-m-d\TH:i:s`; der ApiService konvertiert selbst ins DedeFleet-Format `DD.MM.YYYY`.

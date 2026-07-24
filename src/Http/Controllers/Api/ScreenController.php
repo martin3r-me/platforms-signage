@@ -4,6 +4,7 @@ namespace Platform\Signage\Http\Controllers\Api;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Platform\Signage\Models\SignageMedia;
 use Platform\Signage\Models\SignageProofOfPlay;
 use Platform\Signage\Models\SignageScreen;
 use Platform\Signage\Services\PlayerManifestService;
@@ -101,12 +102,29 @@ class ScreenController
             return response()->json(['available' => false, 'tours' => []]);
         }
 
-        $connectionId = (int) $request->query('connection_id', 0) ?: null;
+        // Connection + Ersteller-User werden serverseitig aus dem App-Record aufgelöst
+        // (nie vom Gerät!). Die Media-Kennung ist im Manifest-Endpoint hinterlegt und
+        // wird aufs Team des Bildschirms eingegrenzt.
+        $media = SignageMedia::query()
+            ->where('team_id', $screen->team_id)
+            ->where('app_type', 'dedefleet')
+            ->where('id', (int) $request->query('media'))
+            ->first();
 
-        return response()->json(FleetBoardService::board((int) $screen->team_id, $connectionId, [
-            'show_progress' => $request->boolean('progress', true),
-            'date'          => $request->query('date'),
-        ]));
+        if (!$media) {
+            return response()->json(['available' => false, 'tours' => []]);
+        }
+
+        $config = $media->config ?? [];
+
+        return response()->json(FleetBoardService::board(
+            $media->user,
+            isset($config['connection_id']) ? (int) $config['connection_id'] : null,
+            [
+                'show_progress' => (bool) ($config['show_progress'] ?? true),
+                'date'          => $request->query('date'),
+            ],
+        ));
     }
 
     /**

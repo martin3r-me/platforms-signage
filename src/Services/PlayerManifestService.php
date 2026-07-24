@@ -240,7 +240,12 @@ class PlayerManifestService
                 if ($media->app_type === 'events') {
                     $config['endpoint'] = route('signage.api.screen.events', ['deviceToken' => $screen->device_token]);
                 } elseif ($media->app_type === 'dedefleet') {
-                    $config['endpoint'] = route('signage.api.screen.fleet', ['deviceToken' => $screen->device_token]);
+                    // media-Kennung mitgeben: der Endpoint löst darüber Connection +
+                    // Ersteller-User serverseitig auf (nicht clientseitig vertrauen).
+                    $config['endpoint'] = route('signage.api.screen.fleet', [
+                        'deviceToken' => $screen->device_token,
+                        'media'       => $media->id,
+                    ]);
                 }
                 $frames[] = [
                     'type'       => 'app',
