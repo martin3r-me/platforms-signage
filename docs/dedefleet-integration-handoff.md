@@ -28,6 +28,27 @@ Der User wird je Kontext bestimmt:
   `resolveConnection` → `resolveById($connectionId, $user)` → `access->canUse(...)`.
   Da der Connector **user-gebunden an den Ersteller** freigegeben ist, greift das sauber.
 
+## ⚠ Bekannter Integrations-Bug + Signage-Fallback (2026-07-29)
+
+**Symptom:** Ist die DedeFleet-Connection dem Ersteller nur **team-weit freigegeben**
+(Owner = anderer User, Share auf `team_id = <Team>`), erscheint sie im Signage-Dropdown,
+aber der Abruf wirft „keine Connection" → Board „Tourenplan aktuell nicht abrufbar".
+
+**Ursache (in platforms-integrations):** `IntegrationConnectionResolver::resolveById()` ruft
+`IntegrationAccessService::canUse($user, $connection)` **ohne Team-Kontext** auf. `hasShareAccess()`
+matcht ohne `$teamId` aber nur Shares mit `team_id IS NULL` (alle Teams) oder direkte User-Shares —
+ein **team-scoped Share wird abgelehnt**. Inkonsistent zu `resolveForUser()` und `resolveAllForUser()`
+(Dropdown), die Team-Shares sehr wohl berücksichtigen. **Sauberer Fix (Kollege):** in `resolveById()`
+den Team-Kontext an `canUse()` durchreichen (bzw. `canUse` die Team-Mitgliedschaften des Users
+berücksichtigen lassen — analog `resolveForUser`).
+
+**Signage-Fallback (bereits umgesetzt, kein Integrations-Eingriff):**
+`FleetBoardService::fetchTours()` (und die Customer-Anreicherung) versuchen zuerst
+`forConnection($id)->listTours($user)`; scheitert das, fällt der Abruf auf `listTours($user)`
+**ohne** `forConnection` zurück → `getConnectionForUser()`→`resolveForUser()` ehrt den Team-Share
+und liefert dieselbe Connection. Nutzt im Fallback ggf. die Default-Connection des Users statt exakt
+der gewählten (bei nur einer DedeFleet-Connection identisch). Kann entfallen, sobald der Integrations-Fix da ist.
+
 ## Kunde + Adresse: Customer-Join (Signage-seitig)
 
 `Tour/List` liefert je Order **keinen** Kundennamen/Adresse (`order.location.*` = null,

@@ -4,6 +4,7 @@ namespace Platform\Signage\Support;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Platform\Core\Models\User;
 
 /**
@@ -100,16 +101,11 @@ class FleetBoardService
         $end   = Carbon::parse($date)->format('Y-m-d');
 
         try {
-            // forConnection() pinnt die gewählte Connection; listTours() prüft via
-            // resolveById($connectionId, $user) den Zugriff des Users (canUse) und ruft
-            // POST /Tour/List. Wirft DedefleetApiException bei API-/Zugriffsfehlern.
-            $raw = app(self::API_SERVICE)
-                ->forConnection($connectionId)
-                ->listTours($user, ['start' => $start, 'end' => $end]);
+            $raw = self::fetchTours($user, $connectionId, $start, $end);
         } catch (\Throwable $e) {
             // Nicht still verschlucken – sonst ist ein API-/Zugriffsfehler von einem
             // echten "keine Touren" nicht zu unterscheiden.
-            \Illuminate\Support\Facades\Log::warning('Signage DedeFleet board() failed', [
+            Log::warning('Signage DedeFleet board() failed', [
                 'connection_id' => $connectionId,
                 'user_id'       => $user->id ?? null,
                 'date'          => $date,
@@ -130,6 +126,36 @@ class FleetBoardService
             'date'      => $date,
             'tours'     => self::normalizeTours($raw, $showProgress),
         ];
+    }
+
+    /**
+     * Ruft Tour/List für die gewählte Connection – mit Fallback.
+     *
+     * Schlägt die explizit gewählte Connection am Zugriff fehl, fällt der Abruf auf die per
+     * resolveForUser auflösbare Connection des Users zurück. Hintergrund: eine dem User nur
+     * TEAM-weit freigegebene Connection erscheint zwar im Dropdown (resolveAllForUser ehrt
+     * Team-Shares), aber forConnection()->listTours() prüft via resolveById()/canUse() OHNE
+     * Team-Kontext und lehnt team-scoped Shares ab → "keine Connection". resolveForUser (ohne
+     * forConnection) berücksichtigt Team-Freigaben und liefert dieselbe Connection. So bleibt
+     * das Board nutzbar, ohne Eingriff in platforms-integrations.
+     *
+     * @return mixed  rohe Tour/List-Antwort; wirft weiter, wenn auch der Fallback scheitert.
+     */
+    private static function fetchTours(User $user, int $connectionId, string $start, string $end): mixed
+    {
+        $filter = ['start' => $start, 'end' => $end];
+
+        try {
+            return app(self::API_SERVICE)->forConnection($connectionId)->listTours($user, $filter);
+        } catch (\Throwable $e) {
+            Log::info('Signage DedeFleet: gewählte Connection nicht direkt nutzbar, Fallback auf Default-Auflösung', [
+                'connection_id' => $connectionId,
+                'user_id'       => $user->id ?? null,
+                'message'       => $e->getMessage(),
+            ]);
+
+            return app(self::API_SERVICE)->listTours($user, $filter);
+        }
     }
 
     // =========================================================================
@@ -215,7 +241,14 @@ class FleetBoardService
             $raw = Cache::remember(
                 'signage.dedefleet.customers.' . $connectionId,
                 600,
-                fn () => app(self::API_SERVICE)->forConnection($connectionId)->listCustomers($user),
+                function () use ($connectionId, $user) {
+                    // Gleicher Fallback wie bei den Touren (team-scoped Share → forConnection scheitert).
+                    try {
+                        return app(self::API_SERVICE)->forConnection($connectionId)->listCustomers($user);
+                    } catch (\Throwable $e) {
+                        return app(self::API_SERVICE)->listCustomers($user);
+                    }
+                },
             );
         } catch (\Throwable $e) {
             return [];
