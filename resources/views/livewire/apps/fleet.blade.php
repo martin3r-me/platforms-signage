@@ -102,6 +102,10 @@
                             <input type="checkbox" x-model="cfg.show_progress" x-on:change="send()" class="rounded">
                             Fortschritt je Stopp (erledigt/aktiv)
                         </label>
+                        <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" x-model="cfg.show_stops" x-on:change="send()" class="rounded">
+                            Stopps anzeigen <span class="text-[var(--ui-muted)]">(aus = nur Tour-Übersicht)</span>
+                        </label>
                     </div>
 
                     <div class="flex items-center gap-2 pt-2">

@@ -34,6 +34,7 @@ class Fleet extends Component
         'view'          => 'all',         // all=ganzer Tag | upcoming=nur kommende | focus=letzte+nächste
         'show_clock'    => true,          // große Uhr im Kopf
         'show_progress' => true,          // Fortschritt/erledigt je Stopp
+        'show_stops'    => true,          // Stopps anzeigen; false = nur Tour-Übersicht (Köpfe)
     ];
 
     public function mount(?SignageMedia $media = null): void
@@ -51,6 +52,7 @@ class Fleet extends Component
                 'view'          => in_array($cfg['view'] ?? '', self::VIEWS, true) ? $cfg['view'] : 'all',
                 'show_clock'    => (bool) ($cfg['show_clock'] ?? true),
                 'show_progress' => (bool) ($cfg['show_progress'] ?? true),
+                'show_stops'    => (bool) ($cfg['show_stops'] ?? true),
             ];
         }
     }
@@ -71,6 +73,7 @@ class Fleet extends Component
             'view'          => in_array($this->config['view'] ?? '', self::VIEWS, true) ? $this->config['view'] : 'all',
             'show_clock'    => (bool) ($this->config['show_clock'] ?? true),
             'show_progress' => (bool) ($this->config['show_progress'] ?? true),
+            'show_stops'    => (bool) ($this->config['show_stops'] ?? true),
         ];
 
         if ($this->mediaId) {

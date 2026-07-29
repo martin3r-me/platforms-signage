@@ -649,6 +649,7 @@ window.SignageApps = (function () {
         const showClock = cfg.show_clock !== false;
         const showProgress = cfg.show_progress !== false;
         const view = ['all', 'upcoming', 'focus'].indexOf(cfg.view) >= 0 ? cfg.view : 'all';
+        const showStops = cfg.show_stops !== false;   // false = nur Tour-Übersicht (Köpfe)
         const esc = function (s) {
             return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
@@ -697,11 +698,13 @@ window.SignageApps = (function () {
             h += '<div class="fl-tour-name">' + esc(t.name || '') + '</div>';
             if (isNext) h += '<span class="fl-badge fl-badge-next">Nächste</span>';
             else if (isPast) h += '<span class="fl-badge fl-badge-past">vorbei</span>';
+            const n = (t.stops || []).length;
             h += '<div class="fl-tour-meta">';
+            if (!showStops && n) h += '<span class="fl-chip">' + n + (n === 1 ? ' Stopp' : ' Stopps') + '</span>';
             if (t.driver) h += '<span class="fl-chip">' + esc(t.driver) + '</span>';
             if (t.vehicle) h += '<span class="fl-chip fl-veh">' + esc(t.vehicle) + '</span>';
             h += '</div></div>';
-            h += '<div class="fl-stops">' + (t.stops || []).map(stopHtml).join('') + '</div>';
+            if (showStops) h += '<div class="fl-stops">' + (t.stops || []).map(stopHtml).join('') + '</div>';
             return h + '</div>';
         }
 
