@@ -51,11 +51,17 @@ der gewählten (bei nur einer DedeFleet-Connection identisch). Kann entfallen, s
 
 ## Kunde + Adresse: Customer-Join (Signage-seitig)
 
-`Tour/List` liefert je Order **keinen** Kundennamen/Adresse (`order.location.*` = null,
-nur `location.id`). `FleetBoardService::enrichWithCustomers()` holt daher einmal
-`listCustomers($user)` (10 min gecacht pro Connection) und joint lokal
-**`order.location.id` == `customer.customerNumber`** → füllt `location.name/street/postal/city`.
-`Order/Get` pro Stopp wäre die Alternative, ist aber teurer (N Calls) und nicht nötig.
+`Tour/List` liefert je Order die **Adresse** (`order.location.street/postal/city`), aber
+**keinen Kundennamen** (`order.location.name` = null) und **keine** `location.id` (ist null).
+Die **Kundennummer steht im `notes`-Feld** als `"Kundennr: 42"` (verifiziert 2026-07-29).
+`FleetBoardService::enrichWithCustomers()` holt daher einmal `listCustomers($user)` (10 min
+gecacht pro Connection) und joint lokal **`Kundennr` aus `order.notes` == `customer.customerNumber`**
+→ füllt v.a. `location.name` (Adresse ist meist schon da). `Order/Get` pro Stopp liefert zusätzlich
+`driverMessage` (die eigentliche Bemerkung, z.B. „ebenerdig / Temperaturmessung"), kostet aber N Calls.
+
+**Fahrzeug:** `Tour/List` liefert nur `vehicleApiID` (interne Zahl); VehicleProfile/List kennt kein
+`vehicleApiID` (nur `guid`+`name`), Tour/List referenziert aber nicht die guid → **kein Klartext-
+Kennzeichen ermittelbar**, wird im Board ausgeblendet.
 
 ## Verifizierte `Tour/List`-Felder (2026-07-24)
 

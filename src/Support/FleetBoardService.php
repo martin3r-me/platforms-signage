@@ -208,12 +208,17 @@ class FleetBoardService
                     continue;
                 }
                 foreach ($tour[$ok] as &$order) {
-                    if (!is_array($order) || !isset($order['location']) || !is_array($order['location'])) {
+                    if (!is_array($order)) {
                         continue;
                     }
-                    $custNo = (string) ($order['location']['id'] ?? '');
+                    // Die Kundennummer steckt im notes-Feld ("Kundennr: 42"), NICHT in
+                    // location.id (das ist null). Darüber joinen wir Name + Adresse.
+                    $custNo = self::customerNumberFromNotes((string) ($order['notes'] ?? ''));
                     if ($custNo === '' || !isset($map[$custNo])) {
                         continue;
+                    }
+                    if (!isset($order['location']) || !is_array($order['location'])) {
+                        $order['location'] = [];
                     }
                     // Nur leere Felder auffüllen – vorhandene Werte nie überschreiben.
                     foreach ($map[$custNo] as $mk => $mv) {
@@ -265,7 +270,7 @@ class FleetBoardService
             }
             $loc = is_array($c['location'] ?? null) ? $c['location'] : $c;
             $map[$no] = [
-                'name'   => (string) (self::pick($c, ['name', 'customerName']) ?? ''),
+                'name'   => trim((string) (self::pick($c, ['name', 'customerName']) ?? '')),
                 'street' => (string) (self::pick($loc, ['street', 'strasse', 'addressLine1']) ?? ''),
                 'postal' => (string) (self::pick($loc, ['postal', 'zip', 'postalCode', 'plz']) ?? ''),
                 'city'   => (string) (self::pick($loc, ['city', 'ort']) ?? ''),
@@ -310,7 +315,9 @@ class FleetBoardService
                 'name'      => self::tourName($tour, $i),
                 'departure' => self::timeOf(self::pickNested($tour, [['departure', 'time'], ['departureTime'], ['startTime'], ['departure']])),
                 'driver'    => (string) (self::pick($tour, ['driverName', 'driver', 'driverDisplayName']) ?? ''),
-                'vehicle'   => (string) (self::pick($tour, ['vehicleName', 'vehicleLabel', 'licenseNumber', 'vehicleApiID', 'vehicle']) ?? ''),
+                // vehicleApiID ist eine interne Zahl (kein Kennzeichen) und via VehicleProfile/List
+                // NICHT auflösbar → NICHT anzeigen. Nur echte Klartext-Felder verwenden.
+                'vehicle'   => (string) (self::pick($tour, ['vehicleName', 'vehicleLabel', 'licenseNumber']) ?? ''),
                 'status'    => self::tourStatusLabel(self::pick($tour, ['status', 'tourStatus'])),
                 'stops'     => $stops,
             ];
@@ -340,7 +347,7 @@ class FleetBoardService
             'window'   => self::windowOf($order),
             'anl'      => ((int) (self::pick($order, ['type']) ?? 0)) === 0,
             'abh'      => ((int) (self::pick($order, ['type']) ?? 0)) === 1,
-            'note'     => (string) (self::pick($order, ['driverMessage', 'remark', 'note', 'comment', 'notes', 'bemerkung']) ?? ''),
+            'note'     => self::noteOf($order),
             'state'    => $showProgress ? self::orderStateKey($state) : null,
         ];
     }
@@ -404,6 +411,35 @@ class FleetBoardService
         }
 
         return $from ?: $to ?: '';
+    }
+
+    /** Extrahiert die Kundennummer aus dem notes-Feld ("Kundennr: 42" → "42"). */
+    private static function customerNumberFromNotes(string $notes): string
+    {
+        if (preg_match('/Kundennr\.?\s*:?\s*([A-Za-z0-9\-]+)/i', $notes, $m)) {
+            return $m[1];
+        }
+
+        return '';
+    }
+
+    /**
+     * Anzeige-Bemerkung. In Tour/List ist die eigentliche Fahrer-Notiz (driverMessage) NICHT
+     * enthalten – dort steht in notes nur der Kundennr-Marker ("Kundennr: 42"), der nicht
+     * angezeigt werden darf. Reihenfolge: driverMessage/remark/comment, sonst notes OHNE den
+     * Kundennr-Marker (der volle driverMessage käme nur via Order/Get, N Calls).
+     */
+    private static function noteOf(array $order): string
+    {
+        $direct = self::pick($order, ['driverMessage', 'remark', 'comment', 'bemerkung']);
+        if (is_string($direct) && trim($direct) !== '') {
+            return trim($direct);
+        }
+
+        $notes = (string) (self::pick($order, ['notes', 'note']) ?? '');
+        $notes = preg_replace('/Kundennr\.?\s*:?\s*[A-Za-z0-9\-]+/i', '', $notes);
+
+        return trim((string) $notes);
     }
 
     /** DedeFleet-Tour-Status: 0=Planung, 1=Freigegeben, 2=Abgeschlossen. */
