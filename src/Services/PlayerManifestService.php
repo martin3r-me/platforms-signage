@@ -246,6 +246,12 @@ class PlayerManifestService
                         'deviceToken' => $screen->device_token,
                         'media'       => $media->id,
                     ]);
+                    // Durchscrollendes Board: ohne explizit gesetzte Item-Dauer lange stehen
+                    // lassen (sonst wechselt der Player nach dem 10s-Default weg und baut die
+                    // App staendig neu auf -> "wird geladen" + Scroll von vorn).
+                    if (!$item->duration_seconds) {
+                        $duration = 180;
+                    }
                 }
                 $frames[] = [
                     'type'       => 'app',
