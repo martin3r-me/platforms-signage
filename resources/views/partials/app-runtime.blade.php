@@ -264,6 +264,11 @@
     .fl-tour-meta { margin-left: auto; display: flex; align-items: center; gap: 1.4vmin; font-size: 2.2vmin; color: var(--fl-muted); }
     .fl-chip { padding: .5vmin 1.4vmin; border-radius: 100vmin; border: .18vmin solid var(--fl-line); white-space: nowrap; }
     .fl-veh { font-weight: 700; color: var(--fl-fg); }
+    .fl-badge { font-size: 1.9vmin; font-weight: 700; padding: .3vmin 1.5vmin; border-radius: 100vmin; white-space: nowrap; letter-spacing: .04em; text-transform: uppercase; }
+    .fl-badge-next { background: var(--fl-accent); color: #fff; }
+    .fl-badge-past { border: .18vmin solid var(--fl-line); color: var(--fl-muted); }
+    .fl-tour-past { opacity: .48; }
+    .fl-tour-next { border-color: var(--fl-accent); box-shadow: inset 0 0 0 .25vmin var(--fl-accent); }
 
     .fl-stops { display: flex; flex-direction: column; }
     .fl-stop { display: grid; grid-template-columns: 16vmin 1fr auto; gap: 1.4vmin; align-items: baseline; padding: 1.1vmin 0; border-top: .18vmin solid var(--fl-line); font-size: 2.2vmin; }
@@ -643,6 +648,7 @@ window.SignageApps = (function () {
         const title = cfg.title || 'Tourenplan';
         const showClock = cfg.show_clock !== false;
         const showProgress = cfg.show_progress !== false;
+        const view = ['all', 'upcoming', 'focus'].indexOf(cfg.view) >= 0 ? cfg.view : 'all';
         const esc = function (s) {
             return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
@@ -653,6 +659,7 @@ window.SignageApps = (function () {
         wrap.className = 'app-fleet fl-style-' + style + (portrait ? ' fl-portrait' : '');
 
         let stopped = false, dataTimer = null, clockTimer = null, clockEl = null, scrollRAF = null, lastKey = null;
+        let lastData = null, lastViewSig = null, viewTimer = null;
         const SCROLL_SPEED = 0.55;   // px pro Frame (~33 px/s bei 60fps)
         const SCROLL_HOLD  = 180;    // Frames Pause oben/unten (~3s)
 
@@ -683,10 +690,13 @@ window.SignageApps = (function () {
                  + '<div class="fl-stop-flags">' + flags + mark + '</div></div>';
         }
 
-        function tourHtml(t) {
-            let h = '<div class="fl-tour"><div class="fl-tour-head">';
+        function tourHtml(t, isPast, isNext) {
+            const cls = 'fl-tour' + (isPast ? ' fl-tour-past' : '') + (isNext ? ' fl-tour-next' : '');
+            let h = '<div class="' + cls + '"><div class="fl-tour-head">';
             if (t.departure) h += '<div class="fl-dep">' + esc(t.departure) + '</div>';
             h += '<div class="fl-tour-name">' + esc(t.name || '') + '</div>';
+            if (isNext) h += '<span class="fl-badge fl-badge-next">Nächste</span>';
+            else if (isPast) h += '<span class="fl-badge fl-badge-past">vorbei</span>';
             h += '<div class="fl-tour-meta">';
             if (t.driver) h += '<span class="fl-chip">' + esc(t.driver) + '</span>';
             if (t.vehicle) h += '<span class="fl-chip fl-veh">' + esc(t.vehicle) + '</span>';
@@ -695,30 +705,80 @@ window.SignageApps = (function () {
             return h + '</div>';
         }
 
+        // Abfahrtszeit "HH:MM" -> Minuten seit Mitternacht (leer -> Infinity, ans Ende).
+        function depMinutes(t) {
+            const m = /(\d{1,2}):(\d{2})/.exec(t && t.departure || '');
+            return m ? (parseInt(m[1], 10) * 60 + parseInt(m[2], 10)) : Infinity;
+        }
+
+        // Wendet den Ansicht-Modus (all|upcoming|focus) anhand der aktuellen Uhrzeit an.
+        function applyView(tours) {
+            const sorted = (tours || []).slice().sort(function (a, b) { return depMinutes(a) - depMinutes(b); });
+            if (view === 'all') return { list: sorted, pastId: null, nextId: null };
+
+            const now = new Date();
+            const nowMin = now.getHours() * 60 + now.getMinutes();
+            const upcoming = sorted.filter(function (t) { return depMinutes(t) >= nowMin; });
+            const past = sorted.filter(function (t) { return depMinutes(t) < nowMin; });
+            const nextId = upcoming.length ? upcoming[0].id : null;
+
+            if (view === 'upcoming') return { list: upcoming, pastId: null, nextId: nextId };
+
+            // focus: zuletzt vergangene Tour (ausgegraut) + alle kommenden
+            const lastPast = past.length ? [past[past.length - 1]] : [];
+            return { list: lastPast.concat(upcoming), pastId: lastPast.length ? lastPast[0].id : null, nextId: nextId };
+        }
+
         function render(data) {
             stopScroll();
-            if (!data || !data.available) {
+            if (data) lastData = data;
+            data = data || lastData || { available: false };
+
+            if (!data.available) {
                 wrap.innerHTML = headHtml() + '<div class="fl-empty">Tourenplan wird vorbereitet …</div>';
-                bindClock();
+                bindClock(); lastViewSig = 'na';
                 return;
             }
             if (data.error) {
                 wrap.innerHTML = headHtml() + '<div class="fl-empty">Tourenplan aktuell nicht abrufbar.</div>';
-                bindClock();
+                bindClock(); lastViewSig = 'err';
                 return;
             }
             const tours = data.tours || [];
             if (!tours.length) {
                 wrap.innerHTML = headHtml() + '<div class="fl-empty">Keine Touren für heute.</div>';
+                bindClock(); lastViewSig = 'empty';
+                return;
+            }
+
+            const vf = applyView(tours);
+            lastViewSig = vf.list.map(function (t) { return t.id; }).join(',') + '|' + vf.pastId + '|' + vf.nextId;
+
+            if (!vf.list.length) {
+                wrap.innerHTML = headHtml() + '<div class="fl-empty">Keine weiteren Touren heute.</div>';
                 bindClock();
                 return;
             }
+
+            const cards = vf.list.map(function (t) {
+                return tourHtml(t, t.id === vf.pastId, t.id === vf.nextId);
+            }).join('');
             wrap.innerHTML = headHtml()
                 + '<div class="fl-scroll"><div class="fl-scroll-inner"><div class="fl-tours">'
-                + tours.map(tourHtml).join('')
+                + cards
                 + '</div></div></div>';
             bindClock();
             startScroll();
+        }
+
+        // Zeitbasierte Ansichten (upcoming/focus) über den Tag frisch halten: minütlich
+        // prüfen, ob sich die sichtbare Auswahl geändert hat, und nur dann neu rendern.
+        function refreshView() {
+            if (view === 'all' || stopped || !lastData) return;
+            const tours = (lastData.available && !lastData.error) ? (lastData.tours || []) : [];
+            const vf = applyView(tours);
+            const sig = vf.list.map(function (t) { return t.id; }).join(',') + '|' + vf.pastId + '|' + vf.nextId;
+            if (sig !== lastViewSig) render(lastData);
         }
 
         function bindClock() {
@@ -796,8 +856,9 @@ window.SignageApps = (function () {
         load();
         dataTimer = setInterval(load, 2 * 60 * 1000);
         clockTimer = setInterval(tickClock, 1000);
+        if (view !== 'all') viewTimer = setInterval(refreshView, 60 * 1000);
 
-        return { node: wrap, stop: function () { stopped = true; stopScroll(); if (dataTimer) clearInterval(dataTimer); if (clockTimer) clearInterval(clockTimer); } };
+        return { node: wrap, stop: function () { stopped = true; stopScroll(); if (dataTimer) clearInterval(dataTimer); if (clockTimer) clearInterval(clockTimer); if (viewTimer) clearInterval(viewTimer); } };
     }
 
     function build(type, cfg, portrait) {

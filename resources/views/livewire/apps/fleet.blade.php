@@ -81,6 +81,18 @@
                         </div>
                     </div>
 
+                    <div>
+                        <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Anzeige</label>
+                        <select x-model="cfg.view" x-on:change="send()" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
+                            <option value="all">Kompletter Tag (scrollend)</option>
+                            <option value="upcoming">Nur kommende Touren</option>
+                            <option value="focus">Fokus: letzte + nächste</option>
+                        </select>
+                        <span class="text-xs text-[var(--ui-muted)]">
+                            „Kommende"/„Fokus" blenden vergangene Touren anhand der aktuellen Uhrzeit aus und aktualisieren sich automatisch.
+                        </span>
+                    </div>
+
                     <div class="flex flex-wrap gap-5">
                         <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
                             <input type="checkbox" x-model="cfg.show_clock" x-on:change="send()" class="rounded">

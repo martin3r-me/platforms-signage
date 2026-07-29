@@ -25,11 +25,13 @@ class Fleet extends Component
     public string $name = '';
 
     public const STYLES = ['elegant', 'warm', 'modern', 'night'];
+    public const VIEWS  = ['all', 'upcoming', 'focus'];
 
     public array $config = [
         'connection_id' => null,          // gewählte DedeFleet-Connection
         'style'         => 'modern',      // elegant | warm | modern | night
         'title'         => 'Tourenplan',
+        'view'          => 'all',         // all=ganzer Tag | upcoming=nur kommende | focus=letzte+nächste
         'show_clock'    => true,          // große Uhr im Kopf
         'show_progress' => true,          // Fortschritt/erledigt je Stopp
     ];
@@ -46,6 +48,7 @@ class Fleet extends Component
                 'connection_id' => isset($cfg['connection_id']) ? (int) $cfg['connection_id'] : null,
                 'style'         => in_array($cfg['style'] ?? '', self::STYLES, true) ? $cfg['style'] : 'modern',
                 'title'         => (string) ($cfg['title'] ?? 'Tourenplan'),
+                'view'          => in_array($cfg['view'] ?? '', self::VIEWS, true) ? $cfg['view'] : 'all',
                 'show_clock'    => (bool) ($cfg['show_clock'] ?? true),
                 'show_progress' => (bool) ($cfg['show_progress'] ?? true),
             ];
@@ -65,6 +68,7 @@ class Fleet extends Component
             'connection_id' => $this->config['connection_id'] ? (int) $this->config['connection_id'] : null,
             'style'         => in_array($this->config['style'] ?? '', self::STYLES, true) ? $this->config['style'] : 'modern',
             'title'         => mb_substr((string) ($this->config['title'] ?? ''), 0, 120),
+            'view'          => in_array($this->config['view'] ?? '', self::VIEWS, true) ? $this->config['view'] : 'all',
             'show_clock'    => (bool) ($this->config['show_clock'] ?? true),
             'show_progress' => (bool) ($this->config['show_progress'] ?? true),
         ];
