@@ -652,7 +652,7 @@ window.SignageApps = (function () {
         const wrap = document.createElement('div');
         wrap.className = 'app-fleet fl-style-' + style + (portrait ? ' fl-portrait' : '');
 
-        let stopped = false, dataTimer = null, clockTimer = null, clockEl = null, scrollRAF = null;
+        let stopped = false, dataTimer = null, clockTimer = null, clockEl = null, scrollRAF = null, lastKey = null;
         const SCROLL_SPEED = 0.55;   // px pro Frame (~33 px/s bei 60fps)
         const SCROLL_HOLD  = 180;    // Frames Pause oben/unten (~3s)
 
@@ -764,6 +764,11 @@ window.SignageApps = (function () {
             });
         }
 
+        function dataKey(d) {
+            if (!d) return 'x';
+            return (d.available ? 1 : 0) + '|' + (d.error ? 1 : 0) + '|' + JSON.stringify(d.tours || []);
+        }
+
         async function load() {
             if (!cfg.endpoint) { render({ available: false }); return; }
             try {
@@ -774,9 +779,15 @@ window.SignageApps = (function () {
                 const r = await fetch(url, { cache: 'no-store' });
                 const d = await r.json();
                 if (stopped) return;
+                // Hintergrund-Update: nur bei echter Änderung neu rendern, sonst weiterscrollen.
+                const key = dataKey(d);
+                if (key === lastKey && wrap.querySelector('.fl-scroll')) return;
+                lastKey = key;
                 render(d);
             } catch (e) {
-                if (!stopped) render({ available: false });
+                // Transienter Netzfehler beim Hintergrund-Update: bestehende Anzeige behalten;
+                // nur beim allerersten Laden (noch nichts gerendert) den Hinweis zeigen.
+                if (!stopped && lastKey === null) render({ available: false });
             }
         }
 
