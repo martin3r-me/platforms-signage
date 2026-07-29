@@ -254,7 +254,9 @@
     .fl-clock-date { font-size: 2.4vmin; color: var(--fl-muted); margin-top: .8vmin; }
     .fl-loading, .fl-empty { margin: auto; font-size: 3.6vmin; color: var(--fl-muted); text-align: center; padding: 4vmin; }
 
-    .fl-tours { flex: 1; display: grid; gap: 2.5vmin; grid-template-columns: repeat(var(--fl-cols, 2), minmax(0, 1fr)); align-content: start; overflow: hidden; }
+    .fl-scroll { flex: 1; overflow: hidden; position: relative; }
+    .fl-scroll-inner { will-change: transform; }
+    .fl-tours { display: flex; flex-direction: column; gap: 2.2vmin; }
     .fl-tour { border: .22vmin solid var(--fl-line); border-radius: 2.2vmin; background: var(--fl-card); padding: 2.2vmin 2.6vmin; display: flex; flex-direction: column; gap: 1.6vmin; overflow: hidden; }
     .fl-tour-head { display: flex; align-items: center; gap: 1.8vmin; flex-wrap: wrap; }
     .fl-dep { font-size: 3.6vmin; font-weight: 800; color: var(--fl-accent); font-variant-numeric: tabular-nums; line-height: 1; }
@@ -279,7 +281,6 @@
     .fl-stop.done .fl-stop-cust { text-decoration: line-through; text-decoration-color: var(--fl-done); }
     .fl-stop.active { background: color-mix(in srgb, var(--fl-accent) 12%, transparent); border-radius: 1vmin; }
 
-    .fl-portrait .fl-tours { grid-template-columns: 1fr; }
     .fl-portrait .fl-stop { grid-template-columns: 14vmin 1fr; }
     .fl-portrait .fl-stop-flags { grid-column: 2; justify-content: flex-start; }
 </style>
@@ -650,9 +651,10 @@ window.SignageApps = (function () {
 
         const wrap = document.createElement('div');
         wrap.className = 'app-fleet fl-style-' + style + (portrait ? ' fl-portrait' : '');
-        wrap.style.setProperty('--fl-cols', portrait ? 1 : 2);
 
-        let stopped = false, dataTimer = null, clockTimer = null, clockEl = null;
+        let stopped = false, dataTimer = null, clockTimer = null, clockEl = null, scrollRAF = null;
+        const SCROLL_SPEED = 0.55;   // px pro Frame (~33 px/s bei 60fps)
+        const SCROLL_HOLD  = 180;    // Frames Pause oben/unten (~3s)
 
         function headHtml() {
             let h = '<div class="fl-head"><div class="fl-title">' + esc(title);
@@ -694,6 +696,7 @@ window.SignageApps = (function () {
         }
 
         function render(data) {
+            stopScroll();
             if (!data || !data.available) {
                 wrap.innerHTML = headHtml() + '<div class="fl-empty">Tourenplan wird vorbereitet …</div>';
                 bindClock();
@@ -710,8 +713,12 @@ window.SignageApps = (function () {
                 bindClock();
                 return;
             }
-            wrap.innerHTML = headHtml() + '<div class="fl-tours">' + tours.map(tourHtml).join('') + '</div>';
+            wrap.innerHTML = headHtml()
+                + '<div class="fl-scroll"><div class="fl-scroll-inner"><div class="fl-tours">'
+                + tours.map(tourHtml).join('')
+                + '</div></div></div>';
             bindClock();
+            startScroll();
         }
 
         function bindClock() {
@@ -723,6 +730,38 @@ window.SignageApps = (function () {
             if (!clockEl) return;
             const d = new Date();
             clockEl.textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+        }
+
+        function stopScroll() {
+            if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
+        }
+
+        // Sanftes vertikales Durchscrollen des kompletten Plans (Abfahrtstafel-Stil),
+        // mit Pause oben/unten. Passt der Inhalt komplett, wird nicht gescrollt.
+        function startScroll() {
+            const vp = wrap.querySelector('.fl-scroll');
+            const inner = wrap.querySelector('.fl-scroll-inner');
+            if (!vp || !inner) return;
+
+            scrollRAF = requestAnimationFrame(function () {   // erst nach dem Layout messen
+                const overflow = inner.scrollHeight - vp.clientHeight;
+                if (overflow <= 4) { scrollRAF = null; return; }
+
+                let y = 0, dir = 1, hold = SCROLL_HOLD;
+                const step = function () {
+                    if (stopped) return;
+                    if (hold > 0) {
+                        hold--;
+                    } else {
+                        y += dir * SCROLL_SPEED;
+                        if (y >= overflow) { y = overflow; dir = -1; hold = SCROLL_HOLD; }
+                        else if (y <= 0) { y = 0; dir = 1; hold = SCROLL_HOLD; }
+                    }
+                    inner.style.transform = 'translateY(' + (-y).toFixed(1) + 'px)';
+                    scrollRAF = requestAnimationFrame(step);
+                };
+                scrollRAF = requestAnimationFrame(step);
+            });
         }
 
         async function load() {
@@ -747,7 +786,7 @@ window.SignageApps = (function () {
         dataTimer = setInterval(load, 2 * 60 * 1000);
         clockTimer = setInterval(tickClock, 1000);
 
-        return { node: wrap, stop: function () { stopped = true; if (dataTimer) clearInterval(dataTimer); if (clockTimer) clearInterval(clockTimer); } };
+        return { node: wrap, stop: function () { stopped = true; stopScroll(); if (dataTimer) clearInterval(dataTimer); if (clockTimer) clearInterval(clockTimer); } };
     }
 
     function build(type, cfg, portrait) {

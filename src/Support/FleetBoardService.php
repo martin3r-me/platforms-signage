@@ -323,6 +323,14 @@ class FleetBoardService
             ];
         }
 
+        // Nach Abfahrtszeit sortieren (leere Zeiten ans Ende).
+        usort($out, function ($a, $b) {
+            $ta = $a['departure'] !== '' ? $a['departure'] : '99:99';
+            $tb = $b['departure'] !== '' ? $b['departure'] : '99:99';
+
+            return strcmp($ta, $tb);
+        });
+
         return $out;
     }
 
