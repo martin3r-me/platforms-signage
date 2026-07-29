@@ -90,12 +90,14 @@ class FleetBoardService
             return $empty;
         }
 
-        // Tagesgrenzen als ISO 8601 OHNE Zeitzonen-Offset – der ApiService konvertiert selbst
-        // ins DedeFleet-Format. WICHTIG: mit Offset (+02:00) antwortet Tour/List mit HTTP 500
-        // "Start is not a valid date!" (2026-07 an echter API verifiziert). Zusätzlich gilt die
-        // 7-Tage-Range-Grenze der API – hier unkritisch, da immer nur ein einzelner Tag.
-        $start = Carbon::parse($date)->startOfDay()->format('Y-m-d\TH:i:s');
-        $end   = Carbon::parse($date)->endOfDay()->format('Y-m-d\TH:i:s');
+        // Tagesgrenzen als REINES ISO-Datum (Y-m-d) – der ApiService konvertiert das zu
+        // DedeFleet "DD.MM.YYYY". WICHTIG: Tour/List akzeptiert für start/end NUR ein Datum
+        // ohne Uhrzeit. Mit Uhrzeit ("29.07.2026 00:00:00") ODER mit Zeitzonen-Offset
+        // antwortet die API mit HTTP 500 "Start is not a valid date!" (2026-07-29 an echter
+        // API verifiziert). Deshalb kein startOfDay()/endOfDay(). Die 7-Tage-Range-Grenze der
+        // API ist hier unkritisch (immer nur ein einzelner Tag).
+        $start = Carbon::parse($date)->format('Y-m-d');
+        $end   = Carbon::parse($date)->format('Y-m-d');
 
         try {
             // forConnection() pinnt die gewählte Connection; listTours() prüft via

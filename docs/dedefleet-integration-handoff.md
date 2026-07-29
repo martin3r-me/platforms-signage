@@ -71,6 +71,11 @@ Anhand einer echten Response (Team BHG.DIGITAL, Connection „DedeFleet") verifi
 
 - **`Tour/List` erlaubt max. 7 Tage** `start`–`end` (sonst HTTP 500 „Start/End has a Time
   Range over 7 Days!"). Signage fragt nur einen Tag ab → unkritisch.
-- **Datumsformat:** ISO `yyyy-MM-dd` bzw. `yyyy-MM-ddTHH:mm:ss` **ohne Zeitzonen-Offset**.
-  Mit `+02:00` → 500 „Start is not a valid date!". `FleetBoardService::board()` sendet daher
-  offset-freies `Y-m-d\TH:i:s`; der ApiService konvertiert selbst ins DedeFleet-Format `DD.MM.YYYY`.
+- **Datumsformat (korrigiert 2026-07-29):** `start`/`end` dürfen NUR ein reines Datum sein
+  (ISO `yyyy-MM-dd`, wird zu `DD.MM.YYYY` konvertiert). **Mit Uhrzeit** (`yyyy-MM-ddTHH:mm:ss`
+  → `DD.MM.YYYY HH:mm:ss`) **ODER mit Zeitzonen-Offset** antwortet Tour/List mit HTTP 500
+  „Start is not a valid date!". An echter API am 2026-07-29 verifiziert: `29.07.2026` liefert
+  Touren, `29.07.2026 00:00:00` bzw. `2026-07-29T00:00:00` → 500. `FleetBoardService::board()`
+  sendet daher `Y-m-d` (kein `startOfDay()/endOfDay()`).
+  ⚠ Die frühere Notiz „offset-freies `Y-m-d\TH:i:s` funktioniert" war falsch und war die Ursache
+  für das „Keine Touren für heute"-Symptom im Board.
