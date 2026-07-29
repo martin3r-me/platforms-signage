@@ -107,6 +107,16 @@ class FleetBoardService
                 ->forConnection($connectionId)
                 ->listTours($user, ['start' => $start, 'end' => $end]);
         } catch (\Throwable $e) {
+            // Nicht still verschlucken – sonst ist ein API-/Zugriffsfehler von einem
+            // echten "keine Touren" nicht zu unterscheiden.
+            \Illuminate\Support\Facades\Log::warning('Signage DedeFleet board() failed', [
+                'connection_id' => $connectionId,
+                'user_id'       => $user->id ?? null,
+                'date'          => $date,
+                'exception'     => $e::class,
+                'message'       => $e->getMessage(),
+            ]);
+
             return ['available' => true, 'error' => true, 'date' => $date, 'tours' => []];
         }
 

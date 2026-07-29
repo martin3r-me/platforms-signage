@@ -51,11 +51,11 @@
 
                     <div>
                         <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">DedeFleet-Verbindung</label>
-                        <select x-model.number="cfg.connection_id" x-on:change="send()"
+                        <select x-model="cfg.connection_id" x-on:change="send()"
                                 class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
-                            <option :value="null">– Verbindung wählen –</option>
+                            <option value="">– Verbindung wählen –</option>
                             @foreach($connections as $c)
-                                <option :value="{{ $c['id'] }}">{{ $c['label'] }}</option>
+                                <option value="{{ $c['id'] }}">{{ $c['label'] }}</option>
                             @endforeach
                         </select>
                         @if(empty($connections))

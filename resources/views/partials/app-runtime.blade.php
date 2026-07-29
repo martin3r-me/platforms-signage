@@ -699,6 +699,11 @@ window.SignageApps = (function () {
                 bindClock();
                 return;
             }
+            if (data.error) {
+                wrap.innerHTML = headHtml() + '<div class="fl-empty">Tourenplan aktuell nicht abrufbar.</div>';
+                bindClock();
+                return;
+            }
             const tours = data.tours || [];
             if (!tours.length) {
                 wrap.innerHTML = headHtml() + '<div class="fl-empty">Keine Touren für heute.</div>';
