@@ -6,6 +6,7 @@ use Illuminate\Http\UploadedFile;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Platform\Signage\Jobs\ConvertDocumentJob;
 use Platform\Signage\Livewire\Concerns\WithCurrentTeam;
 use Platform\Signage\Models\SignageMedia;
 

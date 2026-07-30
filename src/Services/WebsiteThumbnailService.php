@@ -49,6 +49,10 @@ class WebsiteThumbnailService
         $token = Str::random(40);
         $path = $token.(str_contains($ct, 'png') ? '.png' : '.jpg');
 
+        // Alten Screenshot merken, um ihn nach erfolgreichem Neuschreiben zu entfernen.
+        $oldDisk = $media->disk ?: $disk;
+        $oldPath = $media->display_path;
+
         try {
             Storage::disk($disk)->put($path, $body);
         } catch (\Throwable $e) {
@@ -56,6 +60,17 @@ class WebsiteThumbnailService
         }
 
         $media->update(['disk' => $disk, 'display_path' => $path, 'display_token' => $token]);
+
+        // Vorherige Screenshot-Datei löschen (sonst Storage-Leak bei wiederholtem
+        // „Vorschau neu laden"). Best-effort – Fehler hier dürfen den Abruf nicht kippen.
+        if ($oldPath && $oldPath !== $path) {
+            try {
+                Storage::disk($oldDisk)->delete($oldPath);
+            } catch (\Throwable $e) {
+                // ignorieren
+            }
+        }
+
         SignageScreen::bumpForMedia($media->id);
 
         return ['ok' => true, 'reason' => null];

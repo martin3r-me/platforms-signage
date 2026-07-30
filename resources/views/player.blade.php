@@ -205,8 +205,11 @@
                     // Neu laden bei Änderung ODER periodisch (signierte URLs frisch halten).
                     const stale = (Date.now() - lastManifestAt) > CONFIG.manifestRefresh;
                     if (state.content_version !== currentVersion || stale) {
-                        currentVersion = state.content_version;
+                        // WICHTIG: currentVersion erst NACH erfolgreichem Load setzen. Sonst
+                        // gilt die Version bei einem Netz-Blip als "erledigt" und neue Inhalte
+                        // erscheinen erst beim nächsten echten Versionswechsel/Stale-Refresh.
                         await loadManifest();
+                        currentVersion = state.content_version;
                     }
                 }
             } catch (e) {
@@ -385,7 +388,15 @@
                 v.playsInline = true;
                 v.style.objectFit = item.fit === 'cover' ? 'cover' : 'contain';
                 v.onended = () => { go(); };
-                const show = () => { if (done) return; done = true; mount(frame); v.play().catch(() => {}); };
+                const show = () => {
+                    if (done) return; done = true;
+                    mount(frame); v.play().catch(() => {});
+                    // Watchdog: falls das Video stalled (Netzabbruch ohne 'error') oder ein
+                    // Livestream ohne 'ended' ist, trotzdem nach Laenge + Puffer weiterschalten
+                    // – sonst bleibt die ganze Playlist auf diesem Frame stehen.
+                    const secs = (isFinite(v.duration) && v.duration > 0) ? v.duration : (item.duration || 60);
+                    schedule(Math.ceil((secs + 10) * 1000));
+                };
                 v.addEventListener('loadeddata', show, { once: true });
                 v.onerror = () => { if (done) return; done = true; flagManifestRefresh(); go(); };
                 v.src = item.url;
