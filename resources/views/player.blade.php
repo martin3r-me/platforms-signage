@@ -428,6 +428,9 @@
                 setTimeout(() => { if (gen === frameGen) show(); }, 4000);
             } else {
                 const img = document.createElement('img');
+                // Letterbox-Rand in der erkannten Hintergrundfarbe des Mediums (statt Schwarz),
+                // damit z.B. weiße Dokument-Seiten keinen schwarzen Rand bekommen. Fallback: Schwarz.
+                frame.style.background = item.bg || '#000';
                 img.style.objectFit = item.fit === 'cover' ? 'cover' : 'contain';
                 const ms = (item.duration || 10) * 1000;
                 const show = () => { if (done) return; done = true; mount(frame); schedule(ms); };

@@ -15,7 +15,7 @@ class SignageMedia extends Model
     protected $table = 'signage_media';
 
     protected $fillable = [
-        'uuid', 'team_id', 'folder_id', 'user_id', 'name', 'kind', 'app_type', 'config',
+        'uuid', 'team_id', 'folder_id', 'user_id', 'name', 'kind', 'app_type', 'config', 'bg_color',
         'source_type', 'stream_url', 'is_embed',
         'disk', 'path', 'token', 'display_path', 'display_token', 'original_name', 'mime_type', 'file_size',
         'width', 'height', 'duration_seconds', 'processing_status', 'page_count',

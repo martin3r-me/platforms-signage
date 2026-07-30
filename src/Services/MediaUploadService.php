@@ -56,8 +56,11 @@ class MediaUploadService
         if ($kind === 'document') {
             ConvertDocumentJob::dispatch($media->id);
         } elseif ($kind === 'image') {
+            $svc = app(SignageImageService::class);
             // Heruntergerechnete Anzeige-Variante für schnelleres Laden auf TVs.
-            app(SignageImageService::class)->makeDisplayVariant($media->refresh());
+            $svc->makeDisplayVariant($media->refresh());
+            // Rand-/Hintergrundfarbe erkennen (Letterbox-Farbe im Player).
+            $svc->detectAndStoreBackground($media->refresh());
         }
 
         return $media;

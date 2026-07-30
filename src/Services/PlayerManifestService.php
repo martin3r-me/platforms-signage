@@ -267,6 +267,7 @@ class PlayerManifestService
                     'duration'   => $duration,
                     'transition' => $item->transition,
                     'fit'        => $fit,
+                    'bg'         => $media->bg_color,
                     'media_id'   => $media->id,
                 ];
             } elseif ($media->kind === 'video') {
@@ -289,6 +290,7 @@ class PlayerManifestService
                         'duration'   => $duration,
                         'transition' => $item->transition,
                         'fit'        => $fit,
+                        'bg'         => $media->bg_color,
                         'media_id'   => $media->id, // Parent-Dokument
                     ];
                 }

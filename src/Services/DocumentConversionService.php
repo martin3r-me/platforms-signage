@@ -107,9 +107,19 @@ class DocumentConversionService
                 $pageNumber++;
             }
 
+            // Rand-/Hintergrundfarbe aus der ersten Seite erkennen (Letterbox-Farbe im Player).
+            $bgColor = null;
+            try {
+                $bgColor = app(SignageImageService::class)
+                    ->detectBackgroundColor((string) file_get_contents($pagePngs[0]));
+            } catch (\Throwable $e) {
+                $bgColor = null;
+            }
+
             $media->update([
                 'page_count'        => count($pagePngs),
                 'processing_status' => 'ready',
+                'bg_color'          => $bgColor,
             ]);
         } catch (\Throwable $e) {
             Log::error('[Signage] Dokument-Konvertierung fehlgeschlagen', [
