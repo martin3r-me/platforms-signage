@@ -62,8 +62,19 @@ class DocumentConversionService
                 throw new \RuntimeException('Keine Seiten erzeugt.');
             }
 
-            // 4) Alte Seiten entfernen, neue speichern.
-            $media->pages()->delete();
+            // 4) Alte Seiten entfernen (inkl. Storage-Dateien – sonst bleiben bei jeder
+            //    Neukonvertierung die alten Seitenbilder verwaist liegen), neue speichern.
+            foreach ($media->pages()->get() as $oldPage) {
+                if ($oldPage->path) {
+                    try {
+                        Storage::disk($oldPage->disk ?: config('filesystems.default', 'public'))
+                            ->delete($oldPage->path);
+                    } catch (\Throwable $e) {
+                        // ignorieren – Datei evtl. bereits entfernt
+                    }
+                }
+                $oldPage->delete();
+            }
 
             $teamId = $media->team_id;
             $pageNumber = 1;

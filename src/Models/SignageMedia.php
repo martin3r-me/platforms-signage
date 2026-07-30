@@ -44,6 +44,11 @@ class SignageMedia extends Model
             // die betroffenen Screens über genau diese Einträge ermittelt.
             SignageScreen::bumpForMedia($media->id);
 
+            // Direkte Musik-Referenz von Bildschirmen lösen. Der FK nullOnDelete greift
+            // bei SoftDeletes nicht (keine echte DB-Löschung), daher hier manuell. WICHTIG:
+            // nach bumpForMedia, das die betroffenen Screens über music_media_id ermittelt.
+            SignageScreen::where('music_media_id', $media->id)->update(['music_media_id' => null]);
+
             // Verwaiste Playlist-Einträge entfernen. Der DB-Cascade (cascadeOnDelete)
             // greift bei SoftDeletes nicht (die Zeile bleibt bestehen), daher hier manuell.
             SignagePlaylistItem::where('media_id', $media->id)->delete();
