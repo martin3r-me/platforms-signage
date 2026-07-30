@@ -205,9 +205,18 @@ class Show extends Component
     {
         $this->playlist->load('items.media');
 
+        // Namen der bereits enthaltenen Medien (für die „schon in der Liste"-Rückfrage).
+        $existingNames = $this->playlist->items
+            ->map(fn ($i) => mb_strtolower(trim((string) ($i->media?->name ?? ''))))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
         return view('signage::livewire.playlists.show', [
             'items'          => $this->playlist->items,
             'available'      => $this->availableMedia(),
+            'existingNames'  => $existingNames,
             'defaultDuration' => (int) config('signage.default_image_duration', 10),
         ])->layout('platform::layouts.app');
     }

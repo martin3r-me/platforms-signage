@@ -77,7 +77,9 @@
                         {{-- Vorschau-Grid: Klick fügt direkt hinzu --}}
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-80 overflow-y-auto pr-1">
                             @foreach($available as $m)
+                                @php($dup = in_array(mb_strtolower(trim($m->name)), $existingNames, true))
                                 <button type="button" wire:click="addItem({{ $m->id }})" wire:key="pick-{{ $m->id }}"
+                                        @if($dup) wire:confirm="„{{ $m->name }}" ist bereits in dieser Wiedergabeliste. Trotzdem nochmal hinzufügen?" @endif
                                         class="group text-left rounded-lg border border-[var(--ui-border)]/50 overflow-hidden bg-[var(--ui-muted-5)] hover:border-[rgb(var(--ui-primary-rgb))] hover:shadow-md transition">
                                     <div class="w-full flex items-center justify-center bg-black/5 relative overflow-hidden" style="aspect-ratio: 16 / 9">
                                         @php($preview = $m->previewUrl())
