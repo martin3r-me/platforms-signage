@@ -35,6 +35,7 @@ class SignageServiceProvider extends ServiceProvider
                 \Platform\Signage\Console\Commands\ProcessDocuments::class,
                 \Platform\Signage\Console\Commands\PruneScreens::class,
                 \Platform\Signage\Console\Commands\PrunePlaybackLogs::class,
+                \Platform\Signage\Console\Commands\BackfillBgColors::class,
             ]);
         }
     }
