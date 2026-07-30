@@ -78,8 +78,8 @@
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-80 overflow-y-auto pr-1">
                             @foreach($available as $m)
                                 @php($dup = in_array(mb_strtolower(trim($m->name)), $existingNames, true))
-                                <button type="button" wire:click="addItem({{ $m->id }})" wire:key="pick-{{ $m->id }}"
-                                        @if($dup) wire:confirm="„{{ $m->name }}" ist bereits in dieser Wiedergabeliste. Trotzdem nochmal hinzufügen?" @endif
+                                <button type="button" wire:key="pick-{{ $m->id }}"
+                                        wire:click="{{ $dup ? 'promptDuplicate' : 'addItem' }}({{ $m->id }})"
                                         class="group text-left rounded-lg border border-[var(--ui-border)]/50 overflow-hidden bg-[var(--ui-muted-5)] hover:border-[rgb(var(--ui-primary-rgb))] hover:shadow-md transition">
                                     <div class="w-full flex items-center justify-center bg-black/5 relative overflow-hidden" style="aspect-ratio: 16 / 9">
                                         @php($preview = $m->previewUrl())
@@ -111,6 +111,30 @@
                     @endif
                 </div>
             </x-signage-panel>
+
+            {{-- Dialog: gleichnamiges Medium ist bereits in der Liste --}}
+            @if($pendingMediaId)
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                     wire:click.self="cancelAdd" wire:key="dup-modal">
+                    <div class="bg-[var(--ui-bg,#fff)] rounded-xl shadow-2xl w-full max-w-md">
+                        <div class="flex items-center justify-between px-5 py-3 border-b border-[var(--ui-border)]/40">
+                            <h3 class="font-semibold text-[var(--ui-secondary)]">Bereits in der Wiedergabeliste</h3>
+                            <button wire:click="cancelAdd" class="p-1 rounded text-[var(--ui-muted)] hover:text-[var(--ui-secondary)]">
+                                @svg('heroicon-o-x-mark', 'w-5 h-5')
+                            </button>
+                        </div>
+                        <div class="p-5 space-y-4">
+                            <p class="text-sm text-[var(--ui-secondary)]">
+                                „<span class="font-medium">{{ $pendingMediaName }}</span>" ist bereits in dieser Wiedergabeliste. Trotzdem noch einmal hinzufügen?
+                            </p>
+                            <div class="flex items-center justify-end gap-2">
+                                <x-ui-button type="button" variant="secondary" wire:click="cancelAdd">Abbrechen</x-ui-button>
+                                <x-ui-button type="button" variant="primary" wire:click="confirmAdd">Trotzdem hinzufügen</x-ui-button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             <x-signage-panel color="violet" icon="bars-3" title="Reihenfolge" subtitle="Wird von oben nach unten abgespielt">
                 @if($items->isEmpty())

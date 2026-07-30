@@ -21,6 +21,10 @@ class Show extends Component
 
     public ?int $addMediaId = null;
 
+    // Rückfrage-Dialog: Medium mit gleichem Namen ist bereits in der Liste.
+    public ?int $pendingMediaId = null;
+    public string $pendingMediaName = '';
+
     // Suche im Medien-Picker
     public string $mediaSearch = '';
 
@@ -86,6 +90,30 @@ class Show extends Component
         $this->addMediaId = null;
         $this->bumpAffectedScreens();
         session()->flash('signage_message', '„'.$media->name.'" hinzugefügt.');
+    }
+
+    /** Öffnet die Rückfrage, wenn ein gleichnamiges Medium schon in der Liste ist. */
+    public function promptDuplicate(int $mediaId): void
+    {
+        $media = SignageMedia::where('team_id', $this->teamId())->findOrFail($mediaId);
+        $this->pendingMediaId = $media->id;
+        $this->pendingMediaName = (string) $media->name;
+    }
+
+    /** Bestätigt das erneute Hinzufügen aus der Rückfrage. */
+    public function confirmAdd(): void
+    {
+        if ($this->pendingMediaId) {
+            $this->addItem($this->pendingMediaId);
+        }
+        $this->cancelAdd();
+    }
+
+    /** Schließt die Rückfrage ohne Hinzufügen. */
+    public function cancelAdd(): void
+    {
+        $this->pendingMediaId = null;
+        $this->pendingMediaName = '';
     }
 
     /**
