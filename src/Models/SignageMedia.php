@@ -37,6 +37,16 @@ class SignageMedia extends Model
         // Anzeige-Variante, Dokument-Seiten) – sonst wächst der Speicher.
         static::deleting(function (self $media) {
             $media->deleteStorageFiles();
+
+            // Bildschirme, die dieses Medium (direkt oder über Playlists/Zeitpläne)
+            // nutzen, neu laden lassen – sonst zeigt der Player es mit altem Manifest
+            // weiter an. WICHTIG: vor dem Entfernen der Playlist-Einträge, da bumpForMedia
+            // die betroffenen Screens über genau diese Einträge ermittelt.
+            SignageScreen::bumpForMedia($media->id);
+
+            // Verwaiste Playlist-Einträge entfernen. Der DB-Cascade (cascadeOnDelete)
+            // greift bei SoftDeletes nicht (die Zeile bleibt bestehen), daher hier manuell.
+            SignagePlaylistItem::where('media_id', $media->id)->delete();
         });
     }
 
