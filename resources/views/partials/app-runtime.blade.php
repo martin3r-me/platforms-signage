@@ -648,8 +648,9 @@ window.SignageApps = (function () {
         const title = cfg.title || 'Tourenplan';
         const showClock = cfg.show_clock !== false;
         const showProgress = cfg.show_progress !== false;
-        const view = ['all', 'upcoming', 'focus'].indexOf(cfg.view) >= 0 ? cfg.view : 'all';
+        const view = ['all', 'paged', 'upcoming', 'focus'].indexOf(cfg.view) >= 0 ? cfg.view : 'all';
         const showStops = cfg.show_stops !== false;   // false = nur Tour-Übersicht (Köpfe)
+        const pageSeconds = Math.max(4, parseInt(cfg.page_seconds, 10) || 12);   // Modus "seitenweise"
         const esc = function (s) {
             return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
@@ -660,7 +661,7 @@ window.SignageApps = (function () {
         wrap.className = 'app-fleet fl-style-' + style + (portrait ? ' fl-portrait' : '');
 
         let stopped = false, dataTimer = null, clockTimer = null, clockEl = null, scrollRAF = null, lastKey = null;
-        let lastData = null, lastViewSig = null, viewTimer = null;
+        let lastData = null, lastViewSig = null, viewTimer = null, pageTimer = null;
         const SCROLL_SPEED = 0.55;   // px pro Frame (~33 px/s bei 60fps)
         const SCROLL_HOLD  = 180;    // Frames Pause oben/unten (~3s)
 
@@ -717,7 +718,7 @@ window.SignageApps = (function () {
         // Wendet den Ansicht-Modus (all|upcoming|focus) anhand der aktuellen Uhrzeit an.
         function applyView(tours) {
             const sorted = (tours || []).slice().sort(function (a, b) { return depMinutes(a) - depMinutes(b); });
-            if (view === 'all') return { list: sorted, pastId: null, nextId: null };
+            if (view === 'all' || view === 'paged') return { list: sorted, pastId: null, nextId: null };
 
             const now = new Date();
             const nowMin = now.getHours() * 60 + now.getMinutes();
@@ -771,13 +772,13 @@ window.SignageApps = (function () {
                 + cards
                 + '</div></div></div>';
             bindClock();
-            startScroll();
+            if (view === 'paged') startPaging(); else startScroll();
         }
 
         // Zeitbasierte Ansichten (upcoming/focus) über den Tag frisch halten: minütlich
         // prüfen, ob sich die sichtbare Auswahl geändert hat, und nur dann neu rendern.
         function refreshView() {
-            if (view === 'all' || stopped || !lastData) return;
+            if ((view !== 'upcoming' && view !== 'focus') || stopped || !lastData) return;
             const tours = (lastData.available && !lastData.error) ? (lastData.tours || []) : [];
             const vf = applyView(tours);
             const sig = vf.list.map(function (t) { return t.id; }).join(',') + '|' + vf.pastId + '|' + vf.nextId;
@@ -797,6 +798,43 @@ window.SignageApps = (function () {
 
         function stopScroll() {
             if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
+            if (pageTimer) { clearInterval(pageTimer); pageTimer = null; }
+        }
+
+        // Seitenweises Blättern: Inhalt an Karten-Grenzen in Seiten aufteilen (keine
+        // zerschnittenen Touren) und alle pageSeconds zur nächsten Seite wechseln (Loop).
+        function startPaging() {
+            const vp = wrap.querySelector('.fl-scroll');
+            const inner = wrap.querySelector('.fl-scroll-inner');
+            if (!vp || !inner) return;
+
+            scrollRAF = requestAnimationFrame(function () {   // erst nach dem Layout messen
+                scrollRAF = null;
+                const vpH = vp.clientHeight;
+                const cards = Array.prototype.slice.call(inner.querySelectorAll('.fl-tour'));
+                const offsets = [0];
+                let pageTop = 0;
+                for (let i = 0; i < cards.length; i++) {
+                    const top = cards[i].offsetTop;
+                    const bottom = top + cards[i].offsetHeight;
+                    // Karte passt nicht mehr auf die aktuelle Seite -> neue Seite an ihrer Oberkante.
+                    if (bottom - pageTop > vpH + 2 && top > pageTop) {
+                        pageTop = top;
+                        offsets.push(pageTop);
+                    }
+                }
+
+                inner.style.transition = 'transform .5s ease';
+                inner.style.transform = 'translateY(0)';
+                if (offsets.length <= 1) return;   // passt auf eine Seite -> statisch
+
+                let idx = 0;
+                pageTimer = setInterval(function () {
+                    if (stopped) return;
+                    idx = (idx + 1) % offsets.length;
+                    inner.style.transform = 'translateY(' + (-offsets[idx]).toFixed(1) + 'px)';
+                }, pageSeconds * 1000);
+            });
         }
 
         // Sanftes vertikales Durchscrollen des kompletten Plans (Abfahrtstafel-Stil),
@@ -859,7 +897,7 @@ window.SignageApps = (function () {
         load();
         dataTimer = setInterval(load, 2 * 60 * 1000);
         clockTimer = setInterval(tickClock, 1000);
-        if (view !== 'all') viewTimer = setInterval(refreshView, 60 * 1000);
+        if (view === 'upcoming' || view === 'focus') viewTimer = setInterval(refreshView, 60 * 1000);
 
         return { node: wrap, stop: function () { stopped = true; stopScroll(); if (dataTimer) clearInterval(dataTimer); if (clockTimer) clearInterval(clockTimer); if (viewTimer) clearInterval(viewTimer); } };
     }

@@ -246,9 +246,12 @@ class PlayerManifestService
                         'deviceToken' => $screen->device_token,
                         'media'       => $media->id,
                     ]);
-                    // Durchscrollendes Board braucht Zeit. Der Playlist-Editor belegt neue Items
-                    // per Default mit 10s (viel zu kurz -> Player baut die App staendig neu auf,
-                    // "wird geladen" + Scroll von vorn). Daher eine Mindest-Standzeit erzwingen;
+                    // Sekunden pro Seite (Modus "seitenweise") = die am Playlist-Item gesetzte
+                    // Dauer (roh, vor dem Mindest-Floor unten). Der Renderer blaettert damit.
+                    $config['page_seconds'] = (int) ($item->duration_seconds ?: 15);
+                    // Durchscrollendes/-blaetterndes Board braucht Zeit. Der Playlist-Editor belegt
+                    // neue Items per Default mit 10s (viel zu kurz -> Player baut die App staendig
+                    // neu auf, "wird geladen" + von vorn). Daher eine Mindest-Standzeit erzwingen;
                     // laengere, bewusst gesetzte Werte bleiben erhalten.
                     $duration = max($duration, 180);
                 }

@@ -25,7 +25,7 @@ class Fleet extends Component
     public string $name = '';
 
     public const STYLES = ['elegant', 'warm', 'modern', 'night'];
-    public const VIEWS  = ['all', 'upcoming', 'focus'];
+    public const VIEWS  = ['all', 'paged', 'upcoming', 'focus'];
 
     public array $config = [
         'connection_id' => null,          // gewählte DedeFleet-Connection

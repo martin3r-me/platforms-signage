@@ -85,11 +85,13 @@
                         <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Anzeige</label>
                         <select x-model="cfg.view" x-on:change="send()" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
                             <option value="all">Kompletter Tag (scrollend)</option>
+                            <option value="paged">Kompletter Tag (seitenweise)</option>
                             <option value="upcoming">Nur kommende Touren</option>
                             <option value="focus">Fokus: letzte + nächste</option>
                         </select>
                         <span class="text-xs text-[var(--ui-muted)]">
                             „Kommende"/„Fokus" blenden vergangene Touren anhand der aktuellen Uhrzeit aus und aktualisieren sich automatisch.
+                            Bei „seitenweise" wird pro Seite so lange gewartet, wie beim Playlist-Eintrag als Sekunden hinterlegt ist.
                         </span>
                     </div>
 
