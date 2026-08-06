@@ -909,7 +909,8 @@ window.SignageApps = (function () {
                 const sep = cfg.endpoint.indexOf('?') >= 0 ? '&' : '?';
                 const url = cfg.endpoint + sep
                           + 'connection_id=' + encodeURIComponent(cfg.connection_id || '')
-                          + '&progress=' + (showProgress ? 1 : 0);
+                          + '&progress=' + (showProgress ? 1 : 0)
+                          + '&notes=' + (cfg.show_driver_message === false ? 0 : 1);
                 const r = await fetch(url, { cache: 'no-store' });
                 const d = await r.json();
                 if (stopped) return;

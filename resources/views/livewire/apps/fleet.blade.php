@@ -108,6 +108,10 @@
                             <input type="checkbox" x-model="cfg.show_stops" x-on:change="send()" class="rounded">
                             Stopps anzeigen <span class="text-[var(--ui-muted)]">(aus = nur Tour-Übersicht)</span>
                         </label>
+                        <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="checkbox" x-model="cfg.show_driver_message" x-on:change="send()" class="rounded">
+                            Fahrer-Nachricht je Stopp <span class="text-[var(--ui-muted)]">(lädt nach)</span>
+                        </label>
                     </div>
 
                     <div class="flex items-center gap-2 pt-2">

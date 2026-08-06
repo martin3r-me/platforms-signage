@@ -121,8 +121,9 @@ class ScreenController
             $media->user,
             isset($config['connection_id']) ? (int) $config['connection_id'] : null,
             [
-                'show_progress' => (bool) ($config['show_progress'] ?? true),
-                'date'          => $request->query('date'),
+                'show_progress'  => (bool) ($config['show_progress'] ?? true),
+                'driver_message' => (bool) ($config['show_driver_message'] ?? true),
+                'date'           => $request->query('date'),
             ],
         ));
     }

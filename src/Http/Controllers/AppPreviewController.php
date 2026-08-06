@@ -57,8 +57,9 @@ class AppPreviewController
         $connectionId = (int) $request->query('connection_id', 0) ?: null;
 
         return response()->json(FleetBoardService::board(auth()->user(), $connectionId, [
-            'show_progress' => $request->boolean('progress', true),
-            'date'          => $request->query('date'),
+            'show_progress'  => $request->boolean('progress', true),
+            'driver_message' => $request->boolean('notes', false),
+            'date'           => $request->query('date'),
         ]));
     }
 }

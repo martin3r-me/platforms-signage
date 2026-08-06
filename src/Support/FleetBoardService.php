@@ -121,6 +121,11 @@ class FleetBoardService
         // Kunde + Adresse sind in Tour/List nicht enthalten → aus Customer/List anreichern.
         $raw = self::enrichWithCustomers($raw, $user, $connectionId);
 
+        // Fahrer-Nachricht (driverMessage) nur via Order/Get pro Stopp → optional + gedrosselt.
+        if (!empty($opts['driver_message'])) {
+            $raw = self::enrichWithDriverMessages($raw, $user, $connectionId);
+        }
+
         // Tour/List liefert nur die interne vehicleApiID → Kennzeichen aus TrackingObject/List.
         $vehicleMap = self::vehicleMap($user, $connectionId);
 
@@ -236,6 +241,96 @@ class FleetBoardService
         unset($tour, $listRef);
 
         return $raw;
+    }
+
+    /**
+     * Reichert je Order die Fahrer-Nachricht (driverMessage) an. Die liegt NUR in Order/Get
+     * (nicht in Tour/List), also ein Call pro Auftrag. Zur Schonung: pro board()-Aufruf werden
+     * nur wenige noch nicht gecachte Aufträge nachgeladen (Budget), der Cache (6 h, auch leere)
+     * füllt sich über die 2-Minuten-Refreshes. So bleibt der Endpoint schnell.
+     *
+     * @param  mixed  $raw
+     * @return mixed
+     */
+    private static function enrichWithDriverMessages($raw, User $user, int $connectionId)
+    {
+        if (!is_array($raw)) {
+            return $raw;
+        }
+
+        if (array_is_list($raw)) {
+            $listRef = &$raw;
+        } else {
+            $key = null;
+            foreach (['tours', 'data', 'result', 'items'] as $k) {
+                if (isset($raw[$k]) && is_array($raw[$k])) {
+                    $key = $k;
+                    break;
+                }
+            }
+            if ($key === null) {
+                return $raw;
+            }
+            $listRef = &$raw[$key];
+        }
+
+        $budget = 10;   // max. Order/Get pro Aufruf → Endpoint bleibt schnell, Cache füllt sich nach
+        foreach ($listRef as &$tour) {
+            if (!is_array($tour)) {
+                continue;
+            }
+            foreach (['orders', 'stops', 'orderList'] as $ok) {
+                if (!isset($tour[$ok]) || !is_array($tour[$ok])) {
+                    continue;
+                }
+                foreach ($tour[$ok] as &$order) {
+                    if (!is_array($order) || trim((string) ($order['driverMessage'] ?? '')) !== '') {
+                        continue;
+                    }
+                    $guid = (string) (self::pick($order, ['orderGuid', 'guid']) ?? '');
+                    if ($guid === '') {
+                        continue;
+                    }
+                    $msg = self::driverMessageFor($user, $connectionId, $guid, $budget);
+                    if ($msg !== '') {
+                        $order['driverMessage'] = $msg;
+                    }
+                }
+                unset($order);
+            }
+        }
+        unset($tour, $listRef);
+
+        return $raw;
+    }
+
+    /** driverMessage eines Auftrags (gecacht 6 h, auch leer; $budget begrenzt Live-Abrufe). */
+    private static function driverMessageFor(User $user, int $connectionId, string $guid, int &$budget): string
+    {
+        $cacheKey = 'signage.dedefleet.ordermsg.' . $connectionId . '.' . $guid;
+        $cached = Cache::get($cacheKey);
+        if ($cached !== null) {
+            return (string) $cached;   // '' = bewusst leer gecacht (kein erneuter Abruf)
+        }
+        if ($budget <= 0) {
+            return '';                 // Budget erschöpft → beim nächsten Refresh nachladen
+        }
+        $budget--;
+
+        try {
+            $full = app(self::API_SERVICE)->forConnection($connectionId)->getOrder($user, ['orderGuid' => $guid]);
+        } catch (\Throwable $e) {
+            try {
+                $full = app(self::API_SERVICE)->getOrder($user, ['orderGuid' => $guid]);
+            } catch (\Throwable $e2) {
+                return '';   // NICHT cachen → nächster Versuch später
+            }
+        }
+
+        $msg = trim((string) (self::pick($full, ['driverMessage']) ?? ''));
+        Cache::put($cacheKey, $msg, 21600);
+
+        return $msg;
     }
 
     /**
@@ -523,7 +618,8 @@ class FleetBoardService
     {
         $direct = self::pick($order, ['driverMessage', 'remark', 'comment', 'bemerkung']);
         if (is_string($direct) && trim($direct) !== '') {
-            return trim($direct);
+            // Zeilenumbrüche/Sternchen kompakt in eine Zeile ("… · …").
+            return trim(preg_replace('/\s*[\r\n]+\*?\s*/', ' · ', trim($direct)));
         }
 
         $notes = (string) (self::pick($order, ['notes', 'note']) ?? '');

@@ -35,6 +35,7 @@ class Fleet extends Component
         'show_clock'    => true,          // große Uhr im Kopf
         'show_progress' => true,          // Fortschritt/erledigt je Stopp
         'show_stops'    => true,          // Stopps anzeigen; false = nur Tour-Übersicht (Köpfe)
+        'show_driver_message' => true,    // Fahrer-Nachricht je Stopp (Order/Get, teurer)
     ];
 
     public function mount(?SignageMedia $media = null): void
@@ -53,6 +54,7 @@ class Fleet extends Component
                 'show_clock'    => (bool) ($cfg['show_clock'] ?? true),
                 'show_progress' => (bool) ($cfg['show_progress'] ?? true),
                 'show_stops'    => (bool) ($cfg['show_stops'] ?? true),
+                'show_driver_message' => (bool) ($cfg['show_driver_message'] ?? true),
             ];
         }
     }
@@ -74,6 +76,7 @@ class Fleet extends Component
             'show_clock'    => (bool) ($this->config['show_clock'] ?? true),
             'show_progress' => (bool) ($this->config['show_progress'] ?? true),
             'show_stops'    => (bool) ($this->config['show_stops'] ?? true),
+            'show_driver_message' => (bool) ($this->config['show_driver_message'] ?? true),
         ];
 
         if ($this->mediaId) {
