@@ -257,6 +257,9 @@
     .fl-scroll { flex: 1; overflow: hidden; position: relative; }
     .fl-scroll-inner { will-change: transform; }
     .fl-tours { display: flex; flex-direction: column; gap: 2.2vmin; }
+    /* Seitenweise-Modus: eine Seite = fester Viewport-Ausschnitt (exakt vpH, kein Rand
+       dazwischen, damit der translateY-Versatz idx*vpH exakt passt), ganze Karten, kein Anschnitt. */
+    .fl-page { display: flex; flex-direction: column; gap: 2.2vmin; overflow: hidden; }
     .fl-tour { border: .22vmin solid var(--fl-line); border-radius: 2.2vmin; background: var(--fl-card); padding: 2.2vmin 2.6vmin; display: flex; flex-direction: column; gap: 1.6vmin; overflow: hidden; }
     .fl-tour-head { display: flex; align-items: center; gap: 1.8vmin; flex-wrap: wrap; }
     .fl-dep { font-size: 3.6vmin; font-weight: 800; color: var(--fl-accent); font-variant-numeric: tabular-nums; line-height: 1; }
@@ -801,8 +804,9 @@ window.SignageApps = (function () {
             if (pageTimer) { clearInterval(pageTimer); pageTimer = null; }
         }
 
-        // Seitenweises Blättern: Inhalt an Karten-Grenzen in Seiten aufteilen (keine
-        // zerschnittenen Touren) und alle pageSeconds zur nächsten Seite wechseln (Loop).
+        // Seitenweises Blättern: Karten greedy in Seiten gruppieren (nur GANZE Karten pro
+        // Seite) und in feste Seiten-Container mit Viewport-Höhe + overflow:hidden umhängen –
+        // so kann keine Karte angeschnitten werden. Alle pageSeconds zur nächsten Seite (Loop).
         function startPaging() {
             const vp = wrap.querySelector('.fl-scroll');
             const inner = wrap.querySelector('.fl-scroll-inner');
@@ -811,28 +815,41 @@ window.SignageApps = (function () {
             scrollRAF = requestAnimationFrame(function () {   // erst nach dem Layout messen
                 scrollRAF = null;
                 const vpH = vp.clientHeight;
-                const cards = Array.prototype.slice.call(inner.querySelectorAll('.fl-tour'));
-                const offsets = [0];
-                let pageTop = 0;
+                const toursEl = inner.querySelector('.fl-tours');
+                const cards = toursEl ? Array.prototype.slice.call(toursEl.children) : [];
+                if (!cards.length) return;
+
+                // In Seiten gruppieren: eine Seite = so viele ganze Karten, wie in vpH passen.
+                const pages = [];
+                let cur = [], curTop = null;
                 for (let i = 0; i < cards.length; i++) {
-                    const top = cards[i].offsetTop;
-                    const bottom = top + cards[i].offsetHeight;
-                    // Karte passt nicht mehr auf die aktuelle Seite -> neue Seite an ihrer Oberkante.
-                    if (bottom - pageTop > vpH + 2 && top > pageTop) {
-                        pageTop = top;
-                        offsets.push(pageTop);
+                    const top = cards[i].offsetTop, h = cards[i].offsetHeight;
+                    if (curTop === null) curTop = top;
+                    if (cur.length && (top + h - curTop) > vpH + 2) {
+                        pages.push(cur); cur = []; curTop = top;
                     }
+                    cur.push(cards[i]);
+                }
+                if (cur.length) pages.push(cur);
+                if (pages.length <= 1) return;   // passt auf eine Seite -> statisch
+
+                // Karten in feste Seiten-Container umhängen (Höhe = Viewport).
+                inner.innerHTML = '';
+                for (let p = 0; p < pages.length; p++) {
+                    const pg = document.createElement('div');
+                    pg.className = 'fl-page';
+                    pg.style.height = vpH + 'px';
+                    for (let k = 0; k < pages[p].length; k++) pg.appendChild(pages[p][k]);
+                    inner.appendChild(pg);
                 }
 
                 inner.style.transition = 'transform .5s ease';
                 inner.style.transform = 'translateY(0)';
-                if (offsets.length <= 1) return;   // passt auf eine Seite -> statisch
-
                 let idx = 0;
                 pageTimer = setInterval(function () {
                     if (stopped) return;
-                    idx = (idx + 1) % offsets.length;
-                    inner.style.transform = 'translateY(' + (-offsets[idx]).toFixed(1) + 'px)';
+                    idx = (idx + 1) % pages.length;
+                    inner.style.transform = 'translateY(' + (-idx * vpH).toFixed(1) + 'px)';
                 }, pageSeconds * 1000);
             });
         }
