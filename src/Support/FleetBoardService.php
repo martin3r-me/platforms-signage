@@ -128,11 +128,13 @@ class FleetBoardService
 
         // Tour/List liefert nur die interne vehicleApiID → Kennzeichen aus TrackingObject/List.
         $vehicleMap = self::vehicleMap($user, $connectionId);
+        // Fahrer: Tour trägt bei Zuweisung die Personalnummer (driver) → Name aus Employee/List.
+        $employeeMap = self::employeeMap($user, $connectionId);
 
         return [
             'available' => true,
             'date'      => $date,
-            'tours'     => self::normalizeTours($raw, $showProgress, $vehicleMap),
+            'tours'     => self::normalizeTours($raw, $showProgress, $vehicleMap, $employeeMap),
         ];
     }
 
@@ -439,6 +441,51 @@ class FleetBoardService
         return $map;
     }
 
+    /**
+     * Personalnummer (employeeNumber) => Fahrername aus Employee/List. Die Tour trägt bei
+     * Zuweisung nur die Nummer in 'driver'. Ein Call pro Connection, 10 min gecacht.
+     *
+     * @return array<string, string>
+     */
+    private static function employeeMap(User $user, int $connectionId): array
+    {
+        try {
+            $raw = Cache::remember(
+                'signage.dedefleet.employees.' . $connectionId,
+                600,
+                function () use ($connectionId, $user) {
+                    try {
+                        return app(self::API_SERVICE)->forConnection($connectionId)->listEmployees($user);
+                    } catch (\Throwable $e) {
+                        return app(self::API_SERVICE)->listEmployees($user);
+                    }
+                },
+            );
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        $map = [];
+        foreach (self::asList($raw, ['employees', 'data', 'result', 'items']) as $e) {
+            if (!is_array($e)) {
+                continue;
+            }
+            $no = (string) (self::pick($e, ['employeeNumber', 'number', 'id']) ?? '');
+            if ($no === '') {
+                continue;
+            }
+            $name = trim(((string) (self::pick($e, ['firstName']) ?? '')) . ' ' . ((string) (self::pick($e, ['lastName']) ?? '')));
+            if ($name === '') {
+                $name = trim((string) (self::pick($e, ['name', 'displayName', 'driverName']) ?? ''));
+            }
+            if ($name !== '') {
+                $map[$no] = $name;
+            }
+        }
+
+        return $map;
+    }
+
     // =========================================================================
     // Normalisierung der rohen DedeFleet-Antwort ins stabile Renderer-Schema
     // =========================================================================
@@ -451,7 +498,7 @@ class FleetBoardService
      * @param  mixed  $raw
      * @return array<int, array<string,mixed>>
      */
-    private static function normalizeTours($raw, bool $showProgress, array $vehicleMap = []): array
+    private static function normalizeTours($raw, bool $showProgress, array $vehicleMap = [], array $employeeMap = []): array
     {
         $tours = self::asList($raw, ['tours', 'data', 'result', 'items']);
         $out = [];
@@ -473,7 +520,7 @@ class FleetBoardService
                 'id'        => (string) (self::pick($tour, ['tourGuid', 'guid', 'id']) ?: ('t' . $i)),
                 'name'      => self::tourName($tour, $i),
                 'departure' => self::timeOf(self::pickNested($tour, [['departure', 'time'], ['departureTime'], ['startTime'], ['departure']])),
-                'driver'    => (string) (self::pick($tour, ['driverName', 'driver', 'driverDisplayName']) ?? ''),
+                'driver'    => self::driverLabel($tour, $employeeMap),
                 // Kennzeichen: Tour/List hat nur die interne vehicleApiID → über die
                 // TrackingObject-Map (vehicleApiID → licenseNumber) auflösen. Fallback auf
                 // etwaige Klartext-Felder; die rohe ID NICHT anzeigen.
@@ -536,6 +583,25 @@ class FleetBoardService
         }
 
         return 'Tour ' . ($i + 1);
+    }
+
+    /**
+     * Fahrername einer Tour: Klartext driverName, sonst über die Personalnummer (driver)
+     * aus der Employee-Map. Eine nicht auflösbare Personalnummer wird NICHT angezeigt.
+     */
+    private static function driverLabel(array $tour, array $employeeMap): string
+    {
+        $name = self::pick($tour, ['driverName', 'driverDisplayName']);
+        if (is_string($name) && trim($name) !== '') {
+            return trim($name);
+        }
+
+        $num = (string) (self::pick($tour, ['driver']) ?? '');
+        if ($num !== '' && !empty($employeeMap[$num])) {
+            return $employeeMap[$num];
+        }
+
+        return '';
     }
 
     /** Kennzeichen einer Tour: erst über die vehicleApiID-Map, sonst Klartext-Felder (nie die rohe ID). */
