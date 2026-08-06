@@ -51,17 +51,20 @@ der gewählten (bei nur einer DedeFleet-Connection identisch). Kann entfallen, s
 
 ## Kunde + Adresse: Customer-Join (Signage-seitig)
 
-`Tour/List` liefert je Order die **Adresse** (`order.location.street/postal/city`), aber
-**keinen Kundennamen** (`order.location.name` = null) und **keine** `location.id` (ist null).
-Die **Kundennummer steht im `notes`-Feld** als `"Kundennr: 42"` (verifiziert 2026-07-29).
+`Tour/List` liefert je Order **keinen** Kundennamen (`order.location.name` = null). Die
+**Kundennummer** liegt je nach Datenstand **mal in `order.location.id`, mal in `order.notes`**
+als `"Kundennr: 42"` (2026-08-06 verifiziert: location.id; 2026-07-29: notes). Die **Adresse**
+(`location.street/postal/city`) ist mal enthalten, mal leer.
 `FleetBoardService::enrichWithCustomers()` holt daher einmal `listCustomers($user)` (10 min
-gecacht pro Connection) und joint lokal **`Kundennr` aus `order.notes` == `customer.customerNumber`**
-→ füllt v.a. `location.name` (Adresse ist meist schon da). `Order/Get` pro Stopp liefert zusätzlich
-`driverMessage` (die eigentliche Bemerkung, z.B. „ebenerdig / Temperaturmessung"), kostet aber N Calls.
+gecacht) und joint lokal **`customerNumberFor(order)` (= location.id ODER Kundennr-aus-notes)
+== `customer.customerNumber`** → füllt `location.name/street/postal/city`. `Order/Get` pro Stopp
+liefert zusätzlich `driverMessage` (die eigentliche Bemerkung), kostet aber N Calls.
 
-**Fahrzeug:** `Tour/List` liefert nur `vehicleApiID` (interne Zahl); VehicleProfile/List kennt kein
-`vehicleApiID` (nur `guid`+`name`), Tour/List referenziert aber nicht die guid → **kein Klartext-
-Kennzeichen ermittelbar**, wird im Board ausgeblendet.
+**Fahrzeug/Kennzeichen (2026-08-06):** `Tour/List` liefert nur die interne `vehicleApiID`.
+VehicleProfile/List hat kein Kennzeichen (nur Payload/Kapazität). Das Kennzeichen liefert
+**`TrackingObject/List`** (persistente Fahrzeugliste, NICHT `TrackingObject/ListCurrentData`,
+das offline leer ist): je Fahrzeug `vehicleApiID` + `licenseNumber`. `FleetBoardService::vehicleMap()`
+joint `tour.vehicleApiID == trackingObject.vehicleApiID` → Kennzeichen (10 min gecacht).
 
 ## Verifizierte `Tour/List`-Felder (2026-07-24)
 

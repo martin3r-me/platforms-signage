@@ -121,10 +121,13 @@ class FleetBoardService
         // Kunde + Adresse sind in Tour/List nicht enthalten → aus Customer/List anreichern.
         $raw = self::enrichWithCustomers($raw, $user, $connectionId);
 
+        // Tour/List liefert nur die interne vehicleApiID → Kennzeichen aus TrackingObject/List.
+        $vehicleMap = self::vehicleMap($user, $connectionId);
+
         return [
             'available' => true,
             'date'      => $date,
-            'tours'     => self::normalizeTours($raw, $showProgress),
+            'tours'     => self::normalizeTours($raw, $showProgress, $vehicleMap),
         ];
     }
 
@@ -211,9 +214,9 @@ class FleetBoardService
                     if (!is_array($order)) {
                         continue;
                     }
-                    // Die Kundennummer steckt im notes-Feld ("Kundennr: 42"), NICHT in
-                    // location.id (das ist null). Darüber joinen wir Name + Adresse.
-                    $custNo = self::customerNumberFromNotes((string) ($order['notes'] ?? ''));
+                    // Kundennummer je nach DedeFleet-Datenstand mal in location.id, mal in
+                    // notes ("Kundennr: 42"). Beide Varianten abdecken.
+                    $custNo = self::customerNumberFor($order);
                     if ($custNo === '' || !isset($map[$custNo])) {
                         continue;
                     }
@@ -280,6 +283,67 @@ class FleetBoardService
         return $map;
     }
 
+    /**
+     * Kundennummer eines Stopps: je nach DedeFleet-Datenstand entweder in location.id
+     * oder im notes-Feld ("Kundennr: 42"). Erst location.id, dann notes.
+     */
+    private static function customerNumberFor(array $order): string
+    {
+        $loc = $order['location'] ?? null;
+        if (is_array($loc)) {
+            $id = trim((string) ($loc['id'] ?? ''));
+            if ($id !== '') {
+                return $id;
+            }
+        }
+
+        return self::customerNumberFromNotes((string) ($order['notes'] ?? ''));
+    }
+
+    /**
+     * vehicleApiID => Kennzeichen (licenseNumber) aus TrackingObject/List. Tour/List liefert
+     * nur die interne vehicleApiID; die persistente Fahrzeugliste (nicht die Live-GPS-Daten,
+     * die offline leer sind) hält das Kennzeichen. Ein Call pro Connection, 10 min gecacht.
+     *
+     * @return array<string, string>
+     */
+    private static function vehicleMap(User $user, int $connectionId): array
+    {
+        try {
+            $raw = Cache::remember(
+                'signage.dedefleet.vehicles.' . $connectionId,
+                600,
+                function () use ($connectionId, $user) {
+                    // Gleicher Fallback wie bei Touren/Kunden (team-scoped Share).
+                    try {
+                        return app(self::API_SERVICE)->forConnection($connectionId)->get($user, 'TrackingObject/List');
+                    } catch (\Throwable $e) {
+                        return app(self::API_SERVICE)->get($user, 'TrackingObject/List');
+                    }
+                },
+            );
+        } catch (\Throwable $e) {
+            return [];
+        }
+
+        $map = [];
+        foreach (self::asList($raw, ['trackingObjects', 'data', 'result', 'items']) as $o) {
+            if (!is_array($o)) {
+                continue;
+            }
+            $id = (string) (self::pick($o, ['vehicleApiID', 'vehicleApiId', 'trackingObjectId', 'id']) ?? '');
+            if ($id === '') {
+                continue;
+            }
+            $plate = trim((string) (self::pick($o, ['licenseNumber', 'name']) ?? ''));
+            if ($plate !== '') {
+                $map[$id] = $plate;
+            }
+        }
+
+        return $map;
+    }
+
     // =========================================================================
     // Normalisierung der rohen DedeFleet-Antwort ins stabile Renderer-Schema
     // =========================================================================
@@ -292,7 +356,7 @@ class FleetBoardService
      * @param  mixed  $raw
      * @return array<int, array<string,mixed>>
      */
-    private static function normalizeTours($raw, bool $showProgress): array
+    private static function normalizeTours($raw, bool $showProgress, array $vehicleMap = []): array
     {
         $tours = self::asList($raw, ['tours', 'data', 'result', 'items']);
         $out = [];
@@ -315,9 +379,10 @@ class FleetBoardService
                 'name'      => self::tourName($tour, $i),
                 'departure' => self::timeOf(self::pickNested($tour, [['departure', 'time'], ['departureTime'], ['startTime'], ['departure']])),
                 'driver'    => (string) (self::pick($tour, ['driverName', 'driver', 'driverDisplayName']) ?? ''),
-                // vehicleApiID ist eine interne Zahl (kein Kennzeichen) und via VehicleProfile/List
-                // NICHT auflösbar → NICHT anzeigen. Nur echte Klartext-Felder verwenden.
-                'vehicle'   => (string) (self::pick($tour, ['vehicleName', 'vehicleLabel', 'licenseNumber']) ?? ''),
+                // Kennzeichen: Tour/List hat nur die interne vehicleApiID → über die
+                // TrackingObject-Map (vehicleApiID → licenseNumber) auflösen. Fallback auf
+                // etwaige Klartext-Felder; die rohe ID NICHT anzeigen.
+                'vehicle'   => self::vehicleLabel($tour, $vehicleMap),
                 'status'    => self::tourStatusLabel(self::pick($tour, ['status', 'tourStatus'])),
                 'stops'     => $stops,
             ];
@@ -370,6 +435,17 @@ class FleetBoardService
         }
 
         return 'Tour ' . ($i + 1);
+    }
+
+    /** Kennzeichen einer Tour: erst über die vehicleApiID-Map, sonst Klartext-Felder (nie die rohe ID). */
+    private static function vehicleLabel(array $tour, array $vehicleMap): string
+    {
+        $apiId = (string) (self::pick($tour, ['vehicleApiID', 'vehicleApiId']) ?? '');
+        if ($apiId !== '' && !empty($vehicleMap[$apiId])) {
+            return $vehicleMap[$apiId];
+        }
+
+        return (string) (self::pick($tour, ['vehicleName', 'vehicleLabel', 'licenseNumber']) ?? '');
     }
 
     /** Kundenname: direkt am Order oder aus der verschachtelten location (DedeFleet: location.name). */
