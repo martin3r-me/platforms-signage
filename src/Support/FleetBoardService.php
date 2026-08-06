@@ -407,12 +407,14 @@ class FleetBoardService
     {
         $state = self::pick($order, ['orderStatus', 'orderState', 'status']);
 
+        $km  = self::pick($order, ['distanceToNext']);
+        $min = self::pick($order, ['durationToNext']);
+
         // Verifiziert an echter Tour/List-Antwort (2026-07):
         //  - Auftragsnr steht in 'order' ("Auf1004"), Lieferschein-Nr in 'delivery' ("Lief1004").
         //  - Anlieferung/Abholung wird über 'type' (int) unterschieden, NICHT über bool-Felder.
-        //  - Kunde + Adresse sind in der eingebetteten Order NICHT enthalten (order.location.*
-        //    ist null); sie müssen per Customer/List (Join order.location.id == customerNumber)
-        //    oder Order/Get nachgeladen werden. Siehe docs/dedefleet-integration-handoff.md.
+        //  - eta/waitingTime/distanceToNext/durationToNext liegen ebenfalls in der Order.
+        //  - Kunde + Adresse sind in der eingebetteten Order NICHT enthalten; siehe enrichWithCustomers.
         return [
             'va'       => (string) (self::pick($order, ['order', 'vaNumber', 'orderNumber', 'referenceNumber', 'number', 'va']) ?? ''),
             'customer' => self::customerOf($order),
@@ -422,6 +424,10 @@ class FleetBoardService
             'abh'      => ((int) (self::pick($order, ['type']) ?? 0)) === 1,
             'note'     => self::noteOf($order),
             'state'    => $showProgress ? self::orderStateKey($state) : null,
+            'eta'      => self::timeOf(self::pick($order, ['eta'])),
+            'wait'     => (int) round((float) (self::pick($order, ['waitingTime']) ?? 0)),
+            'nextKm'   => is_numeric($km) ? round((float) $km, 1) : null,
+            'nextMin'  => is_numeric($min) ? (int) round((float) $min) : null,
         ];
     }
 

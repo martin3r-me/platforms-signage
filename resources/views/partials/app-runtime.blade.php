@@ -274,7 +274,7 @@
     .fl-tour-next { border-color: var(--fl-accent); box-shadow: inset 0 0 0 .25vmin var(--fl-accent); }
 
     .fl-stops { display: flex; flex-direction: column; }
-    .fl-stop { display: grid; grid-template-columns: 16vmin 1fr auto; gap: 1.4vmin; align-items: baseline; padding: 1.1vmin 0; border-top: .18vmin solid var(--fl-line); font-size: 2.2vmin; }
+    .fl-stop { display: grid; grid-template-columns: 16vmin 1fr auto auto; gap: 1.4vmin; align-items: baseline; padding: 1.1vmin 0; border-top: .18vmin solid var(--fl-line); font-size: 2.2vmin; }
     .fl-stop:first-child { border-top: 0; }
     .fl-stop-win { font-weight: 700; color: var(--fl-accent); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .fl-stop-main { min-width: 0; }
@@ -282,6 +282,8 @@
     .fl-stop-cust .fl-va { color: var(--fl-muted); font-weight: 500; margin-left: .8vmin; font-size: 1.9vmin; }
     .fl-stop-addr { color: var(--fl-muted); font-size: 1.9vmin; margin-top: .2vmin; }
     .fl-stop-note { color: var(--fl-accent); font-size: 1.9vmin; margin-top: .2vmin; }
+    .fl-stop-info { display: flex; flex-direction: column; align-items: flex-end; gap: .2vmin; text-align: right; white-space: nowrap; font-size: 1.7vmin; color: var(--fl-muted); line-height: 1.2; }
+    .fl-stop-info .fl-i-eta { color: var(--fl-fg); font-weight: 600; }
     .fl-stop-flags { display: flex; gap: .8vmin; align-items: center; white-space: nowrap; }
     .fl-flag { font-size: 1.7vmin; font-weight: 700; padding: .3vmin 1vmin; border-radius: .8vmin; border: .16vmin solid var(--fl-line); color: var(--fl-muted); }
     .fl-mark { font-size: 2.4vmin; line-height: 1; }
@@ -290,6 +292,7 @@
     .fl-stop.active { background: color-mix(in srgb, var(--fl-accent) 12%, transparent); border-radius: 1vmin; }
 
     .fl-portrait .fl-stop { grid-template-columns: 14vmin 1fr; }
+    .fl-portrait .fl-stop-info { grid-column: 2; align-items: flex-start; text-align: left; }
     .fl-portrait .fl-stop-flags { grid-column: 2; justify-content: flex-start; }
 </style>
 <script>
@@ -689,9 +692,22 @@ window.SignageApps = (function () {
             if (s.address) main += '<div class="fl-stop-addr">' + esc(s.address) + '</div>';
             if (s.note) main += '<div class="fl-stop-note">' + esc(s.note) + '</div>';
             main += '</div>';
+
+            // Zusatzinfos rechts (aus Tour/List): ETA, Wartezeit, Distanz/Fahrzeit zum nächsten Stopp.
+            let info = '';
+            if (s.eta) info += '<span class="fl-i fl-i-eta">ETA ' + esc(s.eta) + '</span>';
+            if (s.wait > 0) info += '<span class="fl-i">' + s.wait + ' min Warten</span>';
+            if (s.nextKm != null || s.nextMin != null) {
+                const p = [];
+                if (s.nextKm != null) p.push(s.nextKm + ' km');
+                if (s.nextMin != null) p.push(s.nextMin + ' min');
+                info += '<span class="fl-i">→ ' + p.join(' · ') + '</span>';
+            }
+
             return '<div class="fl-stop' + cls + '">'
                  + '<div class="fl-stop-win">' + esc(s.window || '') + '</div>'
                  + main
+                 + '<div class="fl-stop-info">' + info + '</div>'
                  + '<div class="fl-stop-flags">' + flags + mark + '</div></div>';
         }
 
