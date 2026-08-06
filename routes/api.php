@@ -32,6 +32,11 @@ Route::get('/screen/{deviceToken}/fleet', [ScreenController::class, 'fleet'])
     ->middleware('throttle:signage-device')
     ->name('signage.api.screen.fleet');
 
+// Live-Fahrzeug-Standorte (fleetmap-App).
+Route::get('/screen/{deviceToken}/fleet-vehicles', [ScreenController::class, 'fleetVehicles'])
+    ->middleware('throttle:signage-device')
+    ->name('signage.api.screen.fleet-vehicles');
+
 // Proof-of-Play: gebündelte Wiedergabe-Meldungen des Players.
 Route::post('/screen/{deviceToken}/played', [ScreenController::class, 'recordPlays'])
     ->middleware('throttle:signage-device')

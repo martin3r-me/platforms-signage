@@ -139,6 +139,92 @@ class FleetBoardService
     }
 
     /**
+     * Live-Standorte der Fahrzeuge (für die Fahrzeug-Karte-App). Nutzt dieselbe
+     * user-/connection-Auflösung wie board() (Ersteller-User headless, Fallback bei
+     * team-scoped Share). Positionen kommen nur, wenn Fahrzeuge gerade senden – sonst leer.
+     *
+     * @return array{available:bool, error?:bool, vehicles:array<int,array<string,mixed>>}
+     */
+    public static function liveVehicles(?User $user, ?int $connectionId): array
+    {
+        $empty = ['available' => false, 'vehicles' => []];
+        if (!self::available() || !$user || !$connectionId) {
+            return $empty;
+        }
+
+        try {
+            $raw = self::trackingCurrent($user, $connectionId);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Signage DedeFleet liveVehicles() failed', [
+                'connection_id' => $connectionId,
+                'user_id'       => $user->id ?? null,
+                'exception'     => $e::class,
+                'message'       => $e->getMessage(),
+            ]);
+
+            return ['available' => true, 'error' => true, 'vehicles' => []];
+        }
+
+        if ($raw === null) {
+            return $empty;   // Connection nicht auflösbar
+        }
+
+        $plates = self::vehicleMap($user, $connectionId);   // vehicleApiID → Kennzeichen (Fallback)
+        $out = [];
+        foreach (self::asList($raw, ['data', 'trackingObjects', 'result', 'items']) as $o) {
+            if (!is_array($o)) {
+                continue;
+            }
+            $lat = self::pick($o, ['latitude', 'lat', 'positionLatitude']);
+            $lng = self::pick($o, ['longitude', 'lng', 'lon', 'positionLongitude']);
+            if (!is_numeric($lat) || !is_numeric($lng)) {
+                continue;   // ohne Position kein Marker
+            }
+            $apiId = (string) (self::pick($o, ['vehicleApiID', 'vehicleApiId', 'trackingObjectId', 'id']) ?? '');
+            $plate = trim((string) (self::pick($o, ['licenseNumber', 'name']) ?? ''));
+            if ($plate === '' && $apiId !== '' && !empty($plates[$apiId])) {
+                $plate = $plates[$apiId];
+            }
+            $speed = self::pick($o, ['speed', 'currentSpeed']);
+
+            $out[] = [
+                'plate'   => $plate,
+                'lat'     => (float) $lat,
+                'lng'     => (float) $lng,
+                'speed'   => is_numeric($speed) ? (int) round((float) $speed) : null,
+                'updated' => self::timeOf(self::pick($o, ['lastDataUpdate', 'lastUpdate', 'timestamp', 'time'])),
+                'temps'   => self::tempsOf($o),
+            ];
+        }
+
+        return ['available' => true, 'vehicles' => $out];
+    }
+
+    /** GET /TrackingObject/ListCurrentData (Live-GPS) – mit Fallback wie fetchTours(). */
+    private static function trackingCurrent(User $user, int $connectionId): mixed
+    {
+        try {
+            return app(self::API_SERVICE)->forConnection($connectionId)->listTrackingCurrentData($user);
+        } catch (\Throwable $e) {
+            return app(self::API_SERVICE)->listTrackingCurrentData($user);
+        }
+    }
+
+    /** Numerische Kühlketten-Temperaturen (temp1..6) eines Tracking-Objekts. */
+    private static function tempsOf(array $o): array
+    {
+        $t = [];
+        for ($i = 1; $i <= 6; $i++) {
+            $v = self::pick($o, ['temp' . $i]);
+            if (is_numeric($v)) {
+                $t[] = round((float) $v, 1);
+            }
+        }
+
+        return $t;
+    }
+
+    /**
      * Ruft Tour/List für die gewählte Connection – mit Fallback.
      *
      * Schlägt die explizit gewählte Connection am Zugriff fehl, fällt der Abruf auf die per

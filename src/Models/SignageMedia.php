@@ -116,6 +116,7 @@ class SignageMedia extends Model
             'menu'     => 'Menü',
             'events'   => 'Veranstaltungen',
             'dedefleet' => 'Tourenplan',
+            'fleetmap'  => 'Fahrzeug-Standorte',
             default   => (string) $this->app_type,
         };
     }

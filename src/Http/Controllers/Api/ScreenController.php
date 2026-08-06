@@ -129,6 +129,35 @@ class ScreenController
     }
 
     /**
+     * Live-Fahrzeug-Standorte (vom fleetmap-App-Frame des Players abgerufen).
+     * Wie fleet(): Media team-gescoped, Connection + Ersteller-User serverseitig aus dem Record.
+     */
+    public function fleetVehicles(Request $request, string $deviceToken): JsonResponse
+    {
+        $screen = SignageScreen::where('device_token', $deviceToken)->first();
+        if (!$screen || $screen->status !== 'active') {
+            return response()->json(['available' => false, 'vehicles' => []]);
+        }
+
+        $media = SignageMedia::query()
+            ->where('team_id', $screen->team_id)
+            ->where('app_type', 'fleetmap')
+            ->where('id', (int) $request->query('media'))
+            ->first();
+
+        if (!$media) {
+            return response()->json(['available' => false, 'vehicles' => []]);
+        }
+
+        $config = $media->config ?? [];
+
+        return response()->json(FleetBoardService::liveVehicles(
+            $media->user,
+            isset($config['connection_id']) ? (int) $config['connection_id'] : null,
+        ));
+    }
+
+    /**
      * Proof-of-Play: der Player meldet gebündelt, welche Medien wann liefen.
      * Erwartet { plays: [ { media_id, played_at, seconds } ] }.
      */

@@ -30,6 +30,8 @@ class AppPreviewController
             $config['endpoint'] = route('signage.apps.events.data');
         } elseif ($media->app_type === 'dedefleet') {
             $config['endpoint'] = route('signage.apps.dedefleet.data');
+        } elseif ($media->app_type === 'fleetmap') {
+            $config['endpoint'] = route('signage.apps.fleetmap.data');
         }
 
         return view('signage::apps.preview', [
@@ -61,5 +63,13 @@ class AppPreviewController
             'driver_message' => $request->boolean('notes', false),
             'date'           => $request->query('date'),
         ]));
+    }
+
+    /** JSON für die Fahrzeug-Karte in der Vorschau (eingeloggter Editor als User). */
+    public function fleetVehiclesData(Request $request): JsonResponse
+    {
+        $connectionId = (int) $request->query('connection_id', 0) ?: null;
+
+        return response()->json(FleetBoardService::liveVehicles(auth()->user(), $connectionId));
     }
 }

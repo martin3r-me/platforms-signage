@@ -294,10 +294,43 @@
     .fl-portrait .fl-stop { grid-template-columns: 14vmin 1fr; }
     .fl-portrait .fl-stop-info { grid-column: 2; align-items: flex-start; text-align: left; }
     .fl-portrait .fl-stop-flags { grid-column: 2; justify-content: flex-start; }
+
+    /* Fleet-Map app – Live-Fahrzeug-Standorte (Leaflet). Nutzt die fl-style-Variablen für den Kopf. */
+    .app-fmap { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--fl-bg); color: var(--fl-fg); font-family: var(--fl-font, system-ui, -apple-system, sans-serif); }
+    .fmap-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 3vmin; padding: 3vmin 4vmin 2.4vmin; }
+    .fmap-title { font-size: 4.4vmin; font-weight: 700; line-height: 1.05; }
+    .fmap-title span { display: block; font-size: 2.2vmin; font-weight: 500; color: var(--fl-muted); margin-top: .5vmin; }
+    .fmap-clock { font-size: 5.4vmin; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1; }
+    .fmap-body { flex: 1; position: relative; }
+    .fmap-map { position: absolute; inset: 0; background: var(--fl-bg); }
+    .fmap-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 4vmin; font-size: 3vmin; color: var(--fl-muted); pointer-events: none; }
+    .leaflet-tooltip.fmap-tip { background: #ffffff; color: #111827; border: 1px solid rgba(0,0,0,.15); border-radius: 6px; padding: 2px 7px; font-weight: 700; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+    .leaflet-tooltip.fmap-tip::before { display: none; }
+    .fmap-tip .fmap-sp { font-weight: 500; color: #6b7280; margin-left: 5px; }
 </style>
 <script>
 window.SignageApps = (function () {
     function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+    // Leaflet nur bei Bedarf (Fahrzeug-Karte) laden – einmal pro Dokument, wiederverwendet.
+    var _leafletLoading = null;
+    function ensureLeaflet(cb) {
+        if (window.L) { cb(true); return; }
+        if (!_leafletLoading) {
+            _leafletLoading = new Promise(function (resolve, reject) {
+                var css = document.createElement('link');
+                css.rel = 'stylesheet';
+                css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+                document.head.appendChild(css);
+                var js = document.createElement('script');
+                js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                js.onload = resolve;
+                js.onerror = reject;
+                document.head.appendChild(js);
+            });
+        }
+        _leafletLoading.then(function () { cb(!!window.L); }).catch(function () { cb(false); });
+    }
 
     const DE_MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
     const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -936,12 +969,127 @@ window.SignageApps = (function () {
         return { node: wrap, stop: function () { stopped = true; stopScroll(); if (dataTimer) clearInterval(dataTimer); if (clockTimer) clearInterval(clockTimer); if (viewTimer) clearInterval(viewTimer); } };
     }
 
+    function buildFleetmap(cfg, portrait) {
+        const STYLES = ['elegant', 'warm', 'modern', 'night'];
+        const style = STYLES.indexOf(cfg.style) >= 0 ? cfg.style : 'modern';
+        const dark = (style === 'night' || style === 'elegant');
+        const title = cfg.title || 'Fahrzeuge';
+        const showClock = cfg.show_clock !== false;
+        const showTemp = cfg.show_temp === true;
+        const esc = function (s) {
+            return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+            });
+        };
+
+        const wrap = document.createElement('div');
+        wrap.className = 'app-fmap fl-style-' + style + (portrait ? ' fl-portrait' : '');
+        wrap.innerHTML = '<div class="fmap-head"><div class="fmap-title">' + esc(title) + '<span data-date></span></div>'
+            + (showClock ? '<div class="fmap-clock" data-clock>--:--</div>' : '')
+            + '</div><div class="fmap-body"><div class="fmap-map"></div><div class="fmap-empty" data-empty>Karte wird geladen …</div></div>';
+
+        let stopped = false, dataTimer = null, clockTimer = null, map = null, markers = {}, fittedCount = -1;
+        const mapEl = wrap.querySelector('.fmap-map');
+        const emptyEl = wrap.querySelector('[data-empty]');
+        const clockEl = wrap.querySelector('[data-clock]');
+        const dateEl = wrap.querySelector('[data-date]');
+
+        function tickClock() {
+            const d = new Date();
+            if (clockEl) clockEl.textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+            if (dateEl) dateEl.textContent = DE_DAYS[d.getDay()] + ', ' + d.getDate() + '. ' + DE_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+        }
+        function setEmpty(msg) { if (emptyEl) { emptyEl.textContent = msg || ''; emptyEl.style.display = msg ? 'flex' : 'none'; } }
+
+        tickClock();
+        clockTimer = setInterval(tickClock, 1000);
+
+        ensureLeaflet(function (ok) {
+            if (stopped) return;
+            if (!ok || !window.L) { setEmpty('Karte konnte nicht geladen werden.'); return; }
+            map = L.map(mapEl, {
+                zoomControl: false, attributionControl: true, dragging: false, scrollWheelZoom: false,
+                doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, tap: false,
+            });
+            map.setView([51.23, 6.78], 10);   // Default: Raum Düsseldorf, bis Fahrzeuge da sind
+            const url = dark
+                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
+            L.tileLayer(url, { subdomains: 'abcd', maxZoom: 19, attribution: '© OpenStreetMap, © CARTO' }).addTo(map);
+            setTimeout(function () { if (map) map.invalidateSize(); }, 60);
+            load();
+            dataTimer = setInterval(load, 30 * 1000);
+        });
+
+        function render(data) {
+            if (!map) return;
+            if (!data || !data.available) {
+                setEmpty(data && data.error ? 'Standorte aktuell nicht abrufbar.' : 'Fahrzeug-Standorte werden vorbereitet …');
+                return;
+            }
+            const vs = (data.vehicles || []).filter(function (v) { return typeof v.lat === 'number' && typeof v.lng === 'number'; });
+            const seen = {};
+            vs.forEach(function (v) {
+                const key = v.plate || (v.lat + ',' + v.lng);
+                seen[key] = true;
+                let label = esc(v.plate || 'Fahrzeug');
+                if (v.speed != null) label += ' <span class="fmap-sp">' + v.speed + ' km/h</span>';
+                if (showTemp && v.temps && v.temps.length) label += ' <span class="fmap-sp">' + v.temps[0] + '°</span>';
+                if (markers[key]) {
+                    markers[key].setLatLng([v.lat, v.lng]);
+                    markers[key].setTooltipContent(label);
+                } else {
+                    const m = L.circleMarker([v.lat, v.lng], { radius: 7, color: '#fff', weight: 2, fillColor: dark ? '#56c2e6' : '#0d9488', fillOpacity: 1 }).addTo(map);
+                    m.bindTooltip(label, { permanent: true, direction: 'top', className: 'fmap-tip', offset: [0, -6] });
+                    markers[key] = m;
+                }
+            });
+            Object.keys(markers).forEach(function (k) { if (!seen[k]) { map.removeLayer(markers[k]); delete markers[k]; } });
+
+            const keys = Object.keys(markers);
+            if (!keys.length) { fittedCount = -1; setEmpty('Aktuell keine aktiven Fahrzeuge.'); return; }
+            setEmpty('');
+            // Ansicht nur bei geänderter Fahrzeug-Anzahl neu einpassen (kein Zoom-Zappeln).
+            if (keys.length !== fittedCount) {
+                const grp = L.featureGroup(keys.map(function (k) { return markers[k]; }));
+                try { map.fitBounds(grp.getBounds().pad(0.25), { maxZoom: 14 }); } catch (e) {}
+                fittedCount = keys.length;
+            }
+        }
+
+        async function load() {
+            if (!cfg.endpoint) { render({ available: false }); return; }
+            try {
+                const sep = cfg.endpoint.indexOf('?') >= 0 ? '&' : '?';
+                const url = cfg.endpoint + sep + 'connection_id=' + encodeURIComponent(cfg.connection_id || '');
+                const r = await fetch(url, { cache: 'no-store' });
+                const d = await r.json();
+                if (stopped) return;
+                if (map) map.invalidateSize();
+                render(d);
+            } catch (e) {
+                if (!stopped) render({ available: false });
+            }
+        }
+
+        return {
+            node: wrap,
+            stop: function () {
+                stopped = true;
+                if (dataTimer) clearInterval(dataTimer);
+                if (clockTimer) clearInterval(clockTimer);
+                if (map) { try { map.remove(); } catch (e) {} map = null; }
+            },
+        };
+    }
+
     function build(type, cfg, portrait) {
         if (type === 'clock') return buildClock(cfg, portrait);
         if (type === 'weather') return buildWeather(cfg, portrait);
         if (type === 'menu') return buildMenu(cfg, portrait);
         if (type === 'events') return buildEvents(cfg, portrait);
         if (type === 'dedefleet') return buildFleet(cfg, portrait);
+        if (type === 'fleetmap') return buildFleetmap(cfg, portrait);
         return null;
     }
 

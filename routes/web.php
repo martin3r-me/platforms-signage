@@ -34,6 +34,10 @@ Route::get('/apps/dedefleet', \Platform\Signage\Livewire\Apps\Fleet::class)->nam
 Route::get('/apps/dedefleet/{media}', \Platform\Signage\Livewire\Apps\Fleet::class)->name('signage.apps.dedefleet.edit');
 // Daten fürs Tourenplan-Board in der Editor-/Bibliotheks-Vorschau (session-auth).
 Route::get('/apps/dedefleet-data', [AppPreviewController::class, 'fleetData'])->name('signage.apps.dedefleet.data');
+Route::get('/apps/fleetmap', \Platform\Signage\Livewire\Apps\FleetMap::class)->name('signage.apps.fleetmap.create');
+Route::get('/apps/fleetmap/{media}', \Platform\Signage\Livewire\Apps\FleetMap::class)->name('signage.apps.fleetmap.edit');
+// Daten für die Fahrzeug-Karte in der Editor-/Bibliotheks-Vorschau (session-auth).
+Route::get('/apps/fleetmap-data', [AppPreviewController::class, 'fleetVehiclesData'])->name('signage.apps.fleetmap.data');
 
 // Eigenständige App-Vorschau (iframe-Einbettung in der Bibliothek)
 Route::get('/apps/preview/{media}', [AppPreviewController::class, 'show'])->name('signage.apps.preview');

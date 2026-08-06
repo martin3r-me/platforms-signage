@@ -29,6 +29,10 @@
                     @svg('heroicon-o-truck', 'w-4 h-4')
                     Tourenplan
                 </x-ui-button>
+                <x-ui-button variant="secondary" size="sm" :href="route('signage.apps.fleetmap.create')">
+                    @svg('heroicon-o-map-pin', 'w-4 h-4')
+                    Fahrzeug-Standorte
+                </x-ui-button>
             </div>
         </x-ui-page-actionbar>
     </x-slot>
