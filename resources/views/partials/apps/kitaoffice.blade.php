@@ -6,24 +6,33 @@
     von Open-Meteo (Fallback Bright Sky/DWD).
 --}}
 <style>
-    .app-ko { --ko-bg:#0c1720; --ko-panel:#142630; --ko-line:#2c414c; --ko-muted:#a6bac5; --ko-green:#75ddba; --ko-orange:#ffd08c; --ko-red:#ffabb9;
-        position:absolute; inset:0; background:var(--ko-bg); color:#f0f6f8; font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    /* Farben als Variablen: dunkel (Standard, wie Patricks Vorlage) und hell (.ko-light). */
+    .app-ko { --ko-bg:#0c1720; --ko-head:#10202a; --ko-panel:#142630; --ko-line:#2c414c; --ko-text:#f0f6f8; --ko-muted:#a6bac5;
+        --ko-card:#192f3b; --ko-card-line:#304954; --ko-green:#75ddba; --ko-orange:#ffd08c; --ko-sun:#ffd08c;
+        --ko-alert-bg:#702d3b; --ko-alert-line:#ff8da3; --ko-alert-text:#ffffff; --ko-alert-chip:#ff8da333;
+        --ko-info-bg:#222e36; --ko-info-line:#596c77; --ko-chip:#00000033; --ko-mark-bg:#76ddba19; --ko-mark-line:#76ddba55;
+        position:absolute; inset:0; background:var(--ko-bg); color:var(--ko-text); font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
         display:flex; flex-direction:column; overflow:hidden; }
-    .ko-head { flex:none; height:11vh; padding:0 2.2vw; display:flex; align-items:center; justify-content:space-between; gap:2vw; background:#10202a; border-bottom:1px solid var(--ko-line); }
+    .app-ko.ko-light { --ko-bg:#e9eff2; --ko-head:#ffffff; --ko-panel:#ffffff; --ko-line:#d3dee3; --ko-text:#10202a; --ko-muted:#5a6f7b;
+        --ko-card:#f4f8f9; --ko-card-line:#d6e2e7; --ko-green:#0b8a64; --ko-orange:#a65f00; --ko-sun:#e09a00;
+        --ko-alert-bg:#fde4e9; --ko-alert-line:#e0566f; --ko-alert-text:#8e1730; --ko-alert-chip:#e0566f22;
+        --ko-info-bg:#eceff1; --ko-info-line:#b3c0c7; --ko-chip:#10202a12; --ko-mark-bg:#0b8a6414; --ko-mark-line:#0b8a6455; }
+    .ko-head { flex:none; height:11vh; padding:0 2.2vw; display:flex; align-items:center; justify-content:space-between; gap:2vw; background:var(--ko-head); border-bottom:1px solid var(--ko-line); }
     .ko-day { font-size:3.4vh; font-weight:600; line-height:1.1; }
     .ko-date { font-size:1.8vh; color:var(--ko-muted); margin-top:.4vh; }
     .ko-brand { display:flex; align-items:center; gap:1vw; min-width:0; }
-    .ko-mark { width:5vh; height:5vh; border-radius:1.3vh; display:grid; place-items:center; color:var(--ko-green); background:#76ddba19; border:1px solid #76ddba55; font-size:2.8vh; flex:none; }
+    .ko-mark { width:5vh; height:5vh; border-radius:1.3vh; display:grid; place-items:center; color:var(--ko-green); background:var(--ko-mark-bg); border:1px solid var(--ko-mark-line); font-size:2.8vh; flex:none; }
     .ko-title { font-size:3.8vh; font-weight:600; letter-spacing:-.04em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .ko-right { display:flex; align-items:center; gap:2.2vw; }
     .ko-wx { display:flex; align-items:center; gap:.8vw; }
-    .ko-wx-icon { width:5vh; height:5vh; color:var(--ko-orange); }
+    .ko-wx-icon { width:5vh; height:5vh; color:var(--ko-sun); }
     .ko-wx-icon svg { width:100%; height:100%; }
     .ko-wx-temp { font-size:3.6vh; font-weight:600; line-height:1; }
     .ko-wx-city { font-size:1.4vh; color:var(--ko-muted); margin-top:.3vh; }
     .ko-clock { font-size:4.4vh; font-weight:600; font-variant-numeric:tabular-nums; }
     .ko-work { flex:1; min-height:0; padding:2vh 1.6vw 2.2vh; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1.6vw; }
     .ko-slot { min-height:0; min-width:0; background:var(--ko-panel); border:1px solid var(--ko-line); border-radius:1.6vh; display:flex; flex-direction:column; overflow:hidden; }
+    .ko-light .ko-slot { box-shadow:0 1px 3px #10202a14; }
     .ko-slot-head { flex:none; height:5.4vh; padding:0 1.2vw; display:flex; align-items:center; justify-content:space-between; gap:1vw; border-bottom:1px solid var(--ko-line); }
     .ko-slot-head h2 { margin:0; font-size:2.3vh; font-weight:600; }
     .ko-live { font-size:1.35vh; color:var(--ko-green); white-space:nowrap; }
@@ -35,14 +44,14 @@
 
     /* Boxen */
     .ko-boxes { height:100%; display:flex; flex-direction:column; gap:1vh; }
-    .ko-box { flex:1; min-height:0; max-height:24vh; border:1px solid #304954; background:#192f3b; border-radius:1.1vh; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); align-items:center; gap:.8vw; padding:1.2vh 1vw; }
-    .ko-box.lv-alert { background:#702d3b; border-color:#ff8da3; }
+    .ko-box { flex:1; min-height:0; max-height:24vh; border:1px solid var(--ko-card-line); background:var(--ko-card); border-radius:1.1vh; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); align-items:center; gap:.8vw; padding:1.2vh 1vw; }
+    .ko-box.lv-alert { background:var(--ko-alert-bg); border-color:var(--ko-alert-line); }
     .ko-box.lv-warn { border-color:var(--ko-orange); }
-    .ko-box.lv-info { background:#222e36; border-color:#596c77; }
+    .ko-box.lv-info { background:var(--ko-info-bg); border-color:var(--ko-info-line); }
     .ko-box-name { font-size:2.1vh; font-weight:600; line-height:1.25; }
     .ko-box-detail { font-size:1.35vh; color:var(--ko-muted); margin-top:.6vh; line-height:1.45; }
-    .ko-box-warn { display:inline-block; margin-top:.8vh; padding:.3vh .6vw; border-radius:.7vh; font-size:1.5vh; font-weight:600; background:#00000033; }
-    .lv-alert .ko-box-warn { color:#fff; background:#ff8da333; }
+    .ko-box-warn { display:inline-block; margin-top:.8vh; padding:.3vh .6vw; border-radius:.7vh; font-size:1.5vh; font-weight:600; background:var(--ko-chip); }
+    .lv-alert .ko-box-warn { color:var(--ko-alert-text); background:var(--ko-alert-chip); }
     .lv-warn .ko-box-warn { color:var(--ko-orange); }
     .lv-info .ko-box-warn { color:var(--ko-muted); }
     .ko-box-status { text-align:right; }
@@ -56,7 +65,7 @@
 
     /* Touren */
     .ko-tours { --ks:1; --cols:1; display:grid; grid-template-columns:repeat(var(--cols), minmax(0,1fr)); gap:calc(var(--ks) * .9vh) .8vw; align-content:start; }
-    .ko-tour { border:1px solid #304954; background:#192f3b; border-radius:1vh; padding:calc(var(--ks) * .9vh) .8vw; break-inside:avoid; }
+    .ko-tour { border:1px solid var(--ko-card-line); background:var(--ko-card); border-radius:1vh; padding:calc(var(--ks) * .9vh) .8vw; break-inside:avoid; }
     .ko-tour-top { display:flex; align-items:baseline; gap:.7vw; flex-wrap:wrap; }
     .ko-tour-dep { font-size:calc(var(--ks) * 2.2vh); font-weight:650; font-variant-numeric:tabular-nums; color:var(--ko-green); }
     .ko-tour-name { font-size:calc(var(--ks) * 1.9vh); font-weight:600; }
@@ -120,13 +129,20 @@
     // Bright-Sky-Icons → Namen der gemeinsamen Wetter-Icons.
     const BS_ICON = { 'clear-day': 'sun', 'clear-night': 'sun', 'partly-cloudy-day': 'partly', 'partly-cloudy-night': 'partly', cloudy: 'cloud', fog: 'fog', wind: 'cloud', rain: 'rain', sleet: 'snow', snow: 'snow', hail: 'snow', thunderstorm: 'storm' };
 
+    /** dark | light | auto (hell von 7 bis 19 Uhr, sonst dunkel). */
+    function themeOf(cfg) {
+        if (cfg.theme === 'light' || cfg.theme === 'dark') return cfg.theme;
+        if (cfg.theme === 'auto') { const h = berlin(new Date()).h; return h >= 7 && h < 19 ? 'light' : 'dark'; }
+        return 'dark';
+    }
+
     function buildKitaOffice(cfg, portrait) {
         const apps = window.SignageApps || {};
         const perPage = Math.max(1, Math.min(8, parseInt(cfg.boxes_per_page, 10) || 3));
         const pageMs = Math.max(5, parseInt(cfg.box_page_seconds, 10) || 20) * 1000;
 
         const wrap = document.createElement('div');
-        wrap.className = 'app-ko' + (portrait ? ' ko-portrait' : '');
+        wrap.className = 'app-ko' + (themeOf(cfg) === 'light' ? ' ko-light' : '') + (portrait ? ' ko-portrait' : '');
         wrap.innerHTML =
             '<div class="ko-head">' +
                 '<div><div class="ko-day" data-day></div><div class="ko-date" data-date></div></div>' +
@@ -154,6 +170,7 @@
             $('[data-clock]').textContent = pad2(b.h) + ':' + pad2(b.i);
             $('[data-day]').textContent = DAYS[b.wd];
             $('[data-date]').textContent = b.d + '. ' + MONTHS[b.m - 1] + ' ' + b.y + ' · KW ' + isoWeek(b.y, b.m, b.d);
+            if (cfg.theme === 'auto') wrap.classList.toggle('ko-light', themeOf(cfg) === 'light');
         }
 
         function renderWeather(temp, icon, stale) {

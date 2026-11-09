@@ -14,11 +14,13 @@ namespace Platform\Signage\Support\KitaOffice;
 final class KitaOfficeConfig
 {
     public const MAX_LIST = 100;
+    public const THEMES = ['dark', 'light', 'auto'];
 
     public static function defaults(): array
     {
         return [
             'title'                   => 'Kita Office Dashboard',
+            'theme'                   => 'dark',   // dark | light | auto (hell 7–19 Uhr)
             'meinconnect_connection_id' => null,
             'dedefleet_connection_id' => null,
             'city'                    => 'Düsseldorf',
@@ -63,6 +65,7 @@ final class KitaOfficeConfig
 
         return [
             'title'                     => $str($cfg['title'] ?? $d['title'], 120),
+            'theme'                     => in_array($cfg['theme'] ?? null, self::THEMES, true) ? $cfg['theme'] : $d['theme'],
             'meinconnect_connection_id' => $id($cfg['meinconnect_connection_id'] ?? null),
             'dedefleet_connection_id'   => $id($cfg['dedefleet_connection_id'] ?? null),
             'city'                      => $str($cfg['city'] ?? $d['city'], 80),
