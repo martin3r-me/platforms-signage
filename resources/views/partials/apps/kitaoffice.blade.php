@@ -1,7 +1,7 @@
 {{--
     Kita-Office-Board (app_type=kitaoffice). Gestaltung nach Patricks Prototyp:
     Kopf (Wochentag + KW, Datum, Logo + Titel, Wetter, Uhr), links oben CoolCooking-Boxen,
-    links unten Menüs + Kalender (Anbindung folgt), rechts alle Touren als kompakte Zeilen.
+    links unten Menüs + Office-Kalender (Microsoft 365), rechts alle Touren als kompakte Zeilen.
     Daten: config.endpoint (Boxen + Touren, Regeln serverseitig), Wetter direkt von
     Open-Meteo (Fallback Bright Sky/DWD). Themes: hell (Standard), dunkel, automatisch.
 --}}
@@ -91,6 +91,16 @@
         background:var(--ko-badge-bg); color:var(--ko-badge-text); vertical-align:middle; }
     .ko-tour-driver { font-size:calc(var(--ks) * 2.2vh); color:var(--ko-accent-text); font-weight:500; padding-left:1vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .ko-tour-cust { font-size:calc(var(--ks) * 1.3vh); color:var(--ko-muted); line-height:1.3; }
+
+    /* Menüs + Kalender */
+    .ko-menus, .ko-cal { height:100%; display:flex; flex-direction:column; gap:.8vh; }
+    .ko-menu, .ko-cal-item { flex:1; min-height:0; overflow:hidden; border:1px solid var(--ko-card-line); background:var(--ko-card);
+        border-radius:.8vh; padding:.7vh .8vw; font-size:1.9vh; line-height:1.25; }
+    .ko-menu strong { display:block; font-size:1.3vh; font-weight:600; color:var(--ko-accent-text); margin-bottom:.25vh; }
+    .ko-cal-item { flex:0 1 auto; max-height:33%; }
+    .ko-cal-item small { display:block; font-size:1.35vh; color:var(--ko-muted); margin-bottom:.2vh; font-variant-numeric:tabular-nums; }
+    .ko-cal-item div { overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+    .ko-cal-item.now { border-color:var(--ko-accent); }
 </style>
 <script>
 (function () {
@@ -162,9 +172,11 @@
                     '<div class="ko-slot-foot"><span data-box-foot></span><span data-box-page></span></div></section>' +
                 '<div class="ko-bottom">' +
                     '<section class="ko-slot"><div class="ko-slot-head"><h2>Menüs des Tages</h2></div>' +
-                        '<div class="ko-slot-body"><div class="ko-msg"><b>Speiseplan</b>Anbindung über SharePoint folgt</div></div></section>' +
+                        '<div class="ko-slot-body" data-menus><div class="ko-msg">Speiseplan wird geladen …</div></div>' +
+                        '<div class="ko-slot-foot"><span data-menu-foot></span></div></section>' +
                     '<section class="ko-slot"><div class="ko-slot-head"><h2>Office-Kalender</h2></div>' +
-                        '<div class="ko-slot-body"><div class="ko-msg"><b>AG – KITA OFFICE</b>Anbindung über Microsoft 365 folgt</div></div></section>' +
+                        '<div class="ko-slot-body" data-cal><div class="ko-msg">Kalender wird geladen …</div></div>' +
+                        '<div class="ko-slot-foot"><span data-cal-foot>AG – KITA OFFICE</span><span data-cal-page></span></div></section>' +
                 '</div>' +
                 '<section class="ko-slot ko-tours-slot"><div class="ko-slot-head"><h2>Touren &amp; Fahrer</h2><span class="ko-live" data-tour-live>lädt …</span></div>' +
                     '<div class="ko-slot-body" data-tours><div class="ko-msg">Touren werden geladen …</div></div>' +
@@ -172,7 +184,7 @@
             '</div>';
 
         const $ = function (sel) { return wrap.querySelector(sel); };
-        let stopped = false, timers = [], data = null, page = 0, lastAlertIds = '', lastToursKey = null;
+        let stopped = false, timers = [], data = null, page = 0, lastAlertIds = '', lastToursKey = null, calPage = 0, lastMenuKey = null;
 
         // ---------------- Kopf ----------------
         function tickClock() {
@@ -357,7 +369,10 @@
             }
             const tours = t.tours || [];
             live.textContent = 'Heute · ' + tours.length + ' Fahrten'; live.className = 'ko-live';
-            $('[data-tour-foot]').textContent = 'Stand ' + hm(data.generated_at) + ' · Telefonliste: manuell';
+            const ps = t.phone_source || {};
+            const phoneLabel = ps.kind === 'sharepoint' ? 'Telefonliste: SharePoint' + (ps.stale ? ' (veraltet)' : '')
+                : ps.error ? 'Telefonliste: ' + ps.error : ps.kind === 'manual' ? 'Telefonliste: manuell' : 'keine Telefonliste';
+            $('[data-tour-foot]').textContent = 'Stand ' + hm(data.generated_at) + ' · ' + phoneLabel;
             $('[data-tour-count]').textContent = tours.length + ' Fahrten';
             if (!tours.length) { body.innerHTML = '<div class="ko-msg">Heute keine Touren geplant.</div>'; lastToursKey = null; return; }
             const key = JSON.stringify(tours);
@@ -367,14 +382,76 @@
             requestAnimationFrame(fitTours);
         }
 
+        // ---------------- Menüs + Kalender ----------------
+        function stand(src) {
+            return (src.stale ? 'Stand veraltet · ' : 'Stand ') + hm(src.checked_at) + (src.error && src.stale ? ' · ' + src.error : '');
+        }
+
+        function fitText(el, maxPx) {
+            let size = maxPx;
+            el.style.fontSize = size + 'px';
+            while ((el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) && size > 9) {
+                size -= 0.5;
+                el.style.fontSize = size + 'px';
+            }
+        }
+
+        function renderMenus() {
+            const body = $('[data-menus]'), foot = $('[data-menu-foot]');
+            const m = data && data.menus;
+            if (!m || !m.available || !m.ok) {
+                body.innerHTML = '<div class="ko-msg">' + esc((m && m.error) || 'Kein Speiseplan angebunden.') + '</div>';
+                foot.textContent = ''; lastMenuKey = null;
+                return;
+            }
+            foot.textContent = (m.date ? m.date.split('-').reverse().join('.') + ' · ' : '') + stand(m);
+            const key = JSON.stringify(m.menus) + '|' + wrap.clientHeight;
+            if (key === lastMenuKey) return;
+            lastMenuKey = key;
+            if (!m.menus.length) { body.innerHTML = '<div class="ko-msg">Heute sind keine Menüs geplant.</div>'; return; }
+            body.innerHTML = '<div class="ko-menus">' + m.menus.map(function (x) {
+                return '<div class="ko-menu"><strong>Menü ' + esc(x.number) + '</strong>' + esc(x.text) + '</div>';
+            }).join('') + '</div>';
+            requestAnimationFrame(function () {
+                const max = window.innerHeight * 0.021;
+                body.querySelectorAll('.ko-menu').forEach(function (el) { fitText(el, max); });
+            });
+        }
+
+        function renderCalendar() {
+            const body = $('[data-cal]'), foot = $('[data-cal-foot]'), pg = $('[data-cal-page]');
+            const c = data && data.calendar;
+            if (!c || !c.available || !c.ok) {
+                body.innerHTML = '<div class="ko-msg">' + esc((c && c.error) || 'Kein Kalender angebunden.') + '</div>';
+                foot.textContent = 'AG – KITA OFFICE'; pg.textContent = '';
+                return;
+            }
+            const now = Date.now();
+            const events = (c.events || []).filter(function (e) { return Date.parse(e.end) > now; });
+            const pages = Math.max(1, Math.ceil(events.length / 3)), p = calPage % pages;
+            foot.textContent = stand(c) + (c.incomplete ? ' · weitere Termine fehlen' : '');
+            pg.textContent = pages > 1 ? (p + 1) + '/' + pages : '';
+            if (!events.length) { body.innerHTML = '<div class="ko-msg">Keine anstehenden Termine.</div>'; return; }
+            body.innerHTML = '<div class="ko-cal">' + events.slice(p * 3, p * 3 + 3).map(function (e) {
+                const start = new Date(Date.parse(e.start));
+                // Ganztägig: Graph liefert Mitternacht der Kalenderzone – Datum aus dem String nehmen.
+                const dayDate = e.all_day ? new Date(e.start.slice(0, 10) + 'T12:00:00Z') : start;
+                const day = dayDate.toLocaleDateString('de-DE', { timeZone: 'Europe/Berlin', weekday: 'short', day: '2-digit', month: '2-digit' });
+                const time = e.all_day ? 'ganztägig' : hm(e.start) + '–' + hm(e.end) + ' Uhr';
+                const running = !e.all_day && Date.parse(e.start) <= now;
+                return '<div class="ko-cal-item' + (running ? ' now' : '') + '"><small>' + esc(day + ' · ' + time) + '</small><div>' + esc(e.subject) + '</div></div>';
+            }).join('') + '</div>';
+        }
+
         // ---------------- Daten ----------------
         async function load() {
-            if (!cfg.endpoint) { data = {}; renderBoxes(); renderTours(); return; }
+            if (!cfg.endpoint) { data = {}; renderBoxes(); renderTours(); renderMenus(); renderCalendar(); return; }
             try {
                 let url = cfg.endpoint;
                 if (cfg.preview_config) {
                     const pick = {};
-                    ['meinconnect_connection_id', 'dedefleet_connection_id', 'boxes_per_page', 'offline_minutes', 'door_warning_minutes',
+                    ['meinconnect_connection_id', 'dedefleet_connection_id', 'm365_connection_id', 'calendar_group_id', 'calendar_days',
+                     'menu_folder_url', 'menu_file_pattern', 'phone_list_url', 'boxes_per_page', 'offline_minutes', 'door_warning_minutes',
                      'door_warning_until', 'hide_pickups', 'strip_prefixes', 'driver_aliases', 'whatsapp_only', 'drivers', 'facility_phones', 'box_strip_prefixes']
                         .forEach(function (k) { pick[k] = cfg[k]; });
                     url += (url.indexOf('?') >= 0 ? '&' : '?') + 'cfg=' + encodeURIComponent(JSON.stringify(pick));
@@ -385,10 +462,12 @@
                 data = d;
                 renderBoxes();
                 renderTours();
+                renderMenus();
+                renderCalendar();
             } catch (e) {
                 // Netzfehler: bestehende Anzeige behalten, nur markieren.
                 if (stopped) return;
-                if (!data) { data = {}; renderBoxes(); renderTours(); }
+                if (!data) { data = {}; renderBoxes(); renderTours(); renderMenus(); renderCalendar(); }
                 $('[data-box-live]').className = 'ko-live bad';
                 $('[data-tour-live]').className = 'ko-live bad';
             }
@@ -401,7 +480,8 @@
         timers.push(setInterval(load, 30 * 1000));
         timers.push(setInterval(loadWeather, 10 * 60 * 1000));
         timers.push(setInterval(nextBoxPage, pageMs));
-        const onResize = function () { lastToursKey = null; renderTours(); };
+        timers.push(setInterval(function () { calPage++; renderCalendar(); }, 15 * 1000));
+        const onResize = function () { lastToursKey = null; lastMenuKey = null; renderTours(); renderMenus(); };
         window.addEventListener('resize', onResize);
 
         return {

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Platform\Core\Models\User;
 use Platform\Signage\Support\KitaOffice\BoxRules;
 use Platform\Signage\Support\KitaOffice\DriverDirectory;
+use Platform\Signage\Support\KitaOffice\M365Source;
 
 /**
  * Daten fürs Kita-Office-Board (app_type=kitaoffice). Führt die Quellen zusammen
@@ -14,6 +15,8 @@ use Platform\Signage\Support\KitaOffice\DriverDirectory;
  *  - Boxen: MeinConnect-Connection aus platforms-integrations (Gastfreigabe).
  *  - Touren: bestehende DedeFleet-Anbindung (FleetBoardService), ergänzt um
  *    Fahrer-Telefonnummern aus der Telefonliste.
+ *  - Speiseplan, Office-Kalender, Telefonliste: Microsoft 365 (platform-user-connectors)
+ *    über die ausgewählte M365-Connection, siehe M365Source.
  *  - Wetter lädt der Player selbst (Open-Meteo), Uhr/Datum/KW ebenfalls.
  *
  * Modul-Schnitt wie beim FleetBoardService: alle Abrufe laufen über die Services der
@@ -50,18 +53,97 @@ class KitaOfficeBoardService
     }
 
     /**
-     * @param array<string,mixed> $config bereinigte App-Konfiguration (KitaOfficeConfig::sanitize)
+     * @param array<string,mixed> $config   bereinigte App-Konfiguration (KitaOfficeConfig::sanitize)
+     * @param User|null           $m365User User, mit dem die M365-Connection aufgelöst wird
+     *                                      (Editor: angemeldeter User; Bildschirm: wer sie gespeichert hat)
      */
-    public static function board(?User $user, array $config): array
+    public static function board(?User $user, array $config, ?User $m365User): array
     {
         $now = time();
+        $phones = self::phoneList($m365User, $config);
 
         return [
             'generated_at'    => gmdate(DATE_ATOM, $now),
             'boxes'           => self::boxes($user, $config, $now),
-            'tours'           => self::tours($user, $config),
+            'tours'           => self::tours($user, $config, $phones),
+            'menus'           => self::menus($m365User, $config),
+            'calendar'        => self::calendar($m365User, $config),
             'facility_phones' => $config['facility_phones'] ?? [],
         ];
+    }
+
+    // ---------------------------------------------------------------------
+    // Microsoft 365 (Speiseplan, Kalender, Telefonliste)
+    // ---------------------------------------------------------------------
+
+    /** Grund, warum M365 nicht genutzt werden kann – oder null. */
+    private static function m365Missing(?User $user, array $config): ?string
+    {
+        if (!M365Source::available()) {
+            return 'Microsoft-365-Anbindung ist hier nicht installiert.';
+        }
+        if (!$config['m365_connection_id']) {
+            return 'Keine Microsoft-365-Verbindung ausgewählt.';
+        }
+
+        return $user ? null : 'Microsoft-365-Verbindung nicht mehr verfügbar.';
+    }
+
+    private static function menus(?User $user, array $config): array
+    {
+        if ($config['menu_folder_url'] === '') {
+            return ['available' => false, 'error' => 'Speiseplan-Ordner nicht hinterlegt.'];
+        }
+        if ($missing = self::m365Missing($user, $config)) {
+            return ['available' => false, 'error' => $missing];
+        }
+
+        return ['available' => true] + M365Source::menus($user, (int) $config['m365_connection_id'], $config['menu_folder_url'], $config['menu_file_pattern']);
+    }
+
+    private static function calendar(?User $user, array $config): array
+    {
+        if ($config['calendar_group_id'] === '') {
+            return ['available' => false, 'error' => 'Keine Kalender-Gruppe hinterlegt.'];
+        }
+        if ($missing = self::m365Missing($user, $config)) {
+            return ['available' => false, 'error' => $missing];
+        }
+
+        return ['available' => true] + M365Source::calendar($user, (int) $config['m365_connection_id'], $config['calendar_group_id'], (int) $config['calendar_days']);
+    }
+
+    /**
+     * Telefonliste aus SharePoint, ergänzt um die manuellen Einträge (Ersatz/Ergänzung).
+     *
+     * @return array{contacts: list<array{name:string,phone:string}>, source: array}
+     */
+    private static function phoneList(?User $user, array $config): array
+    {
+        $manual = $config['drivers'] ?? [];
+        if ($config['phone_list_url'] === '' || self::m365Missing($user, $config)) {
+            return ['contacts' => $manual, 'source' => ['kind' => $manual ? 'manual' : 'none']];
+        }
+
+        $list = M365Source::contacts($user, (int) $config['m365_connection_id'], $config['phone_list_url']);
+        $contacts = $list['contacts'] ?? [];
+        $seen = [];
+        foreach ($contacts as $c) {
+            $seen[mb_strtolower($c['name']) . '|' . preg_replace('~\D~', '', $c['phone'])] = true;
+        }
+        foreach ($manual as $c) {
+            if (!isset($seen[mb_strtolower($c['name']) . '|' . preg_replace('~\D~', '', $c['phone'])])) {
+                $contacts[] = $c;
+            }
+        }
+
+        return ['contacts' => $contacts, 'source' => [
+            'kind'        => !empty($list['ok']) ? 'sharepoint' : ($manual ? 'manual' : 'none'),
+            'file'        => $list['file'] ?? null,
+            'stale'       => (bool) ($list['stale'] ?? false),
+            'error'       => $list['error'] ?? null,
+            'checked_at'  => $list['checked_at'] ?? null,
+        ]];
     }
 
     // ---------------------------------------------------------------------
@@ -147,7 +229,7 @@ class KitaOfficeBoardService
     // Touren (DedeFleet)
     // ---------------------------------------------------------------------
 
-    private static function tours(?User $user, array $config): array
+    private static function tours(?User $user, array $config, array $phones): array
     {
         $connectionId = $config['dedefleet_connection_id'] ?? null;
         if (!$connectionId) {
@@ -163,7 +245,7 @@ class KitaOfficeBoardService
             ];
         }
 
-        $directory = DriverDirectory::fromConfig($config);
+        $directory = DriverDirectory::fromConfig($config, $phones['contacts']);
         $hidePickups = (bool) ($config['hide_pickups'] ?? true);
         $out = [];
 
@@ -193,7 +275,7 @@ class KitaOfficeBoardService
             ];
         }
 
-        return ['available' => true, 'date' => $board['date'], 'tours' => $out];
+        return ['available' => true, 'date' => $board['date'], 'tours' => $out, 'phone_source' => $phones['source']];
     }
 
     /** Fehlermeldung ohne Interna (kein Link, keine Klassen). */

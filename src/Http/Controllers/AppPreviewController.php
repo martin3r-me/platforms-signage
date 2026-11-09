@@ -102,6 +102,6 @@ class AppPreviewController
             $config = is_array($decoded) ? $decoded : [];
         }
 
-        return response()->json(KitaOfficeBoardService::board($user, KitaOfficeConfig::sanitize($config)));
+        return response()->json(KitaOfficeBoardService::board($user, KitaOfficeConfig::sanitize($config), $user));
     }
 }

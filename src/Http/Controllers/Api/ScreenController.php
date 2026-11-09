@@ -181,9 +181,18 @@ class ScreenController
             return response()->json(['boxes' => ['available' => false], 'tours' => ['available' => false]]);
         }
 
+        // M365 läuft über den User, der die Connection gespeichert hat – nur solange er
+        // noch Mitglied des Teams ist (Zugriff auf die Connection prüft user-connectors).
+        $m365UserId = (int) (($media->config ?? [])['m365_user_id'] ?? 0);
+        $m365User = $m365UserId ? \Platform\Core\Models\User::find($m365UserId) : null;
+        if ($m365User && !$m365User->teams()->where('teams.id', $screen->team_id)->exists()) {
+            $m365User = null;
+        }
+
         return response()->json(KitaOfficeBoardService::board(
             $media->user,
             KitaOfficeConfig::sanitize($media->config ?? []),
+            $m365User,
         ));
     }
 

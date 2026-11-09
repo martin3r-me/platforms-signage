@@ -261,7 +261,9 @@ class PlayerManifestService
                         'media'       => $media->id,
                     ]);
                     $config['logo_url'] = $this->kitaOfficeLogoUrl($media->team_id, $config['logo_media_id'] ?? null);
-                    unset($config['drivers'], $config['meinconnect_connection_id'], $config['dedefleet_connection_id']);
+                    unset($config['drivers'], $config['meinconnect_connection_id'], $config['dedefleet_connection_id'],
+                        $config['m365_connection_id'], $config['m365_user_id'], $config['calendar_group_id'],
+                        $config['menu_folder_url'], $config['menu_file_pattern'], $config['phone_list_url']);
                     // Dauerhaftes Board: nicht alle paar Sekunden neu aufbauen.
                     $duration = max($duration, 300);
                 } elseif ($media->app_type === 'fleetmap') {

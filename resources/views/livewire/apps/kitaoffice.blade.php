@@ -155,6 +155,53 @@
                     </div>
                 </x-signage-panel>
 
+                <x-signage-panel icon="calendar-days" title="Microsoft 365" subtitle="Menüs des Tages, Office-Kalender und Telefonliste aus SharePoint">
+                    <div class="space-y-4 p-4">
+                        @unless($m365Present)
+                            <div class="p-3 rounded bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                                Die Microsoft-365-Anbindung (User-Connectors) ist hier nicht installiert – Menüs, Kalender und Telefonliste bleiben leer.
+                            </div>
+                        @endunless
+                        <div>
+                            <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Microsoft-365-Verbindung</label>
+                            <select x-model="cfg.m365_connection_id" x-on:change="send()"
+                                    class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
+                                <option value="">– kein Microsoft 365 –</option>
+                                @foreach($m365Connections as $c)
+                                    <option value="{{ $c['id'] }}">{{ $c['label'] }}</option>
+                                @endforeach
+                            </select>
+                            @error('config.m365_connection_id')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
+                            <div class="text-xs text-[var(--ui-muted)] mt-1">
+                                Auswählbar sind deine eigene und mit dir geteilte Verbindungen. Der Bildschirm ruft die Daten nach dem Speichern über
+                                diese Verbindung ab und zeigt nur, was ihr Konto in Microsoft 365 sehen darf.
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Kalender: Gruppen-ID</label>
+                                <input type="text" x-model="cfg.calendar_group_id" placeholder="DFF24F5A-…" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Tage im Voraus</label>
+                                <input type="number" min="1" max="31" x-model.number="cfg.calendar_days" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Speiseplan: Link auf den Ordner „Speisepläne“</label>
+                            <input type="url" x-model="cfg.menu_folder_url" placeholder="https://….sharepoint.com/…" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm">
+                            <div class="text-xs text-[var(--ui-muted)] mt-1">In SharePoint am Ordner „Teilen → Link kopieren“. Der Monatsplan wird darin automatisch gesucht:</div>
+                            <input type="text" x-model="cfg.menu_file_pattern" class="mt-1 w-full px-3 py-1.5 rounded-lg border border-[var(--ui-border)] text-xs font-mono">
+                            <div class="text-xs text-[var(--ui-muted)] mt-1">Platzhalter: {JJJJ} Jahr, {MM} Monat zweistellig, {Monat} Monatsname.</div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Telefonliste: Link auf „Telefonliste Logistik.xlsx“</label>
+                            <input type="url" x-model="cfg.phone_list_url" placeholder="https://….sharepoint.com/…" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm">
+                            <div class="text-xs text-[var(--ui-muted)] mt-1">Spalten „Fahrer“ und „Nummer“/„Telefon“. Die manuelle Liste unter Touren ergänzt sie.</div>
+                        </div>
+                    </div>
+                </x-signage-panel>
+
                 <x-signage-panel icon="truck" title="Touren" subtitle="Heutige Touren aus DedeFleet mit Fahrer-Telefon">
                     <div class="space-y-4 p-4">
                         @unless($dedefleetPresent)
@@ -180,7 +227,7 @@
                         <div>
                             <div class="text-sm font-medium text-[var(--ui-secondary)] mb-1">Telefonliste der Fahrer</div>
                             <div class="text-xs text-[var(--ui-muted)] mb-2">
-                                Übergangsweise manuell. Später wird hier die „Telefonliste Logistik“ aus SharePoint angebunden.
+                                Ergänzt die Telefonliste aus SharePoint (oder ersetzt sie, solange keine hinterlegt ist).
                                 Fehlende oder mehrdeutige Treffer werden auf dem Bildschirm markiert, nie geraten.
                             </div>
                             <template x-for="(row, i) in cfg.drivers" :key="'d'+i">

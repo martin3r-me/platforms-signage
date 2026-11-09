@@ -25,6 +25,13 @@ final class KitaOfficeConfig
             'box_strip_prefixes'      => ['DRK Kita', 'Familienzentrum'],
             'meinconnect_connection_id' => null,
             'dedefleet_connection_id' => null,
+            // Microsoft 365 (platform-user-connectors): Connection des speichernden Users
+            'm365_connection_id'      => null,
+            'calendar_group_id'       => 'DFF24F5A-A951-4BEA-9829-A7D577507106',   // AG - KITA OFFICE
+            'calendar_days'           => 7,
+            'menu_folder_url'         => '',   // SharePoint-Link auf den Ordner "Speisepläne"
+            'menu_file_pattern'       => OfficeFiles::DEFAULT_MENU_PATTERN,
+            'phone_list_url'          => '',   // SharePoint-Link auf "Telefonliste Logistik.xlsx"
             'city'                    => 'Düsseldorf',
             'latitude'                => 51.23,
             'longitude'               => 6.78,
@@ -72,6 +79,12 @@ final class KitaOfficeConfig
             'box_strip_prefixes'        => self::strings($cfg['box_strip_prefixes'] ?? $d['box_strip_prefixes'], 60),
             'meinconnect_connection_id' => $id($cfg['meinconnect_connection_id'] ?? null),
             'dedefleet_connection_id'   => $id($cfg['dedefleet_connection_id'] ?? null),
+            'm365_connection_id'        => $id($cfg['m365_connection_id'] ?? null),
+            'calendar_group_id'         => self::guid($cfg['calendar_group_id'] ?? $d['calendar_group_id']),
+            'calendar_days'             => $int($cfg['calendar_days'] ?? null, 1, 31, $d['calendar_days']),
+            'menu_folder_url'           => self::sharePointUrl($cfg['menu_folder_url'] ?? ''),
+            'menu_file_pattern'         => self::pattern($cfg['menu_file_pattern'] ?? $d['menu_file_pattern']),
+            'phone_list_url'            => self::sharePointUrl($cfg['phone_list_url'] ?? ''),
             'city'                      => $str($cfg['city'] ?? $d['city'], 80),
             'latitude'                  => $float($cfg['latitude'] ?? null, -90, 90, $d['latitude']),
             'longitude'                 => $float($cfg['longitude'] ?? null, -180, 180, $d['longitude']),
@@ -87,6 +100,31 @@ final class KitaOfficeConfig
             'drivers'                   => self::rows($cfg['drivers'] ?? [], ['name' => 80, 'phone' => 40], ['name', 'phone']),
             'facility_phones'           => self::rows($cfg['facility_phones'] ?? $d['facility_phones'], ['match' => 80, 'phone' => 40], ['match', 'phone']),
         ];
+    }
+
+    private static function guid($v): string
+    {
+        $v = trim((string) (is_scalar($v) ? $v : ''));
+
+        return preg_match('~^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$~i', $v) ? $v : '';
+    }
+
+    /** Nur https-Links auf SharePoint/OneDrive for Business – andere Ziele nie an Graph geben. */
+    private static function sharePointUrl($v): string
+    {
+        $v = trim((string) (is_scalar($v) ? $v : ''));
+        $host = (string) parse_url($v, PHP_URL_HOST);
+
+        return strlen($v) <= 2000 && str_starts_with($v, 'https://') && preg_match('~(^|\.)sharepoint\.com$~i', $host) ? $v : '';
+    }
+
+    private static function pattern($v): string
+    {
+        $v = trim((string) (is_scalar($v) ? $v : ''));
+
+        return $v !== '' && mb_strlen($v) <= 200 && !str_contains($v, '..') && preg_match('~\.docx$~i', $v)
+            ? ltrim($v, '/')
+            : OfficeFiles::DEFAULT_MENU_PATTERN;
     }
 
     /** Liste von Strings; akzeptiert auch kommagetrennten Text aus einem Eingabefeld. */
