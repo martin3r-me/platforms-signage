@@ -106,7 +106,10 @@ class KitaOfficeBoardService
         Cache::put($doorKey, $doors, 86400);
 
         $devices = array_map(
-            fn (array $d) => $d + ['phone' => self::facilityPhone((string) ($d['name'] ?? ''), $config['facility_phones'] ?? [])],
+            fn (array $d) => $d + [
+                'phone' => self::facilityPhone((string) ($d['name'] ?? ''), $config['facility_phones'] ?? []),
+                'label' => self::shortName((string) ($d['name'] ?? ''), $config['box_strip_prefixes'] ?? []),
+            ],
             $rules->evaluate($devices, $doors, $now)
         );
 
@@ -115,6 +118,18 @@ class KitaOfficeBoardService
             'fetched_at' => gmdate(DATE_ATOM, $fetchedAt),
             'devices'    => $devices,
         ];
+    }
+
+    /** Anzeigename ohne Träger-Präfix ("DRK Kita Lebensbaum …" → "Lebensbaum …"). */
+    private static function shortName(string $name, array $prefixes): string
+    {
+        foreach ($prefixes as $prefix) {
+            if ($prefix !== '' && mb_stripos($name, $prefix . ' ') === 0) {
+                return trim(mb_substr($name, mb_strlen($prefix)));
+            }
+        }
+
+        return $name;
     }
 
     private static function facilityPhone(string $deviceName, array $phones): ?string

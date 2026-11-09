@@ -21,6 +21,7 @@
                     const config = JSON.parse(JSON.stringify(this.cfg));
                     config.endpoint = @js($dataEndpoint);
                     config.preview_config = true;
+                    config.logo_url = (@js($logoUrls))[this.cfg.logo_media_id] || null;
                     f.contentWindow.postMessage({ __signagePreview: true, app_type: 'kitaoffice', config: config }, '*');
                 },
                 addRow(list, row) { this.cfg[list] = (this.cfg[list] || []).concat([row]); this.send(); },
@@ -56,10 +57,20 @@
                             <div>
                                 <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Darstellung</label>
                                 <select x-model="cfg.theme" x-on:change="send()" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
-                                    <option value="dark">Dunkel</option>
                                     <option value="light">Hell</option>
+                                    <option value="dark">Dunkel</option>
                                     <option value="auto">Automatisch (hell 7–19 Uhr)</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Logo</label>
+                                <select x-model="cfg.logo_media_id" x-on:change="send()" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
+                                    <option value="">– kein Logo –</option>
+                                    @foreach($logoImages as $img)
+                                        <option value="{{ $img['id'] }}">{{ $img['name'] }}</option>
+                                    @endforeach
+                                </select>
+                                <span class="text-xs text-[var(--ui-muted)]">Bild aus der Medienbibliothek (z. B. BIOLOGISCH-Logo hochladen).</span>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Wetter-Ort</label>
@@ -117,9 +128,16 @@
                                 <input type="number" min="1" max="120" x-model.number="cfg.door_warning_minutes" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm">
                             </div>
                         </div>
-                        <div class="w-48">
-                            <label class="block text-xs font-medium text-[var(--ui-secondary)] mb-1">Türwarnung nur bis</label>
-                            <input type="time" x-model="cfg.door_warning_until" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-[var(--ui-secondary)] mb-1">Türwarnung nur bis</label>
+                                <input type="time" x-model="cfg.door_warning_until" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-[var(--ui-secondary)] mb-1">Namen kürzen um</label>
+                                <input type="text" :value="csv('box_strip_prefixes')" x-on:change="setCsv('box_strip_prefixes', $event.target.value); send()"
+                                       placeholder="DRK Kita, Familienzentrum" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm">
+                            </div>
                         </div>
 
                         <div>

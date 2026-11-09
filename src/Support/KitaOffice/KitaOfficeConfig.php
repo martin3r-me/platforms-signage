@@ -20,7 +20,9 @@ final class KitaOfficeConfig
     {
         return [
             'title'                   => 'Kita Office Dashboard',
-            'theme'                   => 'dark',   // dark | light | auto (hell 7–19 Uhr)
+            'theme'                   => 'light',  // light | dark | auto (hell 7–19 Uhr)
+            'logo_media_id'           => null,     // Bild aus der Medienbibliothek
+            'box_strip_prefixes'      => ['DRK Kita', 'Familienzentrum'],
             'meinconnect_connection_id' => null,
             'dedefleet_connection_id' => null,
             'city'                    => 'Düsseldorf',
@@ -66,6 +68,8 @@ final class KitaOfficeConfig
         return [
             'title'                     => $str($cfg['title'] ?? $d['title'], 120),
             'theme'                     => in_array($cfg['theme'] ?? null, self::THEMES, true) ? $cfg['theme'] : $d['theme'],
+            'logo_media_id'             => $id($cfg['logo_media_id'] ?? null),
+            'box_strip_prefixes'        => self::strings($cfg['box_strip_prefixes'] ?? $d['box_strip_prefixes'], 60),
             'meinconnect_connection_id' => $id($cfg['meinconnect_connection_id'] ?? null),
             'dedefleet_connection_id'   => $id($cfg['dedefleet_connection_id'] ?? null),
             'city'                      => $str($cfg['city'] ?? $d['city'], 80),

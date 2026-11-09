@@ -36,6 +36,8 @@ class AppPreviewController
             $config['endpoint'] = route('signage.apps.fleetmap.data');
         } elseif ($media->app_type === 'kitaoffice') {
             $config['endpoint'] = route('signage.apps.kitaoffice.data', ['media' => $media->id]);
+            $config['logo_url'] = app(\Platform\Signage\Services\PlayerManifestService::class)
+                ->kitaOfficeLogoUrl($media->team_id, $config['logo_media_id'] ?? null);
         }
 
         return view('signage::apps.preview', [

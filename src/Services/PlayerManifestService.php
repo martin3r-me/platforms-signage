@@ -260,6 +260,7 @@ class PlayerManifestService
                         'deviceToken' => $screen->device_token,
                         'media'       => $media->id,
                     ]);
+                    $config['logo_url'] = $this->kitaOfficeLogoUrl($media->team_id, $config['logo_media_id'] ?? null);
                     unset($config['drivers'], $config['meinconnect_connection_id'], $config['dedefleet_connection_id']);
                     // Dauerhaftes Board: nicht alle paar Sekunden neu aufbauen.
                     $duration = max($duration, 300);
@@ -370,7 +371,19 @@ class PlayerManifestService
         ];
     }
 
-    private function mediaUrl(SignageMedia $media): string
+    /** Signierte URL des Logos einer Kita-Office-App (nur Bilder desselben Teams). */
+    public function kitaOfficeLogoUrl(int $teamId, $logoMediaId): ?string
+    {
+        if (!is_numeric($logoMediaId)) {
+            return null;
+        }
+
+        $logo = SignageMedia::where('team_id', $teamId)->where('kind', 'image')->find((int) $logoMediaId);
+
+        return $logo ? $this->mediaUrl($logo) : null;
+    }
+
+    public function mediaUrl(SignageMedia $media): string
     {
         // Bilder: bevorzugt die heruntergerechnete Anzeige-Variante (schnelleres Laden).
         $path = $media->display_path ?: $media->path;

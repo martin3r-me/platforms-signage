@@ -97,7 +97,7 @@ class KitaOfficeBoxRulesTest extends TestCase
         $this->assertNull($cfg['meinconnect_connection_id']);
         $this->assertSame(['Hicham', 'Salim'], $cfg['whatsapp_only']);
         $this->assertSame([['name' => 'Bea', 'phone' => '0171']], $cfg['drivers']);
-        $this->assertSame('dark', $cfg['theme']);
-        $this->assertSame('light', KitaOfficeConfig::sanitize(['theme' => 'light'])['theme']);
+        $this->assertSame('light', $cfg['theme']);
+        $this->assertSame('dark', KitaOfficeConfig::sanitize(['theme' => 'dark'])['theme']);
     }
 }

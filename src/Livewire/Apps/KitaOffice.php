@@ -76,12 +76,22 @@ class KitaOffice extends Component
     {
         $user = auth()->user();
 
+        // Bilder für die Logo-Auswahl (+ signierte URLs für die Live-Vorschau).
+        $manifest = app(\Platform\Signage\Services\PlayerManifestService::class);
+        $images = SignageMedia::where('team_id', $this->teamId())
+            ->where('kind', 'image')
+            ->orderBy('name')
+            ->limit(100)
+            ->get();
+
         return view('signage::livewire.apps.kitaoffice', [
             'meinconnectConnections' => KitaOfficeBoardService::meinconnectConnectionsForUser($user),
             'meinconnectPresent'     => KitaOfficeBoardService::meinconnectAvailable(),
             'dedefleetConnections'   => FleetBoardService::connectionsForUser($user),
             'dedefleetPresent'       => FleetBoardService::integrationPresent(),
             'dataEndpoint'           => route('signage.apps.kitaoffice.data'),
+            'logoImages'             => $images->map(fn ($m) => ['id' => $m->id, 'name' => (string) $m->name])->all(),
+            'logoUrls'               => $images->mapWithKeys(fn ($m) => [$m->id => $manifest->mediaUrl($m)])->all(),
         ])->layout('platform::layouts.app');
     }
 }
