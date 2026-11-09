@@ -33,6 +33,10 @@
                     @svg('heroicon-o-map-pin', 'w-4 h-4')
                     Fahrzeug-Standorte
                 </x-ui-button>
+                <x-ui-button variant="secondary" size="sm" :href="route('signage.apps.kitaoffice.create')">
+                    @svg('heroicon-o-building-office', 'w-4 h-4')
+                    Kita Office
+                </x-ui-button>
             </div>
         </x-ui-page-actionbar>
     </x-slot>

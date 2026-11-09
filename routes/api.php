@@ -37,6 +37,11 @@ Route::get('/screen/{deviceToken}/fleet-vehicles', [ScreenController::class, 'fl
     ->middleware('throttle:signage-device')
     ->name('signage.api.screen.fleet-vehicles');
 
+// Daten fürs Kita-Office-Board (kitaoffice-App: Boxen + Touren).
+Route::get('/screen/{deviceToken}/kitaoffice', [ScreenController::class, 'kitaOffice'])
+    ->middleware('throttle:signage-device')
+    ->name('signage.api.screen.kitaoffice');
+
 // Proof-of-Play: gebündelte Wiedergabe-Meldungen des Players.
 Route::post('/screen/{deviceToken}/played', [ScreenController::class, 'recordPlays'])
     ->middleware('throttle:signage-device')

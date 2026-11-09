@@ -39,6 +39,11 @@ Route::get('/apps/fleetmap/{media}', \Platform\Signage\Livewire\Apps\FleetMap::c
 // Daten für die Fahrzeug-Karte in der Editor-/Bibliotheks-Vorschau (session-auth).
 Route::get('/apps/fleetmap-data', [AppPreviewController::class, 'fleetVehiclesData'])->name('signage.apps.fleetmap.data');
 
+Route::get('/apps/kitaoffice', \Platform\Signage\Livewire\Apps\KitaOffice::class)->name('signage.apps.kitaoffice.create');
+Route::get('/apps/kitaoffice/{media}', \Platform\Signage\Livewire\Apps\KitaOffice::class)->name('signage.apps.kitaoffice.edit');
+// Daten fürs Kita-Office-Board in der Editor-/Bibliotheks-Vorschau (session-auth).
+Route::get('/apps/kitaoffice-data', [AppPreviewController::class, 'kitaOfficeData'])->name('signage.apps.kitaoffice.data');
+
 // Eigenständige App-Vorschau (iframe-Einbettung in der Bibliothek)
 Route::get('/apps/preview/{media}', [AppPreviewController::class, 'show'])->name('signage.apps.preview');
 

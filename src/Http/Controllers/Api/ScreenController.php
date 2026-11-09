@@ -10,6 +10,8 @@ use Platform\Signage\Models\SignageScreen;
 use Platform\Signage\Services\PlayerManifestService;
 use Platform\Signage\Support\EventBoardService;
 use Platform\Signage\Support\FleetBoardService;
+use Platform\Signage\Support\KitaOffice\KitaOfficeConfig;
+use Platform\Signage\Support\KitaOfficeBoardService;
 
 class ScreenController
 {
@@ -154,6 +156,34 @@ class ScreenController
         return response()->json(FleetBoardService::liveVehicles(
             $media->user,
             isset($config['connection_id']) ? (int) $config['connection_id'] : null,
+        ));
+    }
+
+    /**
+     * Daten fürs Kita-Office-Board (vom kitaoffice-App-Frame des Players abgerufen).
+     * Wie fleet(): Media team-gescoped; Connections, Regeln und Ersteller-User kommen
+     * ausschließlich serverseitig aus dem App-Record, nie vom Gerät.
+     */
+    public function kitaOffice(Request $request, string $deviceToken): JsonResponse
+    {
+        $screen = SignageScreen::where('device_token', $deviceToken)->first();
+        if (!$screen || $screen->status !== 'active') {
+            return response()->json(['boxes' => ['available' => false], 'tours' => ['available' => false]]);
+        }
+
+        $media = SignageMedia::query()
+            ->where('team_id', $screen->team_id)
+            ->where('app_type', 'kitaoffice')
+            ->where('id', (int) $request->query('media'))
+            ->first();
+
+        if (!$media) {
+            return response()->json(['boxes' => ['available' => false], 'tours' => ['available' => false]]);
+        }
+
+        return response()->json(KitaOfficeBoardService::board(
+            $media->user,
+            KitaOfficeConfig::sanitize($media->config ?? []),
         ));
     }
 

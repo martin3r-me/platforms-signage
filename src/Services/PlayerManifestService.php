@@ -254,6 +254,15 @@ class PlayerManifestService
                     // neu auf, "wird geladen" + von vorn). Daher eine Mindest-Standzeit erzwingen;
                     // laengere, bewusst gesetzte Werte bleiben erhalten.
                     $duration = max($duration, 180);
+                } elseif ($media->app_type === 'kitaoffice') {
+                    // Regeln/Connections bleiben serverseitig; das Gerät bekommt nur die Media-Kennung.
+                    $config['endpoint'] = route('signage.api.screen.kitaoffice', [
+                        'deviceToken' => $screen->device_token,
+                        'media'       => $media->id,
+                    ]);
+                    unset($config['drivers'], $config['meinconnect_connection_id'], $config['dedefleet_connection_id']);
+                    // Dauerhaftes Board: nicht alle paar Sekunden neu aufbauen.
+                    $duration = max($duration, 300);
                 } elseif ($media->app_type === 'fleetmap') {
                     $config['endpoint'] = route('signage.api.screen.fleet-vehicles', [
                         'deviceToken' => $screen->device_token,

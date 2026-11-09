@@ -117,6 +117,7 @@ class SignageMedia extends Model
             'events'   => 'Veranstaltungen',
             'dedefleet' => 'Tourenplan',
             'fleetmap'  => 'Fahrzeug-Standorte',
+            'kitaoffice' => 'Kita Office',
             default   => (string) $this->app_type,
         };
     }

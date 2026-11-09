@@ -1090,9 +1090,13 @@ window.SignageApps = (function () {
         if (type === 'events') return buildEvents(cfg, portrait);
         if (type === 'dedefleet') return buildFleet(cfg, portrait);
         if (type === 'fleetmap') return buildFleetmap(cfg, portrait);
+        // Weitere Apps registrieren sich in eigenen Partials (z. B. kitaoffice).
+        const ext = window.SignageAppBuilders && window.SignageAppBuilders[type];
+        if (typeof ext === 'function') return ext(cfg, portrait);
         return null;
     }
 
-    return { build: build };
+    return { build: build, wxIconName: wxIconName, wxSvg: wxSvg };
 })();
 </script>
+@include('signage::partials.apps.kitaoffice')
