@@ -187,18 +187,24 @@
                             <div class="sm:col-span-2">
                                 <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Kalender der Gruppe</label>
                                 @php($groupIds = array_column($m365Groups, 'id'))
-                                <select x-model="cfg.calendar_group_id" x-on:change="send()" wire:key="kita-groups-{{ md5(implode(',', $groupIds)) }}"
-                                        class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
-                                    <option value="">– keine Gruppe ausgewählt –</option>
+                                <select x-model="cfg.calendar_group_id" wire:key="kita-groups-{{ md5(implode(',', $groupIds)) }}"
+                                        x-on:change="cfg.calendar_group_name = $event.target.selectedOptions[0]?.dataset.name || ''; send()"
+                                        :disabled="!cfg.m365_connection_id"
+                                        class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm disabled:opacity-60">
+                                    <option value="" data-name="">– keine Gruppe ausgewählt –</option>
                                     @foreach($m365Groups as $g)
-                                        <option value="{{ $g['id'] }}">{{ $g['name'] }}</option>
+                                        <option value="{{ $g['id'] }}" data-name="{{ $g['name'] }}">{{ $g['name'] }}</option>
                                     @endforeach
-                                    @if(($config['calendar_group_id'] ?? '') !== '' && !in_array(strtolower($config['calendar_group_id']), array_map('strtolower', $groupIds), true))
-                                        <option value="{{ $config['calendar_group_id'] }}">{{ $m365Groups === [] ? 'Gespeicherte Gruppe' : 'Gespeicherte Gruppe – für dieses Konto nicht sichtbar' }}</option>
+                                    @php($savedGroup = $config['calendar_group_id'] ?? '')
+                                    @if($savedGroup !== '' && !in_array(strtolower($savedGroup), array_map('strtolower', $groupIds), true))
+                                        @php($savedName = ($config['calendar_group_name'] ?? '') ?: 'Gruppe ' . \Illuminate\Support\Str::limit($savedGroup, 8, '…'))
+                                        <option value="{{ $savedGroup }}" data-name="{{ $config['calendar_group_name'] ?? '' }}">{{ $savedName }}{{ $m365Groups !== [] ? ' – für dieses Konto nicht sichtbar' : '' }}</option>
                                     @endif
                                 </select>
                                 <div wire:loading wire:target="loadGroups" class="text-xs text-[var(--ui-muted)] mt-1">Gruppen werden geladen …</div>
-                                @if($m365GroupsError)
+                                @if(!($config['m365_connection_id'] ?? null))
+                                    <div class="text-xs text-[var(--ui-muted)] mt-1">Erst eine Microsoft-365-Verbindung auswählen – dann erscheinen hier die Gruppen.</div>
+                                @elseif($m365GroupsError)
                                     <div class="text-xs text-red-600 mt-1">{{ $m365GroupsError }}</div>
                                 @elseif(($config['m365_connection_id'] ?? null) && $m365Groups === [])
                                     <div wire:loading.remove wire:target="loadGroups" class="text-xs text-[var(--ui-muted)] mt-1">Keine Microsoft-365-Gruppen für dieses Konto gefunden.</div>
@@ -207,7 +213,7 @@
                                 @endif
                                 <details class="mt-1">
                                     <summary class="text-xs text-[var(--ui-muted)] cursor-pointer">Gruppen-ID manuell eingeben</summary>
-                                    <input type="text" x-model="cfg.calendar_group_id" placeholder="DFF24F5A-…" class="mt-1 w-full px-3 py-1.5 rounded-lg border border-[var(--ui-border)] text-xs font-mono">
+                                    <input type="text" x-model="cfg.calendar_group_id" x-on:input="cfg.calendar_group_name = ''" placeholder="DFF24F5A-…" class="mt-1 w-full px-3 py-1.5 rounded-lg border border-[var(--ui-border)] text-xs font-mono">
                                 </details>
                             </div>
                             <div>

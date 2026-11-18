@@ -28,6 +28,7 @@ final class KitaOfficeConfig
             // Microsoft 365 (platform-user-connectors): Connection des speichernden Users
             'm365_connection_id'      => null,
             'calendar_group_id'       => '',   // M365-Gruppe (im Editor ausgewählt)
+            'calendar_group_name'     => '',   // nur Anzeige im Editor
             'calendar_days'           => 7,
             'menu_folder_url'         => '',   // SharePoint-Link auf den Ordner "Speisepläne"
             'menu_folder_item'        => null, // im Editor ausgewählte Datei oder Ordner (hat Vorrang vor dem Link)
@@ -83,6 +84,7 @@ final class KitaOfficeConfig
             'dedefleet_connection_id'   => $id($cfg['dedefleet_connection_id'] ?? null),
             'm365_connection_id'        => $id($cfg['m365_connection_id'] ?? null),
             'calendar_group_id'         => self::guid($cfg['calendar_group_id'] ?? $d['calendar_group_id']),
+            'calendar_group_name'       => $str($cfg['calendar_group_name'] ?? '', 200),
             'calendar_days'             => $int($cfg['calendar_days'] ?? null, 1, 31, $d['calendar_days']),
             'menu_folder_url'           => self::sharePointUrl($cfg['menu_folder_url'] ?? ''),
             'menu_folder_item'          => self::driveItem($cfg['menu_folder_item'] ?? null),
