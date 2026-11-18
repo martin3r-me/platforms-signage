@@ -47,16 +47,35 @@ final class M365Source
 
         try {
             return app(self::RESOLVER)->resolveAllForUser(self::CONNECTOR_KEY, $user)
-                ->map(function ($c) use ($user) {
-                    $owner = (int) $c->owner_user_id === (int) $user->id ? 'eigene' : ($c->ownerUser?->name ?? 'geteilt');
-
-                    return ['id' => (int) $c->id, 'label' => trim(($c->name ?: 'Microsoft 365') . ' (' . $owner . ')')];
-                })
+                ->map(fn ($c) => ['id' => (int) $c->id, 'label' => self::connectionLabel($c, $user)])
                 ->values()
                 ->all();
         } catch (\Throwable $e) {
             return [];
         }
+    }
+
+    /**
+     * "Christian Wolf · c.wolf@… " (eigene) bzw. "Patrick Hirt (geteilt)". Das Konto steht in den
+     * Credentials und wird – wie in user-connectors – nur bei eigenen Verbindungen gelesen.
+     */
+    private static function connectionLabel(object $c, object $user): string
+    {
+        $own = (int) $c->owner_user_id === (int) $user->id;
+        $owner = $own ? (string) ($user->name ?? '') : (string) ($c->ownerUser?->name ?? 'unbekannt');
+        $account = '';
+        if ($own) {
+            try {
+                $profile = ($c->credentials ?? [])['profile'] ?? [];
+                $account = (string) ($profile['mail'] ?? $profile['userPrincipalName'] ?? '');
+            } catch (\Throwable $e) {
+                $account = '';
+            }
+        }
+        $name = trim((string) ($c->name ?? ''));
+        $suffix = $name !== '' && $name !== 'Microsoft 365' ? ' – ' . $name : '';
+
+        return trim($owner . ($account !== '' ? ' · ' . mb_strtolower($account) : '') . ($own ? '' : ' (geteilt)') . $suffix);
     }
 
     public static function canUse(?object $user, ?int $connectionId): bool
@@ -185,7 +204,8 @@ final class M365Source
             $driveId = (string) ($item['parentReference']['driveId'] ?? '');
         }
 
-        if ($relPath === null) {
+        // Datei direkt ausgewählt/verlinkt: kein Monatsmuster nötig.
+        if ($relPath === null || isset($item['file'])) {
             return $item;
         }
         if ($driveId === '' || empty($item['id']) || !isset($item['folder'])) {
@@ -334,17 +354,22 @@ final class M365Source
         return array_merge($folders, $files);
     }
 
-    /** Sofort-Prüfung im Editor: Findet sich im Ordner der Speiseplan für heute? */
-    public static function probeMenu(User $user, int $connectionId, array|string $folder, string $pattern): string
+    /** Sofort-Prüfung im Editor: Speiseplan (Datei bzw. Monatsdatei im Ordner) mit Menüs für heute? */
+    public static function probeMenu(User $user, int $connectionId, array|string $source, string $pattern): string
     {
-        $path = OfficeFiles::menuPath($pattern, CarbonImmutable::now('Europe/Berlin')->toDateTimeImmutable());
+        $day = CarbonImmutable::now('Europe/Berlin')->startOfDay()->toDateTimeImmutable();
+        $path = OfficeFiles::menuPath($pattern, $day);
         try {
-            $api = app(self::API)->forConnection($connectionId);
-            $item = self::item($api, $user, $folder, $path);
+            $file = self::download($user, $connectionId, $source, $path);
 
-            return 'Gefunden: ' . $path . (!isset($item['file']) ? ' (ist aber ein Ordner)' : ' ✓');
+            return OfficeFiles::menusFromDocx($file['bytes'], $day) !== null
+                ? 'Heutige Menüs gefunden in „' . $file['name'] . '“ ✓'
+                : '„' . $file['name'] . '“ gefunden, aber ohne Menüs für heute.';
         } catch (\Throwable $e) {
-            return (int) $e->getCode() === 404 && str_starts_with($e::class, 'Platform\\UserConnectors\\')
+            $isFile = is_array($source) && ($source['kind'] ?? '') === 'file';
+
+            // Eigene Meldungen tragen keinen HTTP-Code; 404 kommt nur aus Graph.
+            return !$isFile && (int) $e->getCode() === 404
                 ? 'Für diesen Monat noch keine Datei gefunden: ' . $path
                 : self::publicError($e);
         }

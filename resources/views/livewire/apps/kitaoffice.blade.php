@@ -167,16 +167,21 @@
                             <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Microsoft-365-Verbindung</label>
                             <select x-model="cfg.m365_connection_id" x-on:change="send(); $wire.loadGroups()"
                                     class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
-                                <option value="">– kein Microsoft 365 –</option>
+                                <option value="">– keine Verbindung ausgewählt –</option>
                                 @foreach($m365Connections as $c)
                                     <option value="{{ $c['id'] }}">{{ $c['label'] }}</option>
                                 @endforeach
                             </select>
                             @error('config.m365_connection_id')<span class="text-xs text-red-600">{{ $message }}</span>@enderror
                             <div class="text-xs text-[var(--ui-muted)] mt-1">
-                                Auswählbar sind deine eigene und mit dir geteilte Verbindungen. Der Bildschirm ruft die Daten nach dem Speichern über
-                                diese Verbindung ab und zeigt nur, was ihr Konto in Microsoft 365 sehen darf.
+                                Auswählbar sind deine eigene und mit dir geteilte Verbindungen. Der Bildschirm zeigt nur, was das Konto der Verbindung in Microsoft 365 sehen darf.
                             </div>
+                            @if($m365DataUser)
+                                <div class="text-xs mt-1 text-[var(--ui-secondary)]">
+                                    Der Bildschirm ruft derzeit ab als: <strong>{{ $m365DataUser }}</strong>.
+                                    @if($m365DataUser !== $m365SelfName) Speicherst du mit deiner Verbindung, ruft er künftig als <strong>{{ $m365SelfName }}</strong> ab. @endif
+                                </div>
+                            @endif
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" wire:init="loadGroups">
                             <div class="sm:col-span-2">
@@ -184,12 +189,12 @@
                                 @php($groupIds = array_column($m365Groups, 'id'))
                                 <select x-model="cfg.calendar_group_id" x-on:change="send()" wire:key="kita-groups-{{ md5(implode(',', $groupIds)) }}"
                                         class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
-                                    <option value="">– kein Kalender –</option>
+                                    <option value="">– keine Gruppe ausgewählt –</option>
                                     @foreach($m365Groups as $g)
                                         <option value="{{ $g['id'] }}">{{ $g['name'] }}</option>
                                     @endforeach
                                     @if(($config['calendar_group_id'] ?? '') !== '' && !in_array(strtolower($config['calendar_group_id']), array_map('strtolower', $groupIds), true))
-                                        <option value="{{ $config['calendar_group_id'] }}">Gruppe {{ \Illuminate\Support\Str::limit($config['calendar_group_id'], 13) }} (nicht in deinen Gruppen)</option>
+                                        <option value="{{ $config['calendar_group_id'] }}">{{ $m365Groups === [] ? 'Gespeicherte Gruppe' : 'Gespeicherte Gruppe – für dieses Konto nicht sichtbar' }}</option>
                                     @endif
                                 </select>
                                 <div wire:loading wire:target="loadGroups" class="text-xs text-[var(--ui-muted)] mt-1">Gruppen werden geladen …</div>
@@ -212,14 +217,14 @@
                         </div>
 
                         @foreach([
-                            'menu'  => ['field' => 'menu_folder_item', 'url' => 'menu_folder_url', 'label' => 'Speiseplan: Ordner „Speisepläne“', 'icon' => 'heroicon-o-folder', 'button' => 'Ordner in SharePoint auswählen'],
+                            'menu'  => ['field' => 'menu_folder_item', 'url' => 'menu_folder_url', 'label' => 'Speiseplan: Word-Datei oder Ordner „Speisepläne“', 'icon' => 'heroicon-o-document-text', 'button' => 'In SharePoint auswählen'],
                             'phone' => ['field' => 'phone_list_item', 'url' => 'phone_list_url', 'label' => 'Telefonliste: „Telefonliste Logistik.xlsx“', 'icon' => 'heroicon-o-table-cells', 'button' => 'Datei in SharePoint auswählen'],
                         ] as $target => $src)
                             <div>
                                 <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">{{ $src['label'] }}</label>
                                 @if(!empty($config[$src['field']]))
                                     <div class="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-muted-5)] text-sm">
-                                        @svg($src['icon'], 'w-4 h-4 shrink-0 text-[var(--ui-muted)]')
+                                        @svg(($config[$src['field']]['kind'] ?? 'file') === 'folder' ? 'heroicon-o-folder' : $src['icon'], 'w-4 h-4 shrink-0 text-[var(--ui-muted)]')
                                         <span class="flex-1 truncate" title="{{ $config[$src['field']]['label'] }}">{{ $config[$src['field']]['label'] ?: 'Ausgewählt' }}</span>
                                         <button type="button" wire:click="openPicker('{{ $target }}')" class="text-xs text-[var(--ui-primary)] hover:underline">Ändern</button>
                                         <button type="button" wire:click="probeSource('{{ $target }}')" class="text-xs text-[var(--ui-primary)] hover:underline">Prüfen</button>
@@ -265,15 +270,16 @@
                                                     </button>
                                                 @empty
                                                     @unless($picker['error'])
-                                                        <div class="px-3 py-2 text-sm text-[var(--ui-muted)]">{{ $target === 'phone' ? 'Keine Unterordner oder Excel-Dateien.' : 'Keine Unterordner.' }}</div>
+                                                        <div class="px-3 py-2 text-sm text-[var(--ui-muted)]">{{ $target === 'phone' ? 'Keine Unterordner oder Excel-Dateien.' : 'Keine Unterordner oder Word-Dateien.' }}</div>
                                                     @endunless
                                                 @endforelse
                                             </div>
                                         </div>
                                         @php($here = end($picker['trail'])['at'] ?? [])
                                         @if($target === 'menu' && ($here['type'] ?? '') === 'folder')
-                                            <div class="px-3 py-2 border-t border-[var(--ui-border)] flex justify-end">
-                                                <x-ui-button type="button" variant="primary" size="sm" wire:click="pickerChooseFolder">Diesen Ordner wählen</x-ui-button>
+                                            <div class="px-3 py-2 border-t border-[var(--ui-border)] flex items-center gap-3">
+                                                <span class="flex-1 text-xs text-[var(--ui-muted)]">Word-Datei anklicken – oder den Ordner wählen, wenn jeden Monat eine neue Datei hineinkommt.</span>
+                                                <x-ui-button type="button" variant="secondary" size="sm" wire:click="pickerChooseFolder">Diesen Ordner wählen</x-ui-button>
                                             </div>
                                         @elseif($target === 'phone')
                                             <div class="px-3 py-2 border-t border-[var(--ui-border)] text-xs text-[var(--ui-muted)]">Excel-Datei anklicken, um sie zu übernehmen.</div>
@@ -281,10 +287,13 @@
                                     </div>
                                 @endif
 
-                                @if($target === 'menu')
-                                    <div class="text-xs text-[var(--ui-muted)] mt-2">Der Monatsplan wird im Ordner automatisch gesucht:</div>
+                                @php($menuItem = $config['menu_folder_item'] ?? null)
+                                @if($target === 'menu' && (($menuItem['kind'] ?? null) === 'folder' || (!$menuItem && ($config['menu_folder_url'] ?? '') !== '')))
+                                    <div class="text-xs text-[var(--ui-muted)] mt-2">Ordner gewählt – die Datei des Monats wird darin nach diesem Muster gesucht:</div>
                                     <input type="text" x-model="cfg.menu_file_pattern" class="mt-1 w-full px-3 py-1.5 rounded-lg border border-[var(--ui-border)] text-xs font-mono">
                                     <div class="text-xs text-[var(--ui-muted)] mt-1">Platzhalter: {JJJJ} Jahr, {MM} Monat zweistellig, {Monat} Monatsname.</div>
+                                @elseif($target === 'menu')
+                                    <div class="text-xs text-[var(--ui-muted)] mt-2">Die Tagesmenüs werden aus der Word-Datei gelesen. Kommt jeden Monat eine neue Datei, besser den Ordner wählen.</div>
                                 @else
                                     <div class="text-xs text-[var(--ui-muted)] mt-2">Spalten „Fahrer“ und „Nummer“/„Telefon“. Die manuelle Liste unter Touren ergänzt sie.</div>
                                 @endif

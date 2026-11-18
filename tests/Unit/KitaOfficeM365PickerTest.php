@@ -40,9 +40,11 @@ class KitaOfficeM365PickerTest extends TestCase
     public function test_drive_item_is_sanitized(): void
     {
         $this->assertSame(
-            ['drive_id' => 'b!AbC_-1', 'item_id' => '01XYZ', 'label' => 'AG - KITA OFFICE › Dokumente'],
+            ['drive_id' => 'b!AbC_-1', 'item_id' => '01XYZ', 'label' => 'AG - KITA OFFICE › Dokumente', 'kind' => 'folder'],
             KitaOfficeConfig::driveItem(['drive_id' => ' b!AbC_-1 ', 'item_id' => '01XYZ', 'label' => 'AG - KITA OFFICE › Dokumente', 'evil' => 1])
         );
+        $this->assertSame('file', KitaOfficeConfig::driveItem(['drive_id' => 'b!x', 'item_id' => '1', 'kind' => 'file'])['kind']);
+        $this->assertSame('folder', KitaOfficeConfig::driveItem(['drive_id' => 'b!x', 'item_id' => '1', 'kind' => 'evil'])['kind']);
         $this->assertNull(KitaOfficeConfig::driveItem(['drive_id' => 'b!x', 'item_id' => '../../me']));
         $this->assertNull(KitaOfficeConfig::driveItem(['drive_id' => 'a/b', 'item_id' => '1']));
         $this->assertNull(KitaOfficeConfig::driveItem('b!x'));
@@ -52,7 +54,7 @@ class KitaOfficeM365PickerTest extends TestCase
 
     public function test_selected_item_wins_over_link(): void
     {
-        $item = ['drive_id' => 'b!x', 'item_id' => '1', 'label' => ''];
+        $item = ['drive_id' => 'b!x', 'item_id' => '1', 'label' => '', 'kind' => 'folder'];
         $url = 'https://broichcatering.sharepoint.com/:f:/s/kita/abc';
 
         $this->assertSame($item, KitaOfficeConfig::source(['menu_folder_item' => $item, 'menu_folder_url' => $url], 'menu_folder_item', 'menu_folder_url'));
@@ -111,15 +113,49 @@ class KitaOfficeM365PickerTest extends TestCase
         $this->assertSame([], M365Source::browse($this->user(), 5, ['type' => 'folder', 'drive_id' => 'b!d1', 'item_id' => 'f2']));
     }
 
-    public function test_probe_menu_resolves_month_file_below_selected_folder(): void
+    public function test_probe_menu_looks_for_month_file_in_selected_folder(): void
     {
         $this->graph->responses['/drives/b!d1/items/f2'] = ['id' => 'f2', 'folder' => []];
-        $this->graph->fallback = fn (string $path) => str_starts_with($path, '/drives/b!d1/items/f2:/') ? ['id' => 'm', 'file' => []] : null;
+        $this->graph->fallback = function (string $path) {
+            if (str_starts_with($path, '/drives/b!d1/items/f2:/' . date('Y') . '/Speiseplan ')) {
+                // Monatsdatei gefunden, aber Download-URL zeigt nicht auf SharePoint → wird nicht geladen.
+                return ['id' => 'm', 'name' => 'Speiseplan.docx', 'file' => [], '@microsoft.graph.downloadUrl' => 'https://evil.example.com/x'];
+            }
 
-        $result = M365Source::probeMenu($this->user(), 5, ['drive_id' => 'b!d1', 'item_id' => 'f2', 'label' => ''], '{JJJJ}/Speiseplan {Monat}.docx');
+            return null;
+        };
 
-        $this->assertStringStartsWith('Gefunden: ' . date('Y') . '/Speiseplan ', $result);
-        $this->assertStringEndsWith('✓', $result);
+        $result = M365Source::probeMenu($this->user(), 5, ['drive_id' => 'b!d1', 'item_id' => 'f2', 'label' => '', 'kind' => 'folder'], '{JJJJ}/Speiseplan {Monat}.docx');
+
+        $this->assertSame('Datei ist nicht herunterladbar.', $result);
+    }
+
+    public function test_menu_file_selected_directly_ignores_month_pattern(): void
+    {
+        $this->graph->responses['/drives/b!d1/items/w1'] = ['id' => 'w1', 'name' => 'Speiseplan.docx', 'file' => [], '@microsoft.graph.downloadUrl' => 'https://evil.example.com/x'];
+
+        // Kein Aufruf mit Monatspfad – sonst würfe FakeGraph "Unerwarteter Graph-Aufruf".
+        $result = M365Source::probeMenu($this->user(), 5, ['drive_id' => 'b!d1', 'item_id' => 'w1', 'label' => '', 'kind' => 'file'], '{JJJJ}/x.docx');
+
+        $this->assertSame('Datei ist nicht herunterladbar.', $result);
+    }
+
+    public function test_probe_reports_missing_month_file_only_for_folders(): void
+    {
+        $this->graph->responses['/drives/b!d1/items/f2'] = ['id' => 'f2', 'folder' => []];
+        $this->graph->fallback = fn (string $path) => throw new NotFound();
+
+        $result = M365Source::probeMenu($this->user(), 5, ['drive_id' => 'b!d1', 'item_id' => 'f2', 'label' => '', 'kind' => 'folder'], '{JJJJ}/x.docx');
+        $this->assertStringStartsWith('Für diesen Monat noch keine Datei gefunden: ' . date('Y') . '/x.docx', $result);
+    }
+}
+
+/** 404 aus user-connectors (Namensraum zählt für die Fehlerzuordnung). */
+class NotFound extends \RuntimeException
+{
+    public function __construct()
+    {
+        parent::__construct('itemNotFound', 404);
     }
 }
 

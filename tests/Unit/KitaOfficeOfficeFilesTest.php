@@ -142,6 +142,7 @@ class KitaOfficeOfficeFilesTest extends TestCase
         $this->assertSame('', $cfg['menu_folder_url']);
         $this->assertSame('https://broichcatering.sharepoint.com/:x:/s/kita/abc', $cfg['phone_list_url']);
         $this->assertSame(OfficeFiles::DEFAULT_MENU_PATTERN, $cfg['menu_file_pattern']);
-        $this->assertSame('DFF24F5A-A951-4BEA-9829-A7D577507106', KitaOfficeConfig::sanitize([])['calendar_group_id']);
+        $this->assertSame('', KitaOfficeConfig::sanitize([])['calendar_group_id']);
+        $this->assertSame('DFF24F5A-A951-4BEA-9829-A7D577507106', KitaOfficeConfig::sanitize(['calendar_group_id' => 'DFF24F5A-A951-4BEA-9829-A7D577507106'])['calendar_group_id']);
     }
 }

@@ -162,9 +162,7 @@ class KitaOffice extends Component
         }
 
         if ($entry['type'] === 'file') {
-            if ($this->picker['target'] === 'phone') {
-                $this->choose($entry['drive_id'], $entry['item_id'], $entry['name']);
-            }
+            $this->choose($entry['drive_id'], $entry['item_id'], $entry['name']);
 
             return;
         }
@@ -239,7 +237,12 @@ class KitaOffice extends Component
             $labels[] = $fileName;
         }
 
-        $item = KitaOfficeConfig::driveItem(['drive_id' => $driveId, 'item_id' => $itemId, 'label' => implode(' › ', $labels)]);
+        $item = KitaOfficeConfig::driveItem([
+            'drive_id' => $driveId,
+            'item_id'  => $itemId,
+            'label'    => implode(' › ', $labels),
+            'kind'     => $fileName !== null ? 'file' : 'folder',
+        ]);
         if (!$item) {
             $this->picker['error'] = 'Auswahl konnte nicht übernommen werden.';
 
@@ -265,7 +268,7 @@ class KitaOffice extends Component
 
         $at = end($this->picker['trail'])['at'] ?? [];
         try {
-            $this->picker['entries'] = M365Source::browse($ctx[0], $ctx[1], $at, $this->picker['target'] === 'phone' ? '.xlsx' : '');
+            $this->picker['entries'] = M365Source::browse($ctx[0], $ctx[1], $at, $this->picker['target'] === 'phone' ? '.xlsx' : '.docx');
         } catch (\Throwable $e) {
             $this->picker['error'] = M365Source::editorError($e);
         }
@@ -329,8 +332,14 @@ class KitaOffice extends Component
             $m365Connections[] = ['id' => (int) $savedConn, 'label' => 'Verbindung von ' . ($owner?->name ?? 'unbekannt') . ' (beibehalten)'];
         }
 
+        // Wer liefert am Bildschirm aktuell die M365-Daten (gespeicherter Stand)?
+        $dataUserId = (int) (($media?->config ?? [])['m365_user_id'] ?? 0);
+        $m365DataUser = $dataUserId ? (\Platform\Core\Models\User::find($dataUserId)?->name ?? 'unbekannt') : null;
+
         return view('signage::livewire.apps.kitaoffice', [
             'm365Connections'        => $m365Connections,
+            'm365DataUser'           => $m365DataUser,
+            'm365SelfName'           => (string) ($user?->name ?? ''),
             'm365Present'            => M365Source::available(),
             'meinconnectConnections' => KitaOfficeBoardService::meinconnectConnectionsForUser($user),
             'meinconnectPresent'     => KitaOfficeBoardService::meinconnectAvailable(),

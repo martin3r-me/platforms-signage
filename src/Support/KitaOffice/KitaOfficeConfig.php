@@ -27,10 +27,10 @@ final class KitaOfficeConfig
             'dedefleet_connection_id' => null,
             // Microsoft 365 (platform-user-connectors): Connection des speichernden Users
             'm365_connection_id'      => null,
-            'calendar_group_id'       => 'DFF24F5A-A951-4BEA-9829-A7D577507106',   // AG - KITA OFFICE
+            'calendar_group_id'       => '',   // M365-Gruppe (im Editor ausgewählt)
             'calendar_days'           => 7,
             'menu_folder_url'         => '',   // SharePoint-Link auf den Ordner "Speisepläne"
-            'menu_folder_item'        => null, // im Editor ausgewählter Ordner (hat Vorrang vor dem Link)
+            'menu_folder_item'        => null, // im Editor ausgewählte Datei oder Ordner (hat Vorrang vor dem Link)
             'menu_file_pattern'       => OfficeFiles::DEFAULT_MENU_PATTERN,
             'phone_list_url'          => '',   // SharePoint-Link auf "Telefonliste Logistik.xlsx"
             'phone_list_item'         => null, // im Editor ausgewählte Datei (hat Vorrang vor dem Link)
@@ -126,7 +126,9 @@ final class KitaOfficeConfig
      * Im Editor ausgewählte SharePoint-Datei bzw. -Ordner: feste Graph-Kennung (Laufwerk + Element)
      * statt Freigabelink – übersteht Umbenennen/Verschieben, läuft nicht ab. `label` ist nur Anzeige.
      *
-     * @return array{drive_id:string, item_id:string, label:string}|null
+     * `kind` = file (Datei direkt) | folder (Monatsdatei per Muster darin).
+     *
+     * @return array{drive_id:string, item_id:string, label:string, kind:string}|null
      */
     public static function driveItem($v): ?array
     {
@@ -141,7 +143,9 @@ final class KitaOfficeConfig
         }
         $label = is_scalar($v['label'] ?? null) ? mb_substr(trim((string) $v['label']), 0, 300) : '';
 
-        return ['drive_id' => $drive, 'item_id' => $item, 'label' => $label];
+        $kind = ($v['kind'] ?? null) === 'file' ? 'file' : 'folder';
+
+        return ['drive_id' => $drive, 'item_id' => $item, 'label' => $label, 'kind' => $kind];
     }
 
     /** Quelle für Graph: ausgewählte Datei/Ordner, sonst der Link, sonst null. */
