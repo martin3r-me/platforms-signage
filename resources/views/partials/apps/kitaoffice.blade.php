@@ -451,7 +451,7 @@
                 if (cfg.preview_config) {
                     const pick = {};
                     ['meinconnect_connection_id', 'dedefleet_connection_id', 'm365_connection_id', 'calendar_group_id', 'calendar_days',
-                     'menu_folder_url', 'menu_file_pattern', 'phone_list_url', 'boxes_per_page', 'offline_minutes', 'door_warning_minutes',
+                     'menu_folder_url', 'menu_folder_item', 'menu_file_pattern', 'phone_list_url', 'phone_list_item', 'boxes_per_page', 'offline_minutes', 'door_warning_minutes',
                      'door_warning_until', 'hide_pickups', 'strip_prefixes', 'driver_aliases', 'whatsapp_only', 'drivers', 'facility_phones', 'box_strip_prefixes']
                         .forEach(function (k) { pick[k] = cfg[k]; });
                     url += (url.indexOf('?') >= 0 ? '&' : '?') + 'cfg=' + encodeURIComponent(JSON.stringify(pick));

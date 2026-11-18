@@ -108,13 +108,13 @@ final class M365Source
     }
 
     /** Drei Tagesmenüs des heutigen Tages aus dem Monatsplan im SharePoint-Ordner. */
-    public static function menus(User $user, int $connectionId, string $folderUrl, string $pattern): array
+    public static function menus(User $user, int $connectionId, array|string $folder, string $pattern): array
     {
         $day = CarbonImmutable::now('Europe/Berlin')->startOfDay();
         $path = OfficeFiles::menuPath($pattern, $day->toDateTimeImmutable());
 
-        return self::cached($user, $connectionId, 'menu', [$folderUrl, $path, $day->toDateString()], function () use ($user, $connectionId, $folderUrl, $path, $day) {
-            $file = self::download($user, $connectionId, $folderUrl, $path);
+        return self::cached($user, $connectionId, 'menu', [self::sourceKey($folder), $path, $day->toDateString()], function () use ($user, $connectionId, $folder, $path, $day) {
+            $file = self::download($user, $connectionId, $folder, $path);
             $menus = OfficeFiles::menusFromDocx($file['bytes'], $day->toDateTimeImmutable());
             if ($menus === null) {
                 throw new RuntimeException('Im Speiseplan fehlen die drei Tagesmenüs für heute.');
@@ -125,10 +125,10 @@ final class M365Source
     }
 
     /** Fahrer + Telefonnummer aus der Telefonliste (XLSX). */
-    public static function contacts(User $user, int $connectionId, string $fileUrl): array
+    public static function contacts(User $user, int $connectionId, array|string $file): array
     {
-        return self::cached($user, $connectionId, 'phones', [$fileUrl], function () use ($user, $connectionId, $fileUrl) {
-            $file = self::download($user, $connectionId, $fileUrl, null);
+        return self::cached($user, $connectionId, 'phones', [self::sourceKey($file)], function () use ($user, $connectionId, $file) {
+            $file = self::download($user, $connectionId, $file, null);
 
             return ['contacts' => OfficeFiles::contactsFromXlsx($file['bytes']), 'file' => $file['name'], 'modified_at' => $file['modified_at']];
         });
@@ -171,26 +171,42 @@ final class M365Source
     }
 
     /**
-     * Datei über einen SharePoint-/OneDrive-Link laden; optional ein Pfad relativ zum
-     * verlinkten Ordner. Download über die vorab signierte URL (ohne Bearer-Token).
+     * Element hinter einer Quelle: ausgewählte Datei/Ordner (drive_id + item_id) oder
+     * SharePoint-/OneDrive-Link; optional ein Pfad relativ zum Ordner.
+     */
+    private static function item(object $api, User $user, array|string $source, ?string $relPath): array
+    {
+        if (is_array($source)) {
+            $driveId = (string) $source['drive_id'];
+            $item = $api->get($user, '/drives/' . $api::segment($driveId) . '/items/' . $api::segment((string) $source['item_id']));
+        } else {
+            $shareId = 'u!' . rtrim(strtr(base64_encode($source), '+/', '-_'), '=');
+            $item = $api->get($user, '/shares/' . $shareId . '/driveItem');
+            $driveId = (string) ($item['parentReference']['driveId'] ?? '');
+        }
+
+        if ($relPath === null) {
+            return $item;
+        }
+        if ($driveId === '' || empty($item['id']) || !isset($item['folder'])) {
+            throw new RuntimeException('Speiseplan-Ordner nicht gefunden.');
+        }
+        $segments = array_map(fn ($s) => rawurlencode($s), array_filter(explode('/', $relPath), fn ($s) => $s !== '' && $s !== '.' && $s !== '..'));
+
+        return $api->get($user, '/drives/' . $api::segment($driveId) . '/items/' . $api::segment((string) $item['id']) . ':/' . implode('/', $segments) . ':');
+    }
+
+    /**
+     * Datei laden (siehe item()). Download über die vorab signierte URL (ohne Bearer-Token).
      *
      * @return array{bytes:string, name:string, modified_at:?string}
      */
-    private static function download(User $user, int $connectionId, string $url, ?string $relPath): array
+    private static function download(User $user, int $connectionId, array|string $source, ?string $relPath): array
     {
         $api = app(self::API)->forConnection($connectionId);
-        $shareId = 'u!' . rtrim(strtr(base64_encode($url), '+/', '-_'), '=');
-        $item = $api->get($user, '/shares/' . $shareId . '/driveItem');
-
-        if ($relPath !== null) {
-            $driveId = (string) ($item['parentReference']['driveId'] ?? '');
-            if ($driveId === '' || empty($item['id'])) {
-                throw new RuntimeException('Speiseplan-Ordner nicht gefunden.');
-            }
-            $segments = array_map(fn ($s) => rawurlencode($s), array_filter(explode('/', $relPath), fn ($s) => $s !== '' && $s !== '.' && $s !== '..'));
-            $item = $api->get($user, '/drives/' . $api::segment($driveId) . '/items/' . $api::segment((string) $item['id']) . ':/' . implode('/', $segments) . ':');
-        } elseif (!empty($item['folder'])) {
-            throw new RuntimeException('Link zeigt auf einen Ordner statt auf die Telefonliste.');
+        $item = self::item($api, $user, $source, $relPath);
+        if ($relPath === null && isset($item['folder'])) {
+            throw new RuntimeException('Ausgewählt ist ein Ordner statt der Telefonliste.');
         }
 
         $downloadUrl = (string) ($item['@microsoft.graph.downloadUrl'] ?? '');
@@ -212,6 +228,144 @@ final class M365Source
             'name'        => (string) ($item['name'] ?? ''),
             'modified_at' => isset($item['lastModifiedDateTime']) ? (string) $item['lastModifiedDateTime'] : null,
         ];
+    }
+
+    private static function sourceKey(array|string $source): string
+    {
+        return is_array($source) ? 'item:' . $source['drive_id'] . '/' . $source['item_id'] : 'url:' . $source;
+    }
+
+    // ------------------------------------------------------------------
+    // Editor: Auswahl von Kalender-Gruppe, Ordner und Datei (immer als angemeldeter User,
+    // nur mit einer Connection, die er selbst nutzen darf – prüft der Aufrufer).
+    // ------------------------------------------------------------------
+
+    /**
+     * Microsoft-365-Gruppen (mit Gruppenkalender + SharePoint), in denen das Konto Mitglied ist.
+     *
+     * @return list<array{id:string, name:string}>
+     */
+    public static function groups(User $user, int $connectionId): array
+    {
+        $api = app(self::API)->forConnection($connectionId);
+        $res = $api->get($user, '/me/memberOf', ['$select' => 'id,displayName,groupTypes', '$top' => 999]);
+
+        $groups = [];
+        for ($page = 0; ; $page++) {
+            foreach ((array) ($res['value'] ?? []) as $g) {
+                if (($g['@odata.type'] ?? '') === '#microsoft.graph.group' && in_array('Unified', (array) ($g['groupTypes'] ?? []), true) && !empty($g['id'])) {
+                    $groups[] = ['id' => (string) $g['id'], 'name' => (string) ($g['displayName'] ?? $g['id'])];
+                }
+            }
+            if ($page >= 4 || empty($res['@odata.nextLink'])) {
+                break;
+            }
+            $res = $api->getNextPage($user, (string) $res['@odata.nextLink']);
+        }
+
+        usort($groups, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
+
+        return $groups;
+    }
+
+    /**
+     * Eine Ebene des SharePoint-Browsers.
+     *   []                                   → Gruppen (deren Dokumentbibliothek) + gefolgte Websites
+     *   ['type'=>'group','id'=>…]            → Bibliotheken der Gruppen-Website
+     *   ['type'=>'site','id'=>…]             → Bibliotheken der Website
+     *   ['type'=>'folder','drive_id'=>…, 'item_id'=>…|'root'] → Unterordner + Dateien
+     *
+     * Einträge: {type: group|site|drive|folder|file, name, ...ids}. Dateien nur mit $fileExt.
+     *
+     * @return list<array<string, string>>
+     */
+    public static function browse(User $user, int $connectionId, array $at, string $fileExt = ''): array
+    {
+        $api = app(self::API)->forConnection($connectionId);
+        $type = (string) ($at['type'] ?? '');
+
+        if ($type === '') {
+            $entries = array_map(fn ($g) => ['type' => 'group', 'id' => $g['id'], 'name' => $g['name']], self::groups($user, $connectionId));
+            try {
+                $sites = $api->get($user, '/me/followedSites', ['$select' => 'id,displayName,name']);
+                foreach ((array) ($sites['value'] ?? []) as $site) {
+                    if (!empty($site['id'])) {
+                        $entries[] = ['type' => 'site', 'id' => (string) $site['id'], 'name' => (string) ($site['displayName'] ?? $site['name'] ?? 'Website')];
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Gefolgte Websites sind optional – Gruppen reichen für den Einstieg.
+            }
+
+            return $entries;
+        }
+
+        if ($type === 'group' || $type === 'site') {
+            $path = ($type === 'group' ? '/groups/' : '/sites/') . $api::segment((string) $at['id']) . '/drives';
+            $res = $api->get($user, $path, ['$select' => 'id,name']);
+
+            return array_values(array_map(
+                fn ($d) => ['type' => 'drive', 'drive_id' => (string) $d['id'], 'item_id' => 'root', 'name' => (string) ($d['name'] ?? 'Dokumente')],
+                array_filter((array) ($res['value'] ?? []), fn ($d) => !empty($d['id']))
+            ));
+        }
+
+        $driveId = (string) ($at['drive_id'] ?? '');
+        $itemId = (string) ($at['item_id'] ?? 'root');
+        $base = '/drives/' . $api::segment($driveId) . ($itemId === 'root' ? '/root' : '/items/' . $api::segment($itemId));
+        $res = $api->get($user, $base . '/children', ['$select' => 'id,name,folder,file', '$top' => 500]);
+
+        $folders = $files = [];
+        foreach ((array) ($res['value'] ?? []) as $c) {
+            if (empty($c['id'])) {
+                continue;
+            }
+            $row = ['drive_id' => $driveId, 'item_id' => (string) $c['id'], 'name' => (string) ($c['name'] ?? '')];
+            if (isset($c['folder'])) {
+                $folders[] = ['type' => 'folder'] + $row;
+            } elseif ($fileExt !== '' && str_ends_with(mb_strtolower($row['name']), $fileExt)) {
+                $files[] = ['type' => 'file'] + $row;
+            }
+        }
+        $byName = fn ($a, $b) => strnatcasecmp($a['name'], $b['name']);
+        usort($folders, $byName);
+        usort($files, $byName);
+
+        return array_merge($folders, $files);
+    }
+
+    /** Sofort-Prüfung im Editor: Findet sich im Ordner der Speiseplan für heute? */
+    public static function probeMenu(User $user, int $connectionId, array|string $folder, string $pattern): string
+    {
+        $path = OfficeFiles::menuPath($pattern, CarbonImmutable::now('Europe/Berlin')->toDateTimeImmutable());
+        try {
+            $api = app(self::API)->forConnection($connectionId);
+            $item = self::item($api, $user, $folder, $path);
+
+            return 'Gefunden: ' . $path . (!isset($item['file']) ? ' (ist aber ein Ordner)' : ' ✓');
+        } catch (\Throwable $e) {
+            return (int) $e->getCode() === 404 && str_starts_with($e::class, 'Platform\\UserConnectors\\')
+                ? 'Für diesen Monat noch keine Datei gefunden: ' . $path
+                : self::publicError($e);
+        }
+    }
+
+    /** Sofort-Prüfung im Editor: Wie viele Fahrer liest die Telefonliste? */
+    public static function probeContacts(User $user, int $connectionId, array|string $file): string
+    {
+        try {
+            $count = count(OfficeFiles::contactsFromXlsx(self::download($user, $connectionId, $file, null)['bytes']));
+
+            return $count > 0 ? $count . ' Einträge gelesen ✓' : 'Keine Einträge gefunden – Spalten „Fahrer“ und „Nummer“/„Telefon“ prüfen.';
+        } catch (\Throwable $e) {
+            return self::publicError($e);
+        }
+    }
+
+    /** Öffentliche Meldung für den Editor (gleiche Texte wie am Bildschirm). */
+    public static function editorError(\Throwable $e): string
+    {
+        return self::publicError($e);
     }
 
     private static function utc(?string $graph): ?string

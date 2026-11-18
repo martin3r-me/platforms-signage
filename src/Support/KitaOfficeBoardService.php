@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Platform\Core\Models\User;
 use Platform\Signage\Support\KitaOffice\BoxRules;
 use Platform\Signage\Support\KitaOffice\DriverDirectory;
+use Platform\Signage\Support\KitaOffice\KitaOfficeConfig;
 use Platform\Signage\Support\KitaOffice\M365Source;
 
 /**
@@ -91,14 +92,15 @@ class KitaOfficeBoardService
 
     private static function menus(?User $user, array $config): array
     {
-        if ($config['menu_folder_url'] === '') {
+        $folder = KitaOfficeConfig::source($config, 'menu_folder_item', 'menu_folder_url');
+        if ($folder === null) {
             return ['available' => false, 'error' => 'Speiseplan-Ordner nicht hinterlegt.'];
         }
         if ($missing = self::m365Missing($user, $config)) {
             return ['available' => false, 'error' => $missing];
         }
 
-        return ['available' => true] + M365Source::menus($user, (int) $config['m365_connection_id'], $config['menu_folder_url'], $config['menu_file_pattern']);
+        return ['available' => true] + M365Source::menus($user, (int) $config['m365_connection_id'], $folder, $config['menu_file_pattern']);
     }
 
     private static function calendar(?User $user, array $config): array
@@ -121,11 +123,12 @@ class KitaOfficeBoardService
     private static function phoneList(?User $user, array $config): array
     {
         $manual = $config['drivers'] ?? [];
-        if ($config['phone_list_url'] === '' || self::m365Missing($user, $config)) {
+        $file = KitaOfficeConfig::source($config, 'phone_list_item', 'phone_list_url');
+        if ($file === null || self::m365Missing($user, $config)) {
             return ['contacts' => $manual, 'source' => ['kind' => $manual ? 'manual' : 'none']];
         }
 
-        $list = M365Source::contacts($user, (int) $config['m365_connection_id'], $config['phone_list_url']);
+        $list = M365Source::contacts($user, (int) $config['m365_connection_id'], $file);
         $contacts = $list['contacts'] ?? [];
         $seen = [];
         foreach ($contacts as $c) {

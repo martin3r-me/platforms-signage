@@ -32,7 +32,8 @@
                     window.addEventListener('message', (e) => { if (e.data && e.data.__signagePreviewReady) this.send(); });
                 }
              }"
-             x-on:input.debounce.400ms="send()">
+             x-on:input.debounce.400ms="send()"
+             x-on:kitaoffice-config-updated.window="$nextTick(() => send())">
 
             <x-signage-panel icon="eye" title="Vorschau" subtitle="Live-Daten mit deinen Verbindungen">
                 <div class="p-4">
@@ -164,7 +165,7 @@
                         @endunless
                         <div>
                             <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Microsoft-365-Verbindung</label>
-                            <select x-model="cfg.m365_connection_id" x-on:change="send()"
+                            <select x-model="cfg.m365_connection_id" x-on:change="send(); $wire.loadGroups()"
                                     class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
                                 <option value="">– kein Microsoft 365 –</option>
                                 @foreach($m365Connections as $c)
@@ -177,28 +178,126 @@
                                 diese Verbindung ab und zeigt nur, was ihr Konto in Microsoft 365 sehen darf.
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" wire:init="loadGroups">
                             <div class="sm:col-span-2">
-                                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Kalender: Gruppen-ID</label>
-                                <input type="text" x-model="cfg.calendar_group_id" placeholder="DFF24F5A-…" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm font-mono">
+                                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Kalender der Gruppe</label>
+                                @php($groupIds = array_column($m365Groups, 'id'))
+                                <select x-model="cfg.calendar_group_id" x-on:change="send()" wire:key="kita-groups-{{ md5(implode(',', $groupIds)) }}"
+                                        class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-white text-sm">
+                                    <option value="">– kein Kalender –</option>
+                                    @foreach($m365Groups as $g)
+                                        <option value="{{ $g['id'] }}">{{ $g['name'] }}</option>
+                                    @endforeach
+                                    @if(($config['calendar_group_id'] ?? '') !== '' && !in_array(strtolower($config['calendar_group_id']), array_map('strtolower', $groupIds), true))
+                                        <option value="{{ $config['calendar_group_id'] }}">Gruppe {{ \Illuminate\Support\Str::limit($config['calendar_group_id'], 13) }} (nicht in deinen Gruppen)</option>
+                                    @endif
+                                </select>
+                                <div wire:loading wire:target="loadGroups" class="text-xs text-[var(--ui-muted)] mt-1">Gruppen werden geladen …</div>
+                                @if($m365GroupsError)
+                                    <div class="text-xs text-red-600 mt-1">{{ $m365GroupsError }}</div>
+                                @elseif(($config['m365_connection_id'] ?? null) && $m365Groups === [])
+                                    <div wire:loading.remove wire:target="loadGroups" class="text-xs text-[var(--ui-muted)] mt-1">Keine Microsoft-365-Gruppen für dieses Konto gefunden.</div>
+                                @else
+                                    <div class="text-xs text-[var(--ui-muted)] mt-1">Zur Auswahl stehen die Gruppen, in denen das Konto der Verbindung Mitglied ist.</div>
+                                @endif
+                                <details class="mt-1">
+                                    <summary class="text-xs text-[var(--ui-muted)] cursor-pointer">Gruppen-ID manuell eingeben</summary>
+                                    <input type="text" x-model="cfg.calendar_group_id" placeholder="DFF24F5A-…" class="mt-1 w-full px-3 py-1.5 rounded-lg border border-[var(--ui-border)] text-xs font-mono">
+                                </details>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Tage im Voraus</label>
                                 <input type="number" min="1" max="31" x-model.number="cfg.calendar_days" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm">
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Speiseplan: Link auf den Ordner „Speisepläne“</label>
-                            <input type="url" x-model="cfg.menu_folder_url" placeholder="https://….sharepoint.com/…" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm">
-                            <div class="text-xs text-[var(--ui-muted)] mt-1">In SharePoint am Ordner „Teilen → Link kopieren“. Der Monatsplan wird darin automatisch gesucht:</div>
-                            <input type="text" x-model="cfg.menu_file_pattern" class="mt-1 w-full px-3 py-1.5 rounded-lg border border-[var(--ui-border)] text-xs font-mono">
-                            <div class="text-xs text-[var(--ui-muted)] mt-1">Platzhalter: {JJJJ} Jahr, {MM} Monat zweistellig, {Monat} Monatsname.</div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">Telefonliste: Link auf „Telefonliste Logistik.xlsx“</label>
-                            <input type="url" x-model="cfg.phone_list_url" placeholder="https://….sharepoint.com/…" class="w-full px-3 py-2 rounded-lg border border-[var(--ui-border)] text-sm">
-                            <div class="text-xs text-[var(--ui-muted)] mt-1">Spalten „Fahrer“ und „Nummer“/„Telefon“. Die manuelle Liste unter Touren ergänzt sie.</div>
-                        </div>
+
+                        @foreach([
+                            'menu'  => ['field' => 'menu_folder_item', 'url' => 'menu_folder_url', 'label' => 'Speiseplan: Ordner „Speisepläne“', 'icon' => 'heroicon-o-folder', 'button' => 'Ordner in SharePoint auswählen'],
+                            'phone' => ['field' => 'phone_list_item', 'url' => 'phone_list_url', 'label' => 'Telefonliste: „Telefonliste Logistik.xlsx“', 'icon' => 'heroicon-o-table-cells', 'button' => 'Datei in SharePoint auswählen'],
+                        ] as $target => $src)
+                            <div>
+                                <label class="block text-sm font-medium text-[var(--ui-secondary)] mb-1">{{ $src['label'] }}</label>
+                                @if(!empty($config[$src['field']]))
+                                    <div class="flex items-center gap-2 px-3 py-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-muted-5)] text-sm">
+                                        @svg($src['icon'], 'w-4 h-4 shrink-0 text-[var(--ui-muted)]')
+                                        <span class="flex-1 truncate" title="{{ $config[$src['field']]['label'] }}">{{ $config[$src['field']]['label'] ?: 'Ausgewählt' }}</span>
+                                        <button type="button" wire:click="openPicker('{{ $target }}')" class="text-xs text-[var(--ui-primary)] hover:underline">Ändern</button>
+                                        <button type="button" wire:click="probeSource('{{ $target }}')" class="text-xs text-[var(--ui-primary)] hover:underline">Prüfen</button>
+                                        <button type="button" wire:click="clearSource('{{ $target }}')" class="text-[var(--ui-muted)] hover:text-red-600" title="Auswahl entfernen">@svg('heroicon-o-x-mark', 'w-4 h-4')</button>
+                                    </div>
+                                @else
+                                    <x-ui-button type="button" variant="secondary" size="sm" wire:click="openPicker('{{ $target }}')">{{ $src['button'] }}</x-ui-button>
+                                @endif
+                                <div wire:loading wire:target="probeSource('{{ $target }}')" class="text-xs text-[var(--ui-muted)] mt-1">Wird geprüft …</div>
+                                @if($probe[$target])
+                                    <div wire:loading.remove wire:target="probeSource('{{ $target }}')" class="text-xs mt-1 {{ str_ends_with($probe[$target], '✓') ? 'text-green-700' : 'text-amber-700' }}">{{ $probe[$target] }}</div>
+                                @endif
+
+                                @if($picker['target'] === $target)
+                                    <div class="mt-2 rounded-lg border border-[var(--ui-border)] bg-white">
+                                        <div class="flex items-center gap-1 flex-wrap px-3 py-2 border-b border-[var(--ui-border)] text-xs">
+                                            @foreach($picker['trail'] as $level => $crumb)
+                                                @if($level > 0)
+                                                    <span class="text-[var(--ui-muted)]">›</span>
+                                                @endif
+                                                @if($level < count($picker['trail']) - 1)
+                                                    <button type="button" wire:click="pickerBack({{ $level }})" class="text-[var(--ui-primary)] hover:underline">{{ $crumb['label'] }}</button>
+                                                @else
+                                                    <span class="font-medium">{{ $crumb['label'] }}</span>
+                                                @endif
+                                            @endforeach
+                                            <button type="button" wire:click="closePicker" class="ml-auto text-[var(--ui-muted)] hover:text-[var(--ui-secondary)]" title="Schließen">@svg('heroicon-o-x-mark', 'w-4 h-4')</button>
+                                        </div>
+                                        <div class="max-h-64 overflow-y-auto divide-y divide-[var(--ui-border)]/50">
+                                            <div wire:loading.flex wire:target="openPicker, pickerOpen, pickerBack" class="px-3 py-2 text-sm text-[var(--ui-muted)]">Wird geladen …</div>
+                                            <div wire:loading.remove wire:target="openPicker, pickerOpen, pickerBack">
+                                                @if($picker['error'])
+                                                    <div class="px-3 py-2 text-sm text-red-600">{{ $picker['error'] }}</div>
+                                                @endif
+                                                @forelse($picker['entries'] as $i => $entry)
+                                                    <button type="button" wire:click="pickerOpen({{ $i }})"
+                                                            class="w-full flex items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--ui-muted-5)]">
+                                                        @svg(match($entry['type']) { 'group' => 'heroicon-o-user-group', 'site' => 'heroicon-o-globe-alt', 'drive' => 'heroicon-o-building-library', 'file' => 'heroicon-o-table-cells', default => 'heroicon-o-folder' }, 'w-4 h-4 shrink-0 text-[var(--ui-muted)]')
+                                                        <span class="flex-1 truncate">{{ $entry['name'] }}</span>
+                                                        @if($entry['type'] !== 'file')
+                                                            @svg('heroicon-o-chevron-right', 'w-4 h-4 text-[var(--ui-muted)]')
+                                                        @endif
+                                                    </button>
+                                                @empty
+                                                    @unless($picker['error'])
+                                                        <div class="px-3 py-2 text-sm text-[var(--ui-muted)]">{{ $target === 'phone' ? 'Keine Unterordner oder Excel-Dateien.' : 'Keine Unterordner.' }}</div>
+                                                    @endunless
+                                                @endforelse
+                                            </div>
+                                        </div>
+                                        @php($here = end($picker['trail'])['at'] ?? [])
+                                        @if($target === 'menu' && ($here['type'] ?? '') === 'folder')
+                                            <div class="px-3 py-2 border-t border-[var(--ui-border)] flex justify-end">
+                                                <x-ui-button type="button" variant="primary" size="sm" wire:click="pickerChooseFolder">Diesen Ordner wählen</x-ui-button>
+                                            </div>
+                                        @elseif($target === 'phone')
+                                            <div class="px-3 py-2 border-t border-[var(--ui-border)] text-xs text-[var(--ui-muted)]">Excel-Datei anklicken, um sie zu übernehmen.</div>
+                                        @endif
+                                    </div>
+                                @endif
+
+                                @if($target === 'menu')
+                                    <div class="text-xs text-[var(--ui-muted)] mt-2">Der Monatsplan wird im Ordner automatisch gesucht:</div>
+                                    <input type="text" x-model="cfg.menu_file_pattern" class="mt-1 w-full px-3 py-1.5 rounded-lg border border-[var(--ui-border)] text-xs font-mono">
+                                    <div class="text-xs text-[var(--ui-muted)] mt-1">Platzhalter: {JJJJ} Jahr, {MM} Monat zweistellig, {Monat} Monatsname.</div>
+                                @else
+                                    <div class="text-xs text-[var(--ui-muted)] mt-2">Spalten „Fahrer“ und „Nummer“/„Telefon“. Die manuelle Liste unter Touren ergänzt sie.</div>
+                                @endif
+
+                                @if(empty($config[$src['field']]))
+                                    <details class="mt-1" @if(($config[$src['url']] ?? '') !== '') open @endif>
+                                        <summary class="text-xs text-[var(--ui-muted)] cursor-pointer">Alternativ: SharePoint-Link einfügen</summary>
+                                        <input type="url" x-model="cfg.{{ $src['url'] }}" placeholder="https://….sharepoint.com/…" class="mt-1 w-full px-3 py-1.5 rounded-lg border border-[var(--ui-border)] text-xs">
+                                        <div class="text-xs text-[var(--ui-muted)] mt-1">In SharePoint „Teilen → Link kopieren“. Eine Auswahl oben hat Vorrang.</div>
+                                    </details>
+                                @endif
+                            </div>
+                        @endforeach
                     </div>
                 </x-signage-panel>
 

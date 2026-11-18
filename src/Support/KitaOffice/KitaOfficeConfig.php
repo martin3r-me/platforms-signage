@@ -30,8 +30,10 @@ final class KitaOfficeConfig
             'calendar_group_id'       => 'DFF24F5A-A951-4BEA-9829-A7D577507106',   // AG - KITA OFFICE
             'calendar_days'           => 7,
             'menu_folder_url'         => '',   // SharePoint-Link auf den Ordner "Speisepläne"
+            'menu_folder_item'        => null, // im Editor ausgewählter Ordner (hat Vorrang vor dem Link)
             'menu_file_pattern'       => OfficeFiles::DEFAULT_MENU_PATTERN,
             'phone_list_url'          => '',   // SharePoint-Link auf "Telefonliste Logistik.xlsx"
+            'phone_list_item'         => null, // im Editor ausgewählte Datei (hat Vorrang vor dem Link)
             'city'                    => 'Düsseldorf',
             'latitude'                => 51.23,
             'longitude'               => 6.78,
@@ -83,8 +85,10 @@ final class KitaOfficeConfig
             'calendar_group_id'         => self::guid($cfg['calendar_group_id'] ?? $d['calendar_group_id']),
             'calendar_days'             => $int($cfg['calendar_days'] ?? null, 1, 31, $d['calendar_days']),
             'menu_folder_url'           => self::sharePointUrl($cfg['menu_folder_url'] ?? ''),
+            'menu_folder_item'          => self::driveItem($cfg['menu_folder_item'] ?? null),
             'menu_file_pattern'         => self::pattern($cfg['menu_file_pattern'] ?? $d['menu_file_pattern']),
             'phone_list_url'            => self::sharePointUrl($cfg['phone_list_url'] ?? ''),
+            'phone_list_item'           => self::driveItem($cfg['phone_list_item'] ?? null),
             'city'                      => $str($cfg['city'] ?? $d['city'], 80),
             'latitude'                  => $float($cfg['latitude'] ?? null, -90, 90, $d['latitude']),
             'longitude'                 => $float($cfg['longitude'] ?? null, -180, 180, $d['longitude']),
@@ -116,6 +120,38 @@ final class KitaOfficeConfig
         $host = (string) parse_url($v, PHP_URL_HOST);
 
         return strlen($v) <= 2000 && str_starts_with($v, 'https://') && preg_match('~(^|\.)sharepoint\.com$~i', $host) ? $v : '';
+    }
+
+    /**
+     * Im Editor ausgewählte SharePoint-Datei bzw. -Ordner: feste Graph-Kennung (Laufwerk + Element)
+     * statt Freigabelink – übersteht Umbenennen/Verschieben, läuft nicht ab. `label` ist nur Anzeige.
+     *
+     * @return array{drive_id:string, item_id:string, label:string}|null
+     */
+    public static function driveItem($v): ?array
+    {
+        if (!is_array($v)) {
+            return null;
+        }
+        $drive = trim((string) (is_scalar($v['drive_id'] ?? null) ? $v['drive_id'] : ''));
+        $item = trim((string) (is_scalar($v['item_id'] ?? null) ? $v['item_id'] : ''));
+        $ok = static fn (string $s) => preg_match('~^[A-Za-z0-9!_\-]{1,200}$~', $s) === 1;
+        if (!$ok($drive) || !$ok($item)) {
+            return null;
+        }
+        $label = is_scalar($v['label'] ?? null) ? mb_substr(trim((string) $v['label']), 0, 300) : '';
+
+        return ['drive_id' => $drive, 'item_id' => $item, 'label' => $label];
+    }
+
+    /** Quelle für Graph: ausgewählte Datei/Ordner, sonst der Link, sonst null. */
+    public static function source(array $config, string $item, string $url): array|string|null
+    {
+        if (!empty($config[$item])) {
+            return $config[$item];
+        }
+
+        return ($config[$url] ?? '') !== '' ? $config[$url] : null;
     }
 
     private static function pattern($v): string
